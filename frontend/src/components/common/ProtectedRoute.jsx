@@ -3,7 +3,9 @@ import { useAuthStore } from '../../stores/authStore';
 import LoadingSpinner from './LoadingSpinner';
 
 export default function ProtectedRoute({ allowedRoles }) {
-  const { isLoading, isAuthenticated, user } = useAuthStore();
+  const isLoading = useAuthStore((state) => state.isLoading);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const user = useAuthStore((state) => state.user);
 
   if (isLoading) {
     return <LoadingSpinner />;
