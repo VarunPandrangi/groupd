@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Users, FileText, BarChart3 } from 'lucide-react';
+import { Users, FileText, ChartBar } from '@phosphor-icons/react';
 
 const features = [
   {
@@ -13,7 +13,7 @@ const features = [
     description: 'Track every assignment, due date, and submission link — never miss a deadline.',
   },
   {
-    icon: BarChart3,
+    icon: ChartBar,
     title: 'Progress',
     description: 'Visual dashboards and completion tracking for students and professors alike.',
   },
@@ -176,21 +176,41 @@ export default function LandingPage() {
             >
               JoinEazy
             </span>
-            <Link
-              to="/login"
-              style={{
-                color: 'var(--text-secondary)',
-                textDecoration: 'none',
-                fontFamily: 'var(--font-body)',
-                fontSize: '0.875rem',
-                fontWeight: 500,
-                transition: 'color 0.2s ease',
-              }}
-              onMouseOver={(e) => (e.target.style.color = 'var(--text-primary)')}
-              onMouseOut={(e) => (e.target.style.color = 'var(--text-secondary)')}
-            >
-              Sign In →
-            </Link>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+              <Link
+                to="/login"
+                style={{
+                  color: 'var(--text-secondary)',
+                  textDecoration: 'none',
+                  fontFamily: 'var(--font-body)',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  transition: 'color 0.2s ease',
+                }}
+                onMouseOver={(e) => (e.target.style.color = 'var(--text-primary)')}
+                onMouseOut={(e) => (e.target.style.color = 'var(--text-secondary)')}
+              >
+                Sign In →
+              </Link>
+              <Link
+                to="/register"
+                style={{
+                  color: '#fff',
+                  textDecoration: 'none',
+                  fontFamily: 'var(--font-body)',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  background: 'var(--accent-primary)',
+                  padding: '8px 18px',
+                  borderRadius: '8px',
+                  transition: 'opacity 0.2s ease, transform 0.15s ease',
+                }}
+                onMouseOver={(e) => { e.target.style.opacity = '0.9'; e.target.style.transform = 'translateY(-1px)'; }}
+                onMouseOut={(e) => { e.target.style.opacity = '1'; e.target.style.transform = 'translateY(0)'; }}
+              >
+                Register
+              </Link>
+            </div>
           </header>
 
           {/* Hero */}
