@@ -7,6 +7,7 @@ import { corsOptions } from './config/cors.js';
 import { generalLimiter, authLimiter } from './middleware/rateLimiter.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import authRoutes from './routes/auth.routes.js';
+import groupRoutes from './routes/group.routes.js';
 
 const app = express();
 
@@ -27,7 +28,7 @@ app.get('/api/v1/health', (_req, res) => {
 
 // Domain routes
 app.use('/api/v1/auth', authLimiter, authRoutes);
-//   /api/v1/groups       -> Sprint 3
+app.use('/api/v1/groups', groupRoutes);
 //   /api/v1/assignments  -> Sprint 5
 //   /api/v1/submissions  -> Sprint 7
 //   /api/v1/dashboard    -> Sprint 9

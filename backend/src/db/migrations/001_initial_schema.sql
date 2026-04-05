@@ -79,7 +79,7 @@ CREATE TABLE IF NOT EXISTS submissions (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     assignment_id UUID NOT NULL REFERENCES assignments(id) ON DELETE CASCADE,
     student_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    group_id      UUID NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+    group_id      UUID REFERENCES groups(id) ON DELETE SET NULL,
     confirmed_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT submissions_unique_per_student UNIQUE (assignment_id, student_id)
 );
