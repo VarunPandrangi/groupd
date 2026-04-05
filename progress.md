@@ -11,7 +11,7 @@
 | Sprint | Name | Branch | Status | Files Changed | Key Outcome |
 |--------|------|--------|--------|---------------|-------------|
 | 0 | Scaffolding | `varun/project-setup` | ⏳ Not started | — | — |
-| 1 | Auth Backend | `varun/auth-backend` | ⏳ Not started | — | — |
+| 1 | Auth Backend | `varun/auth-backend` | ✅ Complete | 14 | JWT auth (register/login/refresh/me) live; admin login verified; all 12 tests green |
 | 2 | Auth Frontend | `varun/auth-ui-and-landing` | ⏳ Not started | — | — |
 | 3 | Groups Backend | `varun/groups-api` | ⏳ Not started | — | — |
 | 4 | Groups Frontend | `varun/groups-ui` | ⏳ Not started | — | — |
@@ -34,12 +34,12 @@
 > **AI: Read this section before every sprint.** It tells you exactly what files exist and what is functional right now. This prevents you from re-creating files that already exist or importing from files that don't.
 
 ### Backend State
-- **Server running:** No (Sprint 0 not complete)
-- **Database schema applied:** No
-- **Working API endpoints:** None
-- **Middleware implemented:** None
-- **Models implemented:** None
-- **Services implemented:** None
+- **Server running:** Yes (port 5000, verified via `/api/v1/health`)
+- **Database schema applied:** Yes (PostgreSQL running in Docker, admin seeded)
+- **Working API endpoints:** `GET /api/v1/health`, `POST /api/v1/auth/register`, `POST /api/v1/auth/login`, `POST /api/v1/auth/refresh`, `GET /api/v1/auth/me`
+- **Middleware implemented:** `validate`, `authMiddleware`, `requireRole`, `errorHandler`, `generalLimiter`, `authLimiter`
+- **Models implemented:** `user.model.js` (createUser, findByEmail, findById, findByStudentId, emailExists, studentIdExists)
+- **Services implemented:** `auth.service.js` (register, login, refreshToken, getMe)
 
 ### Frontend State
 - **App compiles:** No (Sprint 0 not complete)
@@ -133,53 +133,63 @@ _After completing, update the "What Currently Exists" section above._
 ### Sprint 1 — Auth Backend
 
 **Branch:** `varun/auth-backend`  
-**Status:** ⏳ Not started  
-**Started:**  
-**Completed:**  
+**Status:** ✅ Complete  
+**Started:** 2026-04-05  
+**Completed:** 2026-04-05  
 **Merged to main:**  
 
 #### What Was Built
 
 **Files implemented (replaced TODO placeholders):**
-- [ ] backend/src/utils/password.js — hashPassword, comparePassword
-- [ ] backend/src/utils/jwt.js — generateAccessToken, generateRefreshToken, verifyAccessToken, verifyRefreshToken
-- [ ] backend/src/validators/auth.validator.js — registerSchema, loginSchema (Zod)
-- [ ] backend/src/middleware/validate.js — validate(schema) factory
-- [ ] backend/src/middleware/auth.js — JWT verification, attaches req.user
-- [ ] backend/src/middleware/roleGuard.js — requireRole(...roles) factory
-- [ ] backend/src/middleware/errorHandler.js — Global error handler
-- [ ] backend/src/middleware/rateLimiter.js — generalLimiter, authLimiter
-- [ ] backend/src/models/user.model.js — createUser, findByEmail, findById, etc.
-- [ ] backend/src/services/auth.service.js — register, login, refreshToken, getMe
-- [ ] backend/src/controllers/auth.controller.js — Thin controller
-- [ ] backend/src/routes/auth.routes.js — POST /register, /login, /refresh, GET /me
+- [x] backend/src/utils/password.js — hashPassword, comparePassword (bcryptjs, 12 rounds)
+- [x] backend/src/utils/jwt.js — generateAccessToken (15m), generateRefreshToken (7d), verifyAccessToken, verifyRefreshToken
+- [x] backend/src/validators/auth.validator.js — registerSchema, loginSchema, refreshSchema (Zod; password regex enforces digit + special char; email trimmed/lowercased)
+- [x] backend/src/middleware/validate.js — `validate(schema)` factory; replaces req.body with parsed data; forwards ZodError to global handler
+- [x] backend/src/middleware/auth.js — `authMiddleware`; reads `Bearer` header, verifies access token, sets `req.user = { userId, email, role }`
+- [x] backend/src/middleware/roleGuard.js — `requireRole(...roles)` factory (not yet mounted anywhere — ready for Sprint 3)
+- [x] backend/src/middleware/errorHandler.js — Handles ZodError → 400 with per-field details, TokenExpiredError → 401 TOKEN_EXPIRED, JsonWebTokenError → 401 INVALID_TOKEN, service errors with `{statusCode, code}`, unknown → 500 INTERNAL_ERROR. Logs via Winston; never leaks stack.
+- [x] backend/src/middleware/rateLimiter.js — generalLimiter (100/15min), authLimiter (20/15min)
+- [x] backend/src/models/user.model.js — createUser, findByEmail (with hash, login only), findById, findByStudentId, emailExists, studentIdExists. All parameterized. Explicit column lists prevent hash leakage.
+- [x] backend/src/services/auth.service.js — register (forces role='student'), login (generic INVALID_CREDENTIALS on both wrong-password and unknown-email), refreshToken (re-reads user from DB so role changes take effect), getMe. Uses `httpError(statusCode, code, message)` helper.
+- [x] backend/src/controllers/auth.controller.js — Thin wrappers; every handler in try/catch; uses successResponse helper
+- [x] backend/src/routes/auth.routes.js — POST /register, /login, /refresh (all behind `validate(...)`), GET /me (behind `authMiddleware`)
 
 **Files modified:**
-- [ ] backend/src/app.js — Mounted auth routes, rate limiters, error handler
-- [ ] backend/src/db/seeds/seed_admin.sql — Real bcrypt hash for Admin@123
+- [x] backend/src/app.js — Imports auth routes, rate limiters, error handler. Chain: helmet → cors → morgan → json → generalLimiter → health → `/api/v1/auth` (authLimiter + routes) → errorHandler (LAST).
+- [ ] backend/src/db/seeds/seed_admin.sql — **Left untouched.** The existing bcrypt hash written in Sprint 0 was verified with `bcrypt.compare('Admin@123', hash)` → `true`. No rewrite needed; admin login test #4 confirmed it works end-to-end.
 
 #### Verification Results
 
+All tests performed against `npm start` backend on port 5000 with Dockerized PostgreSQL.
+
 | Test | Pass/Fail | Notes |
 |------|-----------|-------|
-| POST /auth/register (valid) → 201 | | |
-| POST /auth/register (duplicate email) → 409 | | |
-| POST /auth/register (weak password) → 400 | | |
-| POST /auth/login (valid) → 200 with tokens | | |
-| POST /auth/login (wrong password) → 401 | | |
-| POST /auth/login (non-existent email) → 401 | | |
-| GET /auth/me (valid token) → 200 | | |
-| GET /auth/me (no token) → 401 | | |
-| GET /auth/me (expired token) → 401 | | |
-| POST /auth/refresh (valid) → 200 | | |
-| POST /auth/refresh (invalid) → 401 | | |
-| No password_hash in any response | | |
+| POST /auth/register (valid) → 201 | ✅ Pass | Returns `{ user, accessToken, refreshToken }`; role forced to `student` even when payload tries to inject `role:'admin'` |
+| POST /auth/register (duplicate email) → 409 | ✅ Pass | code `EMAIL_EXISTS` |
+| POST /auth/register (weak password) → 400 | ✅ Pass | `VALIDATION_ERROR` with details `[{field:'password', message:'...digit'}, {field:'password', message:'...special character'}]` |
+| POST /auth/login (valid) → 200 with tokens | ✅ Pass | Admin login returns role=`admin`, user row without hash |
+| POST /auth/login (wrong password) → 401 | ✅ Pass | Generic `INVALID_CREDENTIALS` / "Invalid email or password" |
+| POST /auth/login (non-existent email) → 401 | ✅ Pass | Same generic message — no user enumeration |
+| GET /auth/me (valid token) → 200 | ✅ Pass | Returns `{ user }` without hash |
+| GET /auth/me (no token) → 401 | ✅ Pass | `UNAUTHORIZED` / "Authentication required" |
+| GET /auth/me (expired token) → 401 | ✅ Pass | `TOKEN_EXPIRED` (verified with a manually signed token using `expiresIn:'-1s'`) |
+| POST /auth/refresh (valid) → 200 | ✅ Pass | Returns new `accessToken` |
+| POST /auth/refresh (invalid) → 401 | ✅ Pass | `INVALID_TOKEN` on tampered/garbage refresh token |
+| No password_hash in any response | ✅ Pass | grep of register, login, /me, refresh bodies — zero hits |
+
+Additional sanity checks beyond the plan table:
+- Tampered Bearer token (`abc.def.ghi`) → 401 `INVALID_TOKEN` ✅
+- Register payload with injected `role:'admin'` → stored as `student` ✅
+- Health check still reachable → 200 ✅
 
 #### Issues Encountered
-_None yet._
+
+- **Windows Git-Bash path resolution for test scripts.** During test execution, a `node -e "require('/tmp/r4.json')"` trick failed because Node on Windows does not resolve `/tmp` the way curl (running in Git-Bash) does. Worked around by piping curl output straight through `python -c "import sys,json"` to extract tokens. Not a code issue — purely a test-harness quirk.
 
 #### Deviations from plan.md
-_None yet._
+
+- **seed_admin.sql not rewritten.** Plan.md and the task spec both implied the sprint would hardcode a fresh bcrypt hash. Sprint 0 already wrote a valid bcrypt hash of `Admin@123` (`$2a$12$7Lgp70j2My/...`), which was verified programmatically. Replacing it would change the file for no behavioral reason and risk churning downstream sprints. Left in place after verification.
+- **No logout endpoint added.** Plan.md Section 9.2 does not list `POST /auth/logout`, and stateless JWT has no server-side state to clear. Frontend logout is a pure client-side action (clear store + localStorage).
 
 ---
 
@@ -424,7 +434,10 @@ _(Same structure — additionally include Docker verification: all 3 services st
 
 | Sprint | Decision | Reason |
 |--------|----------|--------|
-| | | |
+| 1 | Kept Sprint 0's existing bcrypt hash in `seed_admin.sql` instead of regenerating | Verified via `bcrypt.compare('Admin@123', hash) === true`; rewriting would churn the file for no behavioral gain |
+| 1 | `refreshToken` service re-reads the user from DB instead of trusting the token's claims | Ensures role changes (future promotions/demotions) take effect on the next refresh rather than persisting stale claims for up to 7 days |
+| 1 | Single generic `INVALID_CREDENTIALS` error for both wrong-password and unknown-email on login | Prevents user enumeration — standard security practice |
+| 1 | `register` hardcodes `role='student'` regardless of payload | plan.md Rule 10: admins are seeded only. Defensive against payload injection. |
 
 ---
 
@@ -455,4 +468,4 @@ _Populated after Sprint 12 seed data is created._
 
 ---
 
-*Last updated: Project not yet started*
+*Last updated: 2026-04-05 — Sprint 1 (Auth Backend) complete*
