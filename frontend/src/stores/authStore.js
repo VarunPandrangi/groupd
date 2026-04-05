@@ -1,14 +1,14 @@
 import { create } from 'zustand';
 import api from '../services/api';
 
+let pendingAuthCheck = null;
+
 export const useAuthStore = create((set, get) => ({
-  // State
   user: null,
   accessToken: null,
   isAuthenticated: false,
   isLoading: true,
 
-  // Actions
   login: async (email, password) => {
     const { data } = await api.post('/auth/login', { email, password });
     const { user, accessToken, refreshToken } = data.data;
@@ -35,29 +35,36 @@ export const useAuthStore = create((set, get) => ({
   },
 
   checkAuth: async () => {
+    if (pendingAuthCheck) {
+      return pendingAuthCheck;
+    }
+
     const refreshToken = localStorage.getItem('refreshToken');
     if (!refreshToken) {
       set({ isLoading: false });
-      return;
+      return null;
     }
 
-    try {
-      // Refresh the access token
-      const { data: refreshData } = await api.post('/auth/refresh', { refreshToken });
-      const newAccessToken = refreshData.data.accessToken;
-      set({ accessToken: newAccessToken });
+    pendingAuthCheck = (async () => {
+      try {
+        const { data: refreshData } = await api.post('/auth/refresh', { refreshToken });
+        const newAccessToken = refreshData.data.accessToken;
+        set({ accessToken: newAccessToken });
 
-      // Fetch user profile
-      const { data: meData } = await api.get('/auth/me');
-      set({
-        user: meData.data.user,
-        isAuthenticated: true,
-        isLoading: false,
-      });
-    } catch {
-      // Refresh failed — clear everything
-      get().logout();
-      set({ isLoading: false });
-    }
+        const { data: meData } = await api.get('/auth/me');
+        set({
+          user: meData.data.user,
+          isAuthenticated: true,
+          isLoading: false,
+        });
+      } catch {
+        get().logout();
+        set({ isLoading: false });
+      } finally {
+        pendingAuthCheck = null;
+      }
+    })();
+
+    return pendingAuthCheck;
   },
 }));

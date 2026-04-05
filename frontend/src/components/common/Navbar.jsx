@@ -3,7 +3,8 @@ import { SignOut, List, X } from '@phosphor-icons/react';
 import { useAuthStore } from '../../stores/authStore';
 
 export default function Navbar({ onToggleSidebar, sidebarOpen }) {
-  const { isAuthenticated, user } = useAuthStore();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const user = useAuthStore((state) => state.user);
   const navigate = useNavigate();
 
   const handleLogout = () => {
