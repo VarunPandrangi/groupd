@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2 } from 'lucide-react';
+import { SpinnerGap } from '@phosphor-icons/react';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../../stores/authStore';
 
@@ -273,7 +273,7 @@ export default function LoginPage() {
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
+                  <SpinnerGap size={18} style={{ animation: 'spin 1s linear infinite' }} />
                   Signing in…
                 </>
               ) : (

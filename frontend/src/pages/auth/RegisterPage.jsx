@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2 } from 'lucide-react';
+import { SpinnerGap } from '@phosphor-icons/react';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../../stores/authStore';
 
@@ -59,9 +59,9 @@ export default function RegisterPage() {
     setIsSubmitting(true);
     try {
       await registerUser({
-        name: formData.name,
+        full_name: formData.name,
         email: formData.email,
-        studentId: formData.studentId,
+        student_id: formData.studentId,
         password: formData.password,
       });
       toast.success('Account created successfully!');
@@ -269,7 +269,7 @@ export default function RegisterPage() {
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
+                  <SpinnerGap size={18} style={{ animation: 'spin 1s linear infinite' }} />
                   Creating account…
                 </>
               ) : (
