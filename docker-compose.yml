@@ -1,0 +1,23 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: joineazy-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: joineazy
+      POSTGRES_USER: joineazy_user
+      POSTGRES_PASSWORD: joineazy_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./backend/src/db/migrations:/docker-entrypoint-initdb.d
+      - ./backend/src/db/seeds/seed_admin.sql:/docker-entrypoint-initdb.d/zz_seed_admin.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U joineazy_user -d joineazy"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
