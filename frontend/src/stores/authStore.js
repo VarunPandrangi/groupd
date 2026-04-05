@@ -1,33 +1,63 @@
 import { create } from 'zustand';
+import api from '../services/api';
 
-export const useAuthStore = create((set) => ({
+export const useAuthStore = create((set, get) => ({
   // State
   user: null,
   accessToken: null,
   isAuthenticated: false,
   isLoading: true,
 
-  // Actions — wired up in Sprint 2
-  login: async (_email, _password) => {
-    // TODO: Sprint 2 — call POST /auth/login, store tokens, set user
+  // Actions
+  login: async (email, password) => {
+    const { data } = await api.post('/auth/login', { email, password });
+    const { user, accessToken, refreshToken } = data.data;
+    localStorage.setItem('refreshToken', refreshToken);
+    set({ user, accessToken, isAuthenticated: true });
+    return user;
   },
 
-  register: async (_payload) => {
-    // TODO: Sprint 2 — call POST /auth/register, store tokens, set user
+  register: async (payload) => {
+    const { data } = await api.post('/auth/register', payload);
+    const { user, accessToken, refreshToken } = data.data;
+    localStorage.setItem('refreshToken', refreshToken);
+    set({ user, accessToken, isAuthenticated: true });
+    return user;
   },
 
   logout: () => {
-    // TODO: Sprint 2 — clear tokens + user, redirect
+    localStorage.removeItem('refreshToken');
     set({ user: null, accessToken: null, isAuthenticated: false });
   },
 
-  checkAuth: async () => {
-    // TODO: Sprint 2 — try refresh via stored refresh token, restore session
-    set({ isLoading: false });
+  setAccessToken: (token) => {
+    set({ accessToken: token });
   },
 
-  setAccessToken: (token) => {
-    // TODO: Sprint 2 — used by refresh interceptor
-    set({ accessToken: token });
+  checkAuth: async () => {
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (!refreshToken) {
+      set({ isLoading: false });
+      return;
+    }
+
+    try {
+      // Refresh the access token
+      const { data: refreshData } = await api.post('/auth/refresh', { refreshToken });
+      const newAccessToken = refreshData.data.accessToken;
+      set({ accessToken: newAccessToken });
+
+      // Fetch user profile
+      const { data: meData } = await api.get('/auth/me');
+      set({
+        user: meData.data.user,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+    } catch {
+      // Refresh failed — clear everything
+      get().logout();
+      set({ isLoading: false });
+    }
   },
 }));
