@@ -8,6 +8,7 @@ import '@fontsource/geist/600.css';
 import '@fontsource/geist/700.css';
 import '@fontsource/geist-mono/400.css';
 import '@fontsource/geist-mono/500.css';
+import '@fontsource/baumans/400.css';
 
 import './styles/index.css';
 import App from './App.jsx';

@@ -8,6 +8,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useThemeStore } from '../../stores/themeStore';
 import { cx } from '../../utils/cx';
 import Button from './Button';
+import LogoWordmark from './LogoWordmark';
 import { buttonClassName } from './buttonClassName';
 
 export default function Navbar() {
@@ -26,8 +27,8 @@ export default function Navbar() {
     <nav className="w-full topbar">
       <div className="flex items-center justify-between gap-4 topbar__inner">
         <div className="flex items-center gap-3 topbar__left">
-          <Link to="/" className="font-bold tracking-tight brand">
-            Group<span className="font-bold brand__accent">d</span>
+          <Link to="/" className="brand" aria-label="Groupd home">
+            <LogoWordmark />
           </Link>
         </div>
 
