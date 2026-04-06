@@ -9,6 +9,7 @@ import { errorHandler } from './middleware/errorHandler.js';
 import authRoutes from './routes/auth.routes.js';
 import assignmentRoutes from './routes/assignment.routes.js';
 import groupRoutes from './routes/group.routes.js';
+import submissionRoutes from './routes/submission.routes.js';
 
 const app = express();
 
@@ -31,7 +32,7 @@ app.get('/api/v1/health', (_req, res) => {
 app.use('/api/v1/auth', authLimiter, authRoutes);
 app.use('/api/v1/groups', groupRoutes);
 app.use('/api/v1/assignments', assignmentRoutes);
-//   /api/v1/submissions  -> Sprint 7
+app.use('/api/v1/submissions', submissionRoutes);
 //   /api/v1/dashboard    -> Sprint 9
 
 // Global error handler — MUST be last.
