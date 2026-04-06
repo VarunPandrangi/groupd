@@ -15,10 +15,16 @@ export async function getGroupProgress() {
   return data.data?.progress ?? data.data ?? [];
 }
 
+export async function getSubmissionsByAssignment(assignmentId) {
+  const { data } = await api.get(`/submissions/assignment/${assignmentId}`);
+  return data.data.submissions ?? [];
+}
+
 const submissionService = {
   confirmSubmission,
   getMySubmissions,
   getGroupProgress,
+  getSubmissionsByAssignment,
 };
 
 export default submissionService;

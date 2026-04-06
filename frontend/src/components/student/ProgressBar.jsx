@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const SIZE_MAP = {
   sm: { height: 6, borderRadius: 3, fontSize: '0.72rem' },
@@ -12,7 +12,6 @@ export default function ProgressBar({
   showLabel = false,
   size = 'md',
 }) {
-  const id = useId();
   const [animatedWidth, setAnimatedWidth] = useState(0);
   const percentage = total > 0 ? Math.round((current / total) * 100) : 0;
   const sizeStyle = SIZE_MAP[size] ?? SIZE_MAP.md;
