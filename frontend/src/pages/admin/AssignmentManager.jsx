@@ -11,6 +11,7 @@ import ConfirmDialog from '../../components/common/ConfirmDialog';
 import EmptyState from '../../components/common/EmptyState';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import Pagination from '../../components/common/Pagination';
+import FormattedText from '../../components/common/FormattedText';
 import StatusBadge from '../../components/common/StatusBadge';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
@@ -124,8 +125,8 @@ export default function AssignmentManager() {
                   <tr>
                     <th>Title</th>
                     <th>Due Date</th>
-                    <th>Status</th>
-                    <th>Assign To</th>
+                    <th className="table__column--center">Status</th>
+                    <th className="table__column--center">Assign To</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -134,15 +135,18 @@ export default function AssignmentManager() {
                     <tr key={assignment.id}>
                       <td>
                         <span className="table__title">{assignment.title}</span>
-                        <span className="table__description">
-                          {assignment.description || 'No description provided.'}
-                        </span>
+                        <FormattedText
+                          as="div"
+                          className="table__description formatted-text"
+                          text={assignment.description}
+                          fallback="No description provided."
+                        />
                       </td>
                       <td className="mono">{formatAssignmentDate(assignment.due_date)}</td>
-                      <td>
+                      <td className="table__cell--center">
                         <StatusBadge status={assignment.status} />
                       </td>
-                      <td>
+                      <td className="table__cell--center">
                         <span
                           className={`pill ${
                             assignment.assign_to === 'all' ? 'pill--green' : 'pill--blue'

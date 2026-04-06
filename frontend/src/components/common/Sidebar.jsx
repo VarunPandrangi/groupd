@@ -7,8 +7,6 @@ import Button from './Button';
 export default function Sidebar({
   navItems = [],
   collapsed = false,
-  mobileOpen = false,
-  onClose,
   onToggleCollapse,
 }) {
   const user = useAuthStore((state) => state.user);
@@ -16,17 +14,8 @@ export default function Sidebar({
 
   return (
     <>
-      {mobileOpen ? (
-        <button
-          type="button"
-          className="sidebar-backdrop"
-          aria-label="Close sidebar"
-          onClick={onClose}
-        />
-      ) : null}
-
       <aside
-        className={cx('sidebar', mobileOpen && 'sidebar--mobile-open')}
+        className="sidebar"
         style={{ '--sidebar-width': `${sidebarWidth}px` }}
       >
         <nav className="sidebar__nav">
@@ -38,7 +27,6 @@ export default function Sidebar({
                 key={item.path}
                 to={item.path}
                 end={item.exact ?? item.path.endsWith('/dashboard')}
-                onClick={onClose}
                 className={({ isActive }) =>
                   cx('sidebar__item', isActive && 'sidebar__item--active')
                 }
@@ -74,6 +62,28 @@ export default function Sidebar({
           </Button>
         </div>
       </aside>
+
+      <nav className="mobile-tabbar" aria-label="Primary">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+
+          return (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              end={item.exact ?? item.path.endsWith('/dashboard')}
+              className={({ isActive }) =>
+                cx('mobile-tabbar__item', isActive && 'mobile-tabbar__item--active')
+              }
+            >
+              <span className="mobile-tabbar__icon">
+                <Icon size={20} />
+              </span>
+              <span className="mobile-tabbar__label">{item.label}</span>
+            </NavLink>
+          );
+        })}
+      </nav>
     </>
   );
 }

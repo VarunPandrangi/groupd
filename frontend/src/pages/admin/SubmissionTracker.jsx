@@ -275,7 +275,7 @@ export default function SubmissionTracker() {
                     <th>Group Name</th>
                     <th>Submitted By</th>
                     <th>Submitted At</th>
-                    <th>Status</th>
+                    <th className="table__column--center">Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -286,7 +286,7 @@ export default function SubmissionTracker() {
                       <td className="mono">
                         {row.submittedAt ? formatTimestamp(row.submittedAt) : 'Not submitted'}
                       </td>
-                      <td>
+                      <td className="table__cell--center">
                         <StatusBadge status={row.status} />
                       </td>
                     </tr>

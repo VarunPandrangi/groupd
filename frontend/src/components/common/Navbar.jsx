@@ -1,17 +1,15 @@
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  List,
   MoonStars,
   SignOut,
   SunDim,
-  X,
 } from '@phosphor-icons/react';
 import { useAuthStore } from '../../stores/authStore';
 import { useThemeStore } from '../../stores/themeStore';
 import Button from './Button';
 import { buttonClassName } from './buttonClassName';
 
-export default function Navbar({ onToggleSidebar, sidebarOpen }) {
+export default function Navbar() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const user = useAuthStore((state) => state.user);
   const theme = useThemeStore((state) => state.theme);
@@ -27,19 +25,6 @@ export default function Navbar({ onToggleSidebar, sidebarOpen }) {
     <nav className="topbar">
       <div className="topbar__inner">
         <div className="topbar__left">
-          {onToggleSidebar ? (
-            <button
-              className={buttonClassName({
-                variant: 'icon',
-                iconOnly: true,
-                className: 'sidebar-toggle',
-              })}
-              onClick={onToggleSidebar}
-              aria-label="Toggle sidebar"
-            >
-              {sidebarOpen ? <X size={18} /> : <List size={18} />}
-            </button>
-          ) : null}
           <Link to="/" className="brand">
             Join<span className="brand__accent">E</span>azy
           </Link>

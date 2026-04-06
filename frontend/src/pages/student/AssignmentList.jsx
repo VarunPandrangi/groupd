@@ -8,6 +8,7 @@ import {
   UsersThree,
 } from '@phosphor-icons/react';
 import EmptyState from '../../components/common/EmptyState';
+import FormattedText from '../../components/common/FormattedText';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import StatusBadge from '../../components/common/StatusBadge';
 import Card from '../../components/common/Card';
@@ -148,9 +149,12 @@ export default function AssignmentList() {
                       <CheckCircle size={18} color="var(--accent-green)" weight="fill" />
                     ) : null}
                   </div>
-                  <p className="card__copy">
-                    {assignment.description || 'No description provided for this assignment.'}
-                  </p>
+                  <FormattedText
+                    as="div"
+                    className="card__copy formatted-text"
+                    text={assignment.description}
+                    fallback="No description provided for this assignment."
+                  />
                 </div>
                 <StatusBadge status={assignment.status} />
               </div>
