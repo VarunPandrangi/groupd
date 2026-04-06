@@ -1,62 +1,110 @@
 const API_URL = 'http://localhost:5000/api/v1';
 
+async function apiRequest(path, { method = 'GET', token, body } = {}) {
+  const response = await fetch(`${API_URL}${path}`, {
+    method,
+    headers: {
+      ...(body ? { 'Content-Type': 'application/json' } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const message =
+      data?.error?.message ??
+      data?.message ??
+      `Request failed with status ${response.status}`;
+    throw new Error(`${method} ${path} failed: ${message}`);
+  }
+
+  return data;
+}
+
+async function login(email, password) {
+  const data = await apiRequest('/auth/login', {
+    method: 'POST',
+    body: { email, password },
+  });
+
+  return data.data.accessToken;
+}
+
 async function setup() {
   try {
-    // 1. Get tokens
-    const studentRes = await fetch(`${API_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'student1@joineazy.local', password: 'Password123!' })
-    });
-    const { data: { token: studentToken } } = await studentRes.json();
+    const studentToken = await login('s1@joineazy.com', 'Student@123');
+    const adminToken = await login('admin@joineazy.com', 'Admin@123');
 
-    const adminRes = await fetch(`${API_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'admin@joineazy.local', password: 'Password123!' })
-    });
-    const { data: { token: adminToken } } = await adminRes.json();
+    console.log('Resolving a student group for the demo...');
+    let group =
+      (
+        await apiRequest('/groups/my-group', {
+          token: studentToken,
+        })
+      ).data.group ?? null;
 
-    // 2. Student creates a group
-    console.log('Creating group for student...');
-    const groupRes = await fetch(`${API_URL}/groups`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${studentToken}` },
-      body: JSON.stringify({ name: 'Demo Team Alpha', description: 'Test group for submission demo' })
-    });
-    let groupId;
-    if (groupRes.ok) {
-        const groupData = await groupRes.json();
-        groupId = groupData.data.id;
+    if (!group) {
+      group = (
+        await apiRequest('/groups', {
+          method: 'POST',
+          token: studentToken,
+          body: {
+            name: 'Demo Team Alpha',
+            description: 'Test group for submission demo',
+          },
+        })
+      ).data.group;
+      console.log(`Created group ${group.name} (${group.id}).`);
     } else {
-        // Find the group if it already exists
-        const myGroupRes = await fetch(`${API_URL}/groups/my-group`, {
-            headers: { 'Authorization': `Bearer ${studentToken}` }
-        });
-        const myGroupData = await myGroupRes.json();
-        groupId = myGroupData.data.id;
+      console.log(`Using existing group ${group.name} (${group.id}).`);
     }
 
-    // 3. Admin creates an assignment for that group
-    console.log('Creating assignment mapped to group', groupId, '...');
-    const date = new Date();
-    date.setDate(date.getDate() + 7);
-    
-    await fetch(`${API_URL}/assignments`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` },
-      body: JSON.stringify({
-        title: 'Project Submission Demo',
-        description: 'Please upload your final zip file.',
-        due_date: date.toISOString(),
-        onedrive_link: 'https://onedrive.live.com/demo',
-        target_groups: [groupId]
-      })
+    console.log('Checking for an existing demo assignment...');
+    const assignmentsResponse = await apiRequest('/assignments', {
+      token: adminToken,
     });
+    const existingAssignment = (assignmentsResponse.data ?? []).find(
+      (assignment) => assignment.title === 'Project Submission Demo'
+    );
 
-    console.log('Setup complete! Student1 is ready to submit.');
+    let assignmentId;
+    if (existingAssignment) {
+      assignmentId = existingAssignment.id;
+      console.log(
+        `Using existing assignment Project Submission Demo (${assignmentId}).`
+      );
+    } else {
+      console.log('Creating an assignment mapped to that group...');
+      const dueDate = new Date();
+      dueDate.setDate(dueDate.getDate() + 7);
+
+      const assignmentResponse = await apiRequest('/assignments', {
+        method: 'POST',
+        token: adminToken,
+        body: {
+          title: 'Project Submission Demo',
+          description: 'Please upload your final zip file.',
+          due_date: dueDate.toISOString(),
+          onedrive_link: 'https://onedrive.live.com/demo',
+          assign_to: 'specific',
+          group_ids: [group.id],
+        },
+      });
+
+      assignmentId = assignmentResponse.data.assignment.id;
+      console.log(`Created assignment ${assignmentId}.`);
+    }
+
+    console.log('Setup complete.');
+    console.log('Student dashboard user: s1@joineazy.com / Student@123');
+    console.log('Admin dashboard user: admin@joineazy.com / Admin@123');
+    console.log(`Group ID: ${group.id}`);
+    console.log(`Assignment ID: ${assignmentId}`);
   } catch (error) {
     console.error('Setup failed:', error);
+    process.exitCode = 1;
   }
 }
 

@@ -1036,7 +1036,7 @@ curl -s http://localhost:5000/api/v1/assignments -H "Authorization: Bearer $ADMI
 # List as student
 TOKEN=$(curl -s -X POST http://localhost:5000/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"s1@test.com","password":"Test@1234"}' | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['accessToken'])")
+  -d '{"email":"s1@joineazy.com","password":"Student@123"}' | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['accessToken'])")
 curl -s http://localhost:5000/api/v1/assignments -H "Authorization: Bearer $TOKEN"
 
 # Past due date → 400
@@ -1189,7 +1189,7 @@ cd backend && npm run dev
 
 TOKEN=$(curl -s -X POST http://localhost:5000/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"s1@test.com","password":"Test@1234"}' | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['accessToken'])")
+  -d '{"email":"s1@joineazy.com","password":"Student@123"}' | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['accessToken'])")
 
 # Get an assignment ID
 ASSIGNMENT_ID=$(curl -s http://localhost:5000/api/v1/assignments \
@@ -1347,7 +1347,7 @@ cd backend && npm run dev
 
 TOKEN=$(curl -s -X POST http://localhost:5000/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"s1@test.com","password":"Test@1234"}' | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['accessToken'])")
+  -d '{"email":"s1@joineazy.com","password":"Student@123"}' | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['accessToken'])")
 
 curl -s http://localhost:5000/api/v1/dashboard/student -H "Authorization: Bearer $TOKEN" | python3 -m json.tool
 

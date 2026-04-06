@@ -495,8 +495,9 @@ _Populated after Sprint 12 seed data is created._
 | Role | Email | Password | Notes |
 |------|-------|----------|-------|
 | Admin | admin@joineazy.com | Admin@123 | Seeded |
-| Student 1 | student1@joineazy.com | Student@123 | In Alpha Squad |
-| Student 2 | student2@joineazy.com | Student@123 | In Alpha Squad |
+| Student 1 | s1@joineazy.com | Student@123 | In seeded demo group |
+| Student 2 | s2@joineazy.com | Student@123 | In seeded demo group |
+| Student 3 | s3@joineazy.com | Student@123 | In seeded demo group |
 | ... | ... | ... | ... |
 
 ---
