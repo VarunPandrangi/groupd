@@ -13,6 +13,7 @@ import StatusBadge from '../../components/common/StatusBadge';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
+import FormattedText from '../../components/common/FormattedText';
 import { Page } from '../../components/common/Page';
 import { useAssignmentStore } from '../../stores/assignmentStore';
 import { useSubmissionStore } from '../../stores/submissionStore';
@@ -145,9 +146,12 @@ export default function AssignmentDetail() {
             <p className="eyebrow">Assignment Brief</p>
             <h2 className="section-heading__title">What your group needs to deliver</h2>
           </div>
-          <p className="page-description" style={{ whiteSpace: 'pre-wrap' }}>
-            {currentAssignment.description || 'No description provided for this assignment.'}
-          </p>
+          <FormattedText
+            as="div"
+            className="page-description formatted-text"
+            text={currentAssignment.description}
+            fallback="No description provided for this assignment."
+          />
         </Card>
 
         <Card

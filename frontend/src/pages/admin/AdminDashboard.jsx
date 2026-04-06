@@ -131,6 +131,9 @@ export default function AdminDashboard() {
   const [assignmentAnalytics, setAssignmentAnalytics] = useState([]);
   const [groupAnalytics, setGroupAnalytics] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isCompactChart, setIsCompactChart] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth <= 480 : false
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -174,11 +177,31 @@ export default function AdminDashboard() {
     };
   }, []);
 
+  useEffect(() => {
+    function handleResize() {
+      setIsCompactChart(window.innerWidth <= 480);
+    }
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
   if (isLoading) {
     return <AdminDashboardSkeleton />;
   }
 
   const roundedCompletionRate = Math.round(summary?.overallCompletionRate ?? 0);
+  const xAxisTickFontSize = isCompactChart ? 11 : 12;
+  const xAxisTickLength = isCompactChart ? 8 : 12;
+  const xAxisHeight = isCompactChart ? 52 : 30;
+  const xAxisAngle = isCompactChart ? -16 : 0;
+  const xAxisTextAnchor = isCompactChart ? 'end' : 'middle';
+  const chartBottomMargin = isCompactChart ? 16 : 8;
+  const chartBarSize = isCompactChart ? 28 : 32;
 
   return (
     <Page>
@@ -227,7 +250,7 @@ export default function AdminDashboard() {
           <div className="surface-grid surface-grid--two">
             <ChartCard
               eyebrow="Assignment Completion"
-              title="How every brief is progressing"
+              title="How each assignment is progressing"
             >
               {assignmentAnalytics.length === 0 ? (
                 <Card className="card--compact" style={{ height: '100%' }}>
@@ -239,7 +262,7 @@ export default function AdminDashboard() {
                 <ResponsiveContainer>
                   <ReBarChart
                     data={assignmentAnalytics}
-                    margin={{ top: 8, right: 8, left: -12, bottom: 8 }}
+                    margin={{ top: 18, right: 12, left: 8, bottom: chartBottomMargin }}
                   >
                     <CartesianGrid
                       stroke="var(--border-default)"
@@ -248,25 +271,31 @@ export default function AdminDashboard() {
                     />
                     <XAxis
                       dataKey="title"
-                      tickFormatter={(value) => truncateLabel(value, 12)}
-                      tick={{ fill: 'var(--text-faint)', fontSize: 12 }}
+                      tickFormatter={(value) => truncateLabel(value, xAxisTickLength)}
+                      tick={{ fill: 'var(--text-muted)', fontSize: xAxisTickFontSize }}
                       axisLine={false}
                       tickLine={false}
-                      minTickGap={16}
+                      tickMargin={isCompactChart ? 12 : 8}
+                      minTickGap={isCompactChart ? 8 : 16}
+                      interval={0}
+                      angle={xAxisAngle}
+                      textAnchor={xAxisTextAnchor}
+                      height={xAxisHeight}
                     />
                     <YAxis
                       domain={[0, 100]}
                       tickFormatter={(value) => `${value}%`}
-                      tick={{ fill: 'var(--text-faint)', fontSize: 12 }}
+                      tick={{ fill: 'var(--text-muted)', fontSize: 12 }}
                       axisLine={false}
                       tickLine={false}
-                      width={40}
+                      tickMargin={8}
+                      width={52}
                     />
                     <Tooltip
                       cursor={{ fill: 'var(--accent-blue-soft)' }}
                       content={<AssignmentTooltip />}
                     />
-                    <Bar dataKey="completion_rate" radius={[4, 4, 0, 0]} barSize={32}>
+                    <Bar dataKey="completion_rate" radius={[4, 4, 0, 0]} barSize={chartBarSize}>
                       {assignmentAnalytics.map((assignment) => (
                         <Cell
                           key={assignment.id}
@@ -290,7 +319,7 @@ export default function AdminDashboard() {
                 <ResponsiveContainer>
                   <ReBarChart
                     data={groupAnalytics}
-                    margin={{ top: 8, right: 8, left: -12, bottom: 8 }}
+                    margin={{ top: 18, right: 12, left: 8, bottom: chartBottomMargin }}
                   >
                     <CartesianGrid
                       stroke="var(--border-default)"
@@ -299,19 +328,25 @@ export default function AdminDashboard() {
                     />
                     <XAxis
                       dataKey="name"
-                      tickFormatter={(value) => truncateLabel(value, 12)}
-                      tick={{ fill: 'var(--text-faint)', fontSize: 12 }}
+                      tickFormatter={(value) => truncateLabel(value, xAxisTickLength)}
+                      tick={{ fill: 'var(--text-muted)', fontSize: xAxisTickFontSize }}
                       axisLine={false}
                       tickLine={false}
-                      minTickGap={16}
+                      tickMargin={isCompactChart ? 12 : 8}
+                      minTickGap={isCompactChart ? 8 : 16}
+                      interval={0}
+                      angle={xAxisAngle}
+                      textAnchor={xAxisTextAnchor}
+                      height={xAxisHeight}
                     />
                     <YAxis
                       domain={[0, 100]}
                       tickFormatter={(value) => `${value}%`}
-                      tick={{ fill: 'var(--text-faint)', fontSize: 12 }}
+                      tick={{ fill: 'var(--text-muted)', fontSize: 12 }}
                       axisLine={false}
                       tickLine={false}
-                      width={40}
+                      tickMargin={8}
+                      width={52}
                     />
                     <Tooltip
                       cursor={{ fill: 'var(--accent-blue-soft)' }}
@@ -321,7 +356,7 @@ export default function AdminDashboard() {
                       dataKey="completion_rate"
                       radius={[4, 4, 0, 0]}
                       fill="var(--accent-blue)"
-                      barSize={32}
+                      barSize={chartBarSize}
                     />
                   </ReBarChart>
                 </ResponsiveContainer>
@@ -334,7 +369,10 @@ export default function AdminDashboard() {
               eyebrow="Quick Actions"
               title="Jump straight into the next move"
             />
-            <div className="surface-grid surface-grid--three">
+            <div
+              className="surface-grid surface-grid--three"
+              style={{ marginTop: '18px' }}
+            >
               {[
                 {
                   label: 'Create Assignment',

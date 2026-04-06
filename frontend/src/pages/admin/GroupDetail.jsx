@@ -130,7 +130,7 @@ export default function GroupDetail() {
                 <th>Name</th>
                 <th>Email</th>
                 <th>Student ID</th>
-                <th>Role</th>
+                <th className="table__column--center">Role</th>
               </tr>
             </thead>
             <tbody>
@@ -142,7 +142,7 @@ export default function GroupDetail() {
                     <td className="table__title">{member.full_name}</td>
                     <td className="mono">{member.email}</td>
                     <td className="mono">{member.student_id}</td>
-                    <td>
+                    <td className="table__cell--center">
                       <span
                         className={`pill ${
                           memberRole === 'Leader' ? 'pill--amber' : 'pill--blue'

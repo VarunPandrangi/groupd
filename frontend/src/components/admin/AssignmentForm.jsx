@@ -6,6 +6,7 @@ import { ArrowLeft, SpinnerGap } from '@phosphor-icons/react';
 import LoadingSpinner from '../common/LoadingSpinner';
 import Card from '../common/Card';
 import Button from '../common/Button';
+import RichTextEditor from '../common/RichTextEditor';
 import { Page, PageHeader } from '../common/Page';
 import groupService from '../../services/groupService';
 import {
@@ -13,6 +14,7 @@ import {
   getTomorrowDateInputValue,
   toAssignmentDueDate,
 } from '../../utils/assignmentDates';
+import { getRichTextPlainText, sanitizedRichTextHtml } from '../../utils/richText';
 
 const GROUP_PAGE_SIZE = 50;
 
@@ -26,7 +28,13 @@ function buildSchema() {
   return z
     .object({
       title: z.string().trim().min(3).max(100),
-      description: z.string().trim().max(2000).optional().or(z.literal('')),
+      description: z
+        .string()
+        .optional()
+        .or(z.literal(''))
+        .refine((value) => getRichTextPlainText(value).length <= 2000, {
+          message: 'Description must be 2000 characters or less',
+        }),
       due_date: z.string().min(1, 'Due date is required').refine((value) => value >= tomorrow, {
         message: 'Due date must be in the future',
       }),
@@ -116,7 +124,9 @@ export default function AssignmentForm({
   });
 
   const assignTo = watch('assign_to');
+  const descriptionValue = watch('description') ?? '';
   const selectedGroupIds = watch('group_ids');
+  const descriptionRegistration = register('description');
 
   useEffect(() => {
     reset(defaultValues);
@@ -183,7 +193,7 @@ export default function AssignmentForm({
   const handleFormSubmit = handleSubmit(async (values) => {
     await onSubmit({
       title: values.title.trim(),
-      description: values.description?.trim() || undefined,
+      description: sanitizedRichTextHtml(values.description) || undefined,
       due_date: toAssignmentDueDate(values.due_date),
       onedrive_link: values.onedrive_link.trim(),
       assign_to: values.assign_to,
@@ -224,12 +234,28 @@ export default function AssignmentForm({
                 <label htmlFor="assignment-description" className="field__label">
                   Description
                 </label>
-                <textarea
-                  id="assignment-description"
-                  className="textarea"
-                  rows={6}
-                  {...register('description')}
+                <RichTextEditor
+                  value={descriptionValue}
+                  placeholder="Add the brief, key instructions, and important notes here."
+                  ariaLabel="Assignment description"
+                  onChange={(nextValue) =>
+                    setValue('description', nextValue, {
+                      shouldDirty: true,
+                      shouldTouch: true,
+                      shouldValidate: true,
+                    })
+                  }
                 />
+                <input
+                  id="assignment-description"
+                  type="hidden"
+                  {...descriptionRegistration}
+                  value={descriptionValue}
+                  readOnly
+                />
+                <span className="field__hint">
+                  Select text, then use the toolbar to make it bold, italic, or underlined.
+                </span>
                 <FieldError message={errors.description?.message} />
               </div>
 

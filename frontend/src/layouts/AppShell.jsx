@@ -5,7 +5,6 @@ import Sidebar from '../components/common/Sidebar';
 const STORAGE_KEY = 'sidebar-collapsed';
 
 export default function AppShell({ navItems = [], children }) {
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => {
     try {
       return localStorage.getItem(STORAGE_KEY) === 'true';
@@ -26,15 +25,10 @@ export default function AppShell({ navItems = [], children }) {
 
   return (
     <div className="app-shell">
-      <Navbar
-        onToggleSidebar={() => setMobileOpen((currentValue) => !currentValue)}
-        sidebarOpen={mobileOpen}
-      />
+      <Navbar />
       <Sidebar
         navItems={navItems}
         collapsed={collapsed}
-        mobileOpen={mobileOpen}
-        onClose={() => setMobileOpen(false)}
         onToggleCollapse={() => setCollapsed((currentValue) => !currentValue)}
       />
       <main

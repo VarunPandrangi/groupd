@@ -182,7 +182,7 @@ export default function StudentDashboard() {
           <StaggerGroup className="surface-grid surface-grid--two">
             <FadeUp>
               <Card interactive>
-                <div className="card__header">
+                <div className="card__header student-group-card__header">
                   <div>
                     <p className="eyebrow">Your Group</p>
                     <h2 className="section-heading__title" style={{ marginTop: 10 }}>
@@ -200,7 +200,7 @@ export default function StudentDashboard() {
                   </Button>
                 </div>
 
-                <div className="cluster">
+                <div className="cluster student-group-card__meta">
                   <span className="pill pill--blue">
                     <UsersThree size={14} />
                     {members.length} {members.length === 1 ? 'member' : 'members'}
@@ -208,11 +208,20 @@ export default function StudentDashboard() {
                   {leader ? <span className="pill pill--green">Leader: {leader.full_name}</span> : null}
                 </div>
 
-                <div className="cluster">
+                <div className="cluster student-group-card__members">
                   {members.slice(0, 5).map((member) => (
-                    <span key={member.id} className="member-avatar" title={member.full_name}>
-                      {getInitials(member.full_name)}
-                    </span>
+                    members.length <= 3 ? (
+                      <span key={member.id} className="member-chip" title={member.full_name}>
+                        <span className="member-avatar member-avatar--inline">
+                          {getInitials(member.full_name)}
+                        </span>
+                        <span>{member.full_name}</span>
+                      </span>
+                    ) : (
+                      <span key={member.id} className="member-avatar" title={member.full_name}>
+                        {getInitials(member.full_name)}
+                      </span>
+                    )
                   ))}
                   {members.length > 5 ? (
                     <span className="toolbar__meta">+{members.length - 5} more</span>
