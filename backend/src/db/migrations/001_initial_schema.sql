@@ -1,4 +1,4 @@
--- JoinEazy initial database schema
+-- Groupd initial database schema
 -- Derived from plan.md Section 8 (Data Architecture)
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;

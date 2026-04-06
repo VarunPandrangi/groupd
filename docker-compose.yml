@@ -1,12 +1,12 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: joineazy-db
+    container_name: groupd-db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: joineazy
-      POSTGRES_USER: joineazy_user
-      POSTGRES_PASSWORD: joineazy_pass
+      POSTGRES_DB: groupd
+      POSTGRES_USER: groupd_user
+      POSTGRES_PASSWORD: groupd_pass
     ports:
       - "5432:5432"
     volumes:
@@ -14,7 +14,7 @@ services:
       - ./backend/src/db/migrations:/docker-entrypoint-initdb.d
       - ./backend/src/db/seeds/seed_admin.sql:/docker-entrypoint-initdb.d/zz_seed_admin.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U joineazy_user -d joineazy"]
+      test: ["CMD-SHELL", "pg_isready -U groupd_user -d groupd"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -22,13 +22,13 @@ services:
   backend:
     build:
       context: ./backend
-    container_name: joineazy-backend
+    container_name: groupd-backend
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://joineazy_user:joineazy_pass@postgres:5432/joineazy
+      DATABASE_URL: postgresql://groupd_user:groupd_pass@postgres:5432/groupd
       JWT_SECRET: change-this-to-a-random-secret-string
       JWT_REFRESH_SECRET: change-this-to-another-random-secret
       PORT: 5000
@@ -42,7 +42,7 @@ services:
       context: ./frontend
       args:
         VITE_API_URL: http://localhost:5000/api/v1
-    container_name: joineazy-frontend
+    container_name: groupd-frontend
     restart: unless-stopped
     depends_on:
       - backend

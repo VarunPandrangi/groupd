@@ -27,7 +27,7 @@ export default function Navbar() {
       <div className="flex items-center justify-between gap-4 topbar__inner">
         <div className="flex items-center gap-3 topbar__left">
           <Link to="/" className="font-bold tracking-tight brand">
-            Join<span className="font-bold brand__accent">E</span>azy
+            Group<span className="font-bold brand__accent">d</span>
           </Link>
         </div>
 

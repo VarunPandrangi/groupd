@@ -1,6 +1,6 @@
-# JoinEazy — Project Plan & Specification Document
+# Groupd — Project Plan & Specification Document
 
-> **Purpose of this document:** This is the single source of truth for the entire JoinEazy project. Every decision, every feature, every edge case lives here. The agentic AI building this project must read this document before every sprint to understand WHY we are building what we are building, WHAT the system must do, and HOW it should behave. This is not a code document — it is a planning, specification, and architectural reference.
+> **Purpose of this document:** This is the single source of truth for the entire Groupd project. Every decision, every feature, every edge case lives here. The agentic AI building this project must read this document before every sprint to understand WHY we are building what we are building, WHAT the system must do, and HOW it should behave. This is not a code document — it is a planning, specification, and architectural reference.
 
 ---
 
@@ -31,8 +31,8 @@
 
 | Field | Value |
 |-------|-------|
-| **Project Name** | JoinEazy — Student Group & Assignment Management System |
-| **Repository** | https://github.com/VarunPandrangi/joineazy-task1.git |
+| **Project Name** | Groupd — Student Group & Assignment Management System |
+| **Repository** | https://github.com/VarunPandrangi/groupd-task1.git |
 | **Tech Stack** | React.js, Tailwind CSS, Node.js, Express.js, PostgreSQL, Docker |
 | **Authentication** | JWT-based with role separation (Student / Admin) |
 | **Developer** | Varun Pandrangi |
@@ -46,7 +46,7 @@ In collaborative academic environments, professors assign group-based work to st
 
 **The gap:** Professors post assignment links (OneDrive) through scattered channels (email, LMS, WhatsApp). Students form groups informally with no digital record. When submission time comes, professors have zero visibility into who submitted, which groups are complete, and who is falling behind.
 
-**JoinEazy fills this gap** by providing a clean, role-based platform where students form groups, view assignments, confirm submissions through a deliberate two-step process, and track their group's progress — while professors get a real-time dashboard with analytics on completion rates and group performance.
+**Groupd fills this gap** by providing a clean, role-based platform where students form groups, view assignments, confirm submissions through a deliberate two-step process, and track their group's progress — while professors get a real-time dashboard with analytics on completion rates and group performance.
 
 ---
 
@@ -64,9 +64,9 @@ In collaborative academic environments, professors assign group-based work to st
 - Tracking group-wise progress requires manual spreadsheets that go stale immediately.
 - There is no bird's-eye view of class performance — which groups are ahead, which are struggling, what is the overall completion rate.
 
-### 3.2 What JoinEazy Solves
+### 3.2 What Groupd Solves
 
-| Pain Point | JoinEazy Solution |
+| Pain Point | Groupd Solution |
 |------------|-------------------|
 | Informal group formation | Students create digital groups, add members by email/ID, with enforced constraints (max 6, one group per student) |
 | Scattered assignment links | Centralized assignment board with clear status indicators (upcoming, active, overdue) |
@@ -81,7 +81,7 @@ These are the non-negotiable business rules that define how the system operates:
 1. **One group per student.** A student cannot be in two groups simultaneously.
 2. **Groups have a leader.** The student who creates the group is the leader. Only the leader can add/remove members.
 3. **Max 6 members per group.** This is an enforced constraint.
-4. **Submission is a group-level confirmation, not individual.** When any member of a group confirms submission for an assignment, the entire group is marked as submitted. The system records WHICH member triggered the confirmation (submitted_by) and WHEN (confirmed_at). Students upload their work to OneDrive externally — JoinEazy only records the confirmation.
+4. **Submission is a group-level confirmation, not individual.** When any member of a group confirms submission for an assignment, the entire group is marked as submitted. The system records WHICH member triggered the confirmation (submitted_by) and WHEN (confirmed_at). Students upload their work to OneDrive externally — Groupd only records the confirmation.
 5. **Two-step confirmation.** To prevent accidental confirmations, the confirming student must confirm twice (button click → modal) before the group's submission is recorded.
 6. **Submissions are irreversible.** Once a group's submission is confirmed, it cannot be undone. This ensures audit integrity.
 7. **Assignments can be assigned to all groups or specific groups.** The "all" option assigns to every group that exists. The "specific" option lets professors pick individual groups.
@@ -829,7 +829,7 @@ Desktop (1024px+): full layout, sidebar expanded, cards in 3-4 column grid, tabl
 | **Group** | A team of 1-6 students. Has one leader (creator). |
 | **Leader** | The student who created the group. Exclusive add/remove/delete rights. |
 | **Assignment** | Work posted by admin with title, description, due date, OneDrive link. |
-| **OneDrive Link** | External URL for actual file upload. JoinEazy doesn't handle files. |
+| **OneDrive Link** | External URL for actual file upload. Groupd doesn't handle files. |
 | **Submission Confirmation** | Student declaring they submitted. Two-step. Irreversible. Timestamped. |
 | **Soft Delete** | Hiding without removing from DB (is_deleted = true). |
 | **Assign To: All** | Assignment visible to every group. |
@@ -840,4 +840,4 @@ Desktop (1024px+): full layout, sidebar expanded, cards in 3-4 column grid, tabl
 
 ---
 
-*This document is the authoritative reference for the entire JoinEazy project. All implementation decisions must align with the specifications described here.*
+*This document is the authoritative reference for the entire Groupd project. All implementation decisions must align with the specifications described here.*

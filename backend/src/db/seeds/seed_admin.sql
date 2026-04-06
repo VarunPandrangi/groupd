@@ -5,7 +5,7 @@
 INSERT INTO users (full_name, email, role, student_id, password_hash)
 VALUES (
     'Admin User',
-    'admin@joineazy.com',
+    'admin@groupd.com',
     'admin',
     NULL,
     '$2a$12$Wgds35FrXDtJEBMX4oHIBup/HQ/k8gESEa3WY1LAFbHo0MeCtCh7a'

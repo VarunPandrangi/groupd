@@ -5,7 +5,7 @@ async function seedData() {
 
   const accounts = Array.from({ length: 15 }, (_, index) => ({
     full_name: `Student ${index + 1}`,
-    email: `s${index + 1}@joineazy.com`,
+    email: `s${index + 1}@groupd.com`,
     password: 'test@123',
     student_id: `S${String(index + 1).padStart(2, '0')}`,
   }));
@@ -42,7 +42,7 @@ async function seedData() {
       Password: account.password,
     }))
   );
-  console.log('Admin account for protected admin routes: admin@joineazy.com / test@123');
+  console.log('Admin account for protected admin routes: admin@groupd.com / test@123');
 }
 
 seedData();

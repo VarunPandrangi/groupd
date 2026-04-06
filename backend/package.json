@@ -1,7 +1,7 @@
 {
-  "name": "joineazy-backend",
+  "name": "groupd-backend",
   "version": "0.1.0",
-  "description": "JoinEazy backend API - Express + PostgreSQL",
+  "description": "Groupd backend API - Express + PostgreSQL",
   "type": "module",
   "main": "src/server.js",
   "scripts": {

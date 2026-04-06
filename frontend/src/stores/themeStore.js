@@ -12,7 +12,7 @@ export const useThemeStore = create(
         })),
     }),
     {
-      name: 'join-eazy-theme',
+      name: 'groupd-theme',
       partialize: (state) => ({ theme: state.theme }),
     }
   )

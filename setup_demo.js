@@ -34,8 +34,8 @@ async function login(email, password) {
 
 async function setup() {
   try {
-    const studentToken = await login('s1@joineazy.com', 'test@123');
-    const adminToken = await login('admin@joineazy.com', 'test@123');
+    const studentToken = await login('s1@groupd.com', 'test@123');
+    const adminToken = await login('admin@groupd.com', 'test@123');
 
     console.log('Resolving a student group for the demo...');
     let group =
@@ -98,8 +98,8 @@ async function setup() {
     }
 
     console.log('Setup complete.');
-    console.log('Student dashboard user: s1@joineazy.com / test@123');
-    console.log('Admin dashboard user: admin@joineazy.com / test@123');
+    console.log('Student dashboard user: s1@groupd.com / test@123');
+    console.log('Admin dashboard user: admin@groupd.com / test@123');
     console.log(`Group ID: ${group.id}`);
     console.log(`Assignment ID: ${assignmentId}`);
   } catch (error) {

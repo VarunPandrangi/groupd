@@ -1,6 +1,6 @@
-# JoinEazy
+# Groupd
 
-JoinEazy is a student group and assignment management platform built with React, Node.js, Express, PostgreSQL, and Docker.
+Groupd is a student group and assignment management platform built with React, Node.js, Express, PostgreSQL, and Docker.
 
 ## Quick Start (Docker)
 
@@ -43,15 +43,15 @@ docker compose exec backend node seed_users.js
 
 Default demo credentials:
 
-- Admin: `admin@joineazy.com` / `test@123`
-- Students: `s1@joineazy.com` ... `s15@joineazy.com` / `test@123`
+- Admin: `admin@groupd.com` / `test@123`
+- Students: `s1@groupd.com` ... `s15@groupd.com` / `test@123`
 
 ### 4. Access the app
 
 - Frontend: http://localhost:3000
 - Backend API base: http://localhost:5000/api/v1
 - Backend health: http://localhost:5000/api/v1/health
-- PostgreSQL: localhost:5432 (`joineazy` / `joineazy_user`)
+- PostgreSQL: localhost:5432 (`groupd` / `groupd_user`)
 
 ### 5. Stop services
 

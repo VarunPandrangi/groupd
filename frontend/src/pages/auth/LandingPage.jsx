@@ -39,7 +39,7 @@ export default function LandingPage() {
     <div className="min-h-screen landing">
       <header className="flex items-center justify-between gap-4 landing__header">
         <Link to="/" className="font-bold tracking-tight brand">
-          Join<span className="font-bold brand__accent">E</span>azy
+          Group<span className="font-bold brand__accent">d</span>
         </Link>
         <div className="flex items-center gap-3 cluster">
           <Link to="/login" className={buttonClassName({ variant: 'ghost' })}>
@@ -56,7 +56,7 @@ export default function LandingPage() {
           <p className="text-xs font-medium uppercase tracking-wide eyebrow eyebrow--accent">Quiet confidence for classroom operations</p>
           <h1 className="text-3xl font-bold tracking-tight landing__hero-title">Collaborate. Submit. Succeed.</h1>
           <p className="text-lg leading-relaxed landing__hero-copy">
-            JoinEazy keeps student groups, assignment briefs, and submission tracking in one calm interface that feels built for real work.
+            Groupd keeps student groups, assignment briefs, and submission tracking in one calm interface that feels built for real work.
           </p>
           <div className="flex gap-3 landing__actions">
             <Link to="/register" className={buttonClassName({ variant: 'primary' })}>
@@ -125,7 +125,7 @@ export default function LandingPage() {
         </div>
       </StaggerGroup>
 
-      <footer className="text-sm landing__footer">Built for JoinEazy</footer>
+      <footer className="text-sm landing__footer">Built for Groupd</footer>
     </div>
   );
 }

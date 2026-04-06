@@ -1,4 +1,4 @@
-# JoinEazy — Sprint Execution Guide
+# Groupd — Sprint Execution Guide
 
 > **How to use this file**
 >
@@ -13,8 +13,8 @@
 ## Repository Initialization
 
 ```bash
-git clone https://github.com/VarunPandrangi/joineazy-task1.git
-cd joineazy-task1
+git clone https://github.com/VarunPandrangi/groupd-task1.git
+cd groupd-task1
 ```
 
 Copy `plan.md`, `prompts.md`, and `progress.md` into the root, then:
@@ -51,7 +51,7 @@ Before writing anything, read `plan.md` in full. Pay close attention to:
 Then read `progress.md` — nothing exists yet. You are starting from scratch.
 
 PROJECT SUMMARY:
-JoinEazy is a role-based web app (React + Express + PostgreSQL + JWT). This sprint sets up the backend skeleton only.
+Groupd is a role-based web app (React + Express + PostgreSQL + JWT). This sprint sets up the backend skeleton only.
 
 TASK:
 Initialize the backend/ directory as a Node.js project with everything configured but no business logic implemented.
@@ -91,7 +91,7 @@ Initialize the backend/ directory as a Node.js project with everything configure
    - Note: groups table must be created before users because users references groups(id). Then add the foreign key from groups.created_by → users.id via ALTER TABLE after both exist.
 
 6. CREATE SEED FILE (backend/src/db/seeds/seed_admin.sql)
-   Insert one admin user: full_name='Admin User', email='admin@joineazy.com', role='admin', student_id=NULL.
+   Insert one admin user: full_name='Admin User', email='admin@groupd.com', role='admin', student_id=NULL.
    For the password_hash, use bcryptjs to generate a hash of 'Admin@123' with 12 salt rounds. Hardcode the resulting hash string in the SQL.
    Use ON CONFLICT (email) DO NOTHING for idempotency.
 
@@ -110,7 +110,7 @@ Initialize the backend/ directory as a Node.js project with everything configure
    Import env.js first (to validate env vars). Import app.js. Read PORT from env. Start listening. Log "Server running on port ${PORT}" with Winston.
 
 9. CREATE .env.example
-   DATABASE_URL=postgresql://joineazy_user:joineazy_pass@localhost:5432/joineazy
+   DATABASE_URL=postgresql://groupd_user:groupd_pass@localhost:5432/groupd
    JWT_SECRET=change-this-to-a-random-secret-string
    JWT_REFRESH_SECRET=change-this-to-another-random-secret
    PORT=5000
@@ -119,8 +119,8 @@ Initialize the backend/ directory as a Node.js project with everything configure
 
 10. CREATE DOCKER COMPOSE (at project root: docker-compose.yml)
     Single service: PostgreSQL 16 Alpine.
-    - Container name: joineazy-db
-    - Env: POSTGRES_DB=joineazy, POSTGRES_USER=joineazy_user, POSTGRES_PASSWORD=joineazy_pass
+    - Container name: groupd-db
+    - Env: POSTGRES_DB=groupd, POSTGRES_USER=groupd_user, POSTGRES_PASSWORD=groupd_pass
     - Port: 5432:5432
     - Volume: pgdata for data persistence
     - Mount: ./backend/src/db/migrations/ as /docker-entrypoint-initdb.d/ (so schema runs on first start)
@@ -142,14 +142,14 @@ CONSTRAINTS:
 docker-compose up -d
 
 # Verify tables were created
-docker exec -it joineazy-db psql -U joineazy_user -d joineazy -c "\dt"
+docker exec -it groupd-db psql -U groupd_user -d groupd -c "\dt"
 # Should list: users, groups, assignments, assignment_groups, submissions
 
 # Seed admin
-docker exec -it joineazy-db psql -U joineazy_user -d joineazy -f /docker-entrypoint-initdb.d/../seeds/seed_admin.sql
+docker exec -it groupd-db psql -U groupd_user -d groupd -f /docker-entrypoint-initdb.d/../seeds/seed_admin.sql
 # OR from host:
 cd backend
-psql postgresql://joineazy_user:joineazy_pass@localhost:5432/joineazy -f src/db/seeds/seed_admin.sql
+psql postgresql://groupd_user:groupd_pass@localhost:5432/groupd -f src/db/seeds/seed_admin.sql
 
 # Start backend
 cd backend
@@ -431,7 +431,7 @@ docker-compose up -d
 
 # Seed admin
 cd backend
-psql postgresql://joineazy_user:joineazy_pass@localhost:5432/joineazy -f src/db/seeds/seed_admin.sql
+psql postgresql://groupd_user:groupd_pass@localhost:5432/groupd -f src/db/seeds/seed_admin.sql
 
 # Start server
 npm run dev
@@ -471,7 +471,7 @@ curl -s http://localhost:5000/api/v1/auth/me
 # Admin login
 curl -s -X POST http://localhost:5000/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@joineazy.com","password":"Admin@123"}'
+  -d '{"email":"admin@groupd.com","password":"Admin@123"}'
 ```
 
 ### GIT
@@ -537,7 +537,7 @@ Build three pages and the auth infrastructure. This sprint does NOT include layo
    - Two CTA buttons side by side: "Get Started" (solid fill, --accent-primary, links to /register) and "Sign In" (outlined border, links to /login).
    - Background: NOT a plain flat color. Add a subtle CSS effect — either a geometric dot grid pattern, a radial gradient glow, or a noise texture using CSS.
    - Three feature cards below hero with Lucide icons: Groups (Users icon), Assignments (FileText), Progress (BarChart3). Each card has an icon, title, short description. Cards have --bg-secondary background with --border-default border.
-   - Simple footer: "Built for JoinEazy" centered in --text-tertiary.
+   - Simple footer: "Built for Groupd" centered in --text-tertiary.
    - Animations: elements stagger in on page load. Use CSS @keyframes fadeInUp with increasing animation-delay for each element.
 
 4. LOGIN PAGE (src/pages/auth/LoginPage.jsx)
@@ -640,7 +640,7 @@ Build the structural components that wrap all pages.
 
 1. NAVBAR (src/components/common/Navbar.jsx)
    Fixed top bar. Height 64px. Background: --bg-secondary with opacity ~0.8 and backdrop-filter: blur(12px). Subtle bottom border (--border-default).
-   - Left: "JoinEazy" text logo in Clash Display font. Make the "E" in Eazy a different color (--accent-primary) as a brand touch.
+   - Left: "Groupd" text logo in Clash Display font. Make the "E" in Eazy a different color (--accent-primary) as a brand touch.
    - Right (logged out): "Login" and "Register" buttons (links to /login and /register).
    - Right (logged in): user's full_name, role badge (small pill — "Student" in --accent-primary or "Admin" in --accent-warning), and a Logout button (LogOut icon from Lucide). On logout: call authStore.logout() and navigate to /login.
    - Responsive: on mobile, right side items could be in a simple row or dropdown.
@@ -854,7 +854,7 @@ curl -s -X POST http://localhost:5000/api/v1/groups \
 # Admin list groups
 ADMIN=$(curl -s -X POST http://localhost:5000/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@joineazy.com","password":"Admin@123"}' | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['accessToken'])")
+  -d '{"email":"admin@groupd.com","password":"Admin@123"}' | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['accessToken'])")
 curl -s http://localhost:5000/api/v1/groups -H "Authorization: Bearer $ADMIN"
 ```
 
@@ -1023,7 +1023,7 @@ cd backend && npm run dev
 
 ADMIN=$(curl -s -X POST http://localhost:5000/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@joineazy.com","password":"Admin@123"}' | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['accessToken'])")
+  -d '{"email":"admin@groupd.com","password":"Admin@123"}' | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['accessToken'])")
 
 # Create assignment (all)
 curl -s -X POST http://localhost:5000/api/v1/assignments \
@@ -1036,7 +1036,7 @@ curl -s http://localhost:5000/api/v1/assignments -H "Authorization: Bearer $ADMI
 # List as student
 TOKEN=$(curl -s -X POST http://localhost:5000/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"s1@joineazy.com","password":"Student@123"}' | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['accessToken'])")
+  -d '{"email":"s1@groupd.com","password":"Student@123"}' | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['accessToken'])")
 curl -s http://localhost:5000/api/v1/assignments -H "Authorization: Bearer $TOKEN"
 
 # Past due date → 400
@@ -1189,7 +1189,7 @@ cd backend && npm run dev
 
 TOKEN=$(curl -s -X POST http://localhost:5000/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"s1@joineazy.com","password":"Student@123"}' | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['accessToken'])")
+  -d '{"email":"s1@groupd.com","password":"Student@123"}' | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['accessToken'])")
 
 # Get an assignment ID
 ASSIGNMENT_ID=$(curl -s http://localhost:5000/api/v1/assignments \
@@ -1347,13 +1347,13 @@ cd backend && npm run dev
 
 TOKEN=$(curl -s -X POST http://localhost:5000/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"s1@joineazy.com","password":"Student@123"}' | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['accessToken'])")
+  -d '{"email":"s1@groupd.com","password":"Student@123"}' | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['accessToken'])")
 
 curl -s http://localhost:5000/api/v1/dashboard/student -H "Authorization: Bearer $TOKEN" | python3 -m json.tool
 
 ADMIN=$(curl -s -X POST http://localhost:5000/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@joineazy.com","password":"Admin@123"}' | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['accessToken'])")
+  -d '{"email":"admin@groupd.com","password":"Admin@123"}' | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['accessToken'])")
 
 curl -s http://localhost:5000/api/v1/dashboard/admin/summary -H "Authorization: Bearer $ADMIN" | python3 -m json.tool
 curl -s http://localhost:5000/api/v1/dashboard/admin/assignments-analytics -H "Authorization: Bearer $ADMIN" | python3 -m json.tool
@@ -1493,7 +1493,7 @@ Polish pass. No new features. Only refinement, consistency, and edge cases.
 
 6. ANIMATION CONSISTENCY: Every page fades in on mount. Every card hovers with translateY(-2px). Every button has hover/active/disabled states. Focus-visible outlines. scroll-behavior: smooth.
 
-7. FAVICON: SVG favicon — stylized "J" in --accent-primary. Update index.html: title "JoinEazy", meta description.
+7. FAVICON: SVG favicon — stylized "J" in --accent-primary. Update index.html: title "Groupd", meta description.
 
 8. CLEANUP: Remove all console.log. Remove unused imports. Verify all headings use Clash Display, all body uses Plus Jakarta Sans, all data uses JetBrains Mono. Grep for hardcoded hex colors and replace with CSS vars.
 ```
@@ -1564,8 +1564,8 @@ TASK:
 
 5. SEED DATA SCRIPT (backend/src/db/seeds/seed_data.js):
    Node.js script. Connects to DATABASE_URL. TRUNCATE all tables CASCADE. Insert:
-   - 1 admin (admin@joineazy.com / Admin@123)
-   - 10 students (student1–10@joineazy.com / Student@123)
+   - 1 admin (admin@groupd.com / Admin@123)
+   - 10 students (student1–10@groupd.com / Student@123)
    - 3 groups: "Alpha Squad" (students 1–4), "Beta Force" (5–7), "Gamma Wave" (8–10)
    - 5 assignments: 2 "all", 2 "specific", 1 overdue (past due date)
    - Scattered submissions for dashboard chart data
@@ -1589,8 +1589,8 @@ cd backend && npm run seed
 # Verify
 # http://localhost:3000 → Frontend loads
 # http://localhost:5000/api/v1/health → Backend responds
-# Login: admin@joineazy.com / Admin@123 → Dashboard with charts
-# Login: student1@joineazy.com / Student@123 → Dashboard with data
+# Login: admin@groupd.com / Admin@123 → Dashboard with charts
+# Login: student1@groupd.com / Student@123 → Dashboard with data
 ```
 
 ### GIT
@@ -1711,8 +1711,8 @@ docker-compose down -v
 docker-compose up --build -d
 cd backend && npm run seed
 
-# admin@joineazy.com / Admin@123 → Charts, groups, submissions visible
-# student1@joineazy.com / Student@123 → Group, assignments, progress visible
+# admin@groupd.com / Admin@123 → Charts, groups, submissions visible
+# student1@groupd.com / Student@123 → Group, assignments, progress visible
 # All features work. Both themes. All screen sizes. Zero console errors.
 ```
 

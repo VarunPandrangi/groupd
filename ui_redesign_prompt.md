@@ -1,4 +1,4 @@
-# JoinEazy — UI Design System Prompt
+# Groupd — UI Design System Prompt
 
 > **What this file is:** A condensed set of design rules and technical specs that must be included as context in every frontend-related prompt from this point forward. When the agentic AI builds or modifies any frontend component, it must follow these rules exactly. This replaces all previous design direction in plan.md Section 13.
 

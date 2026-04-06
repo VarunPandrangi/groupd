@@ -1,4 +1,4 @@
-# JoinEazy — Progress Tracker
+# Groupd — Progress Tracker
 
 > **Purpose:** This file is a living record of what has been built, what works, what broke, and what was learned. The agentic AI reads this file at the start of every sprint to understand the current state of the codebase and avoid re-doing work or breaking existing features.
 >
@@ -494,10 +494,10 @@ _Populated after Sprint 12 seed data is created._
 
 | Role | Email | Password | Notes |
 |------|-------|----------|-------|
-| Admin | admin@joineazy.com | Admin@123 | Seeded |
-| Student 1 | s1@joineazy.com | Student@123 | In seeded demo group |
-| Student 2 | s2@joineazy.com | Student@123 | In seeded demo group |
-| Student 3 | s3@joineazy.com | Student@123 | In seeded demo group |
+| Admin | admin@groupd.com | Admin@123 | Seeded |
+| Student 1 | s1@groupd.com | Student@123 | In seeded demo group |
+| Student 2 | s2@groupd.com | Student@123 | In seeded demo group |
+| Student 3 | s3@groupd.com | Student@123 | In seeded demo group |
 | ... | ... | ... | ... |
 
 ---

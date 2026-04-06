@@ -7,7 +7,7 @@ async function seedStudents() {
     const studentNumber = index + 1;
     return {
       full_name: `Student ${studentNumber}`,
-      email: `s${studentNumber}@joineazy.com`,
+      email: `s${studentNumber}@groupd.com`,
       student_id: `S${String(studentNumber).padStart(2, '0')}`,
       password: 'test@123',
     };

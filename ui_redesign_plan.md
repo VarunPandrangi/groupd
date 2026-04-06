@@ -1,6 +1,6 @@
-# JoinEazy — UI Redesign Plan
+# Groupd — UI Redesign Plan
 
-> **Purpose:** This document is the architectural blueprint for transforming JoinEazy from an AI-generated-looking dark dashboard into a premium, human-crafted interface. It is based on deep analysis of the reference image (Sobhana clinic dashboard — pic 8) and establishes every design decision before any code is written.
+> **Purpose:** This document is the architectural blueprint for transforming Groupd from an AI-generated-looking dark dashboard into a premium, human-crafted interface. It is based on deep analysis of the reference image (Sobhana clinic dashboard — pic 8) and establishes every design decision before any code is written.
 
 ---
 
@@ -64,9 +64,9 @@
 
 ### 2.1 Theme Choice: Light Mode Primary
 
-The reference image is a white/light UI. The current JoinEazy dark theme is the primary source of the "AI look." 
+The reference image is a white/light UI. The current Groupd dark theme is the primary source of the "AI look." 
 
-**Decision:** JoinEazy will become a **light-mode-primary** application with an optional dark mode toggle. The default experience will be a refined white/neutral aesthetic inspired directly by pic 8.
+**Decision:** Groupd will become a **light-mode-primary** application with an optional dark mode toggle. The default experience will be a refined white/neutral aesthetic inspired directly by pic 8.
 
 This single change will immediately break the AI aesthetic because dark dashboards are the #1 AI builder cliché. A well-executed light theme with restraint is much harder to "accidentally" produce with AI.
 
@@ -235,7 +235,7 @@ These are NOT single-value shadows. They are multi-layer. This is what makes pic
 **New:**
 - White background. No blur effect (unnecessary in light theme). Thin bottom border (--border-default).
 - Height: 56px (slightly shorter — pic 8 topbar is compact).
-- Left: "JoinEazy" logo — Geist Bold, 18px. The "E" accent color in --accent-blue (keep this brand touch).
+- Left: "Groupd" logo — Geist Bold, 18px. The "E" accent color in --accent-blue (keep this brand touch).
 - Right: User name (Geist Medium, 14px), role badge (tiny pill: rounded-full, text-xs, font-medium, bg in role color — student = blue-soft, admin = amber-soft), logout as icon-only button (SignOut from Phosphor).
 - No padding excess. Tight, professional.
 
@@ -366,7 +366,7 @@ These are NOT single-value shadows. They are multi-layer. This is what makes pic
 - Hero: "Collaborate. Submit. Succeed." — Geist Bold 56px, --text-primary. No gradient text. Let the typography speak for itself. Subtext in --text-muted, 18px, max-width 480px.
 - CTA: primary button "Get Started" + secondary "Sign In". Horizontal, compact.
 - Feature section: 3 cards in a row. Each has a Phosphor icon inside a soft-colored circle, title (Geist Bold 16px), description (14px --text-muted). Standard card treatment (white bg, layered shadow).
-- Footer: minimal. "Built for JoinEazy" in --text-faint, 13px.
+- Footer: minimal. "Built for Groupd" in --text-faint, 13px.
 - NO background patterns. NO noise textures. Clean white space IS the design statement.
 
 ### 5.2 Student Dashboard (compare to pic 8 and pic 7)
