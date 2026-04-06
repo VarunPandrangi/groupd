@@ -3,9 +3,11 @@ import { findById as findAssignment } from '../models/assignment.model.js';
 import {
   create as createSubmission,
   findByAssignmentAndGroup,
+  getAssignmentGroupTrackerRows,
   getByAssignment,
   getByGroup,
   getGroupProgress as getGroupProgressModel,
+  getStudentMembersByGroupIds,
 } from '../models/submission.model.js';
 import { findById as findUserById } from '../models/user.model.js';
 
@@ -126,4 +128,72 @@ export async function getGroupProgress(userId) {
 export async function getSubmissionsByAssignment(assignmentId) {
   await requireAssignment(assignmentId);
   return getByAssignment(assignmentId);
+}
+
+export async function getAssignmentGroupStudentStatus(assignmentId) {
+  const assignment = await requireAssignment(assignmentId);
+  const trackerRows = await getAssignmentGroupTrackerRows(assignmentId);
+
+  const activeGroupIds = [
+    ...new Set(
+      trackerRows
+        .filter((row) => !row.group_deleted && row.group_id)
+        .map((row) => row.group_id)
+    ),
+  ];
+
+  const memberRows = await getStudentMembersByGroupIds(activeGroupIds);
+  const membersByGroupId = memberRows.reduce((map, member) => {
+    const list = map.get(member.group_id) ?? [];
+
+    list.push({
+      id: member.id,
+      full_name: member.full_name,
+      email: member.email,
+      student_id: member.student_id,
+    });
+
+    map.set(member.group_id, list);
+    return map;
+  }, new Map());
+
+  const groups = trackerRows.map((row) => {
+    const members = row.group_deleted
+      ? []
+      : membersByGroupId.get(row.group_id) ?? [];
+
+    return {
+      row_id: row.group_deleted
+        ? `deleted:${row.submission_id}`
+        : `group:${row.group_id}`,
+      group_id: row.group_id,
+      group_name: row.group_name,
+      group_deleted: Boolean(row.group_deleted),
+      group_note: row.group_deleted ? row.group_note : null,
+      is_submitted: Boolean(row.is_submitted),
+      submitted_by_name: row.submitted_by_name ?? null,
+      submitted_by_email: row.submitted_by_email ?? null,
+      confirmed_at: row.confirmed_at ?? null,
+      member_count: members.length,
+      members,
+    };
+  });
+
+  const submittedGroups = groups.filter((group) => group.is_submitted).length;
+  const totalGroups = groups.length;
+
+  return {
+    assignment: {
+      id: assignment.id,
+      title: assignment.title,
+      assign_to: assignment.assign_to,
+      due_date: assignment.due_date,
+    },
+    summary: {
+      submitted_groups: submittedGroups,
+      total_groups: totalGroups,
+      pending_groups: Math.max(totalGroups - submittedGroups, 0),
+    },
+    groups,
+  };
 }

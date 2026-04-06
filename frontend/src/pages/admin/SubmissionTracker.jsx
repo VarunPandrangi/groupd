@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
   CalendarDots,
+  CaretDown,
+  CaretRight,
   ClipboardText,
   FolderSimple,
   UsersThree,
@@ -13,11 +15,20 @@ import StatusBadge from '../../components/common/StatusBadge';
 import Card from '../../components/common/Card';
 import { Page, PageHeader, SectionHeading } from '../../components/common/Page';
 import assignmentService from '../../services/assignmentService';
-import groupService from '../../services/groupService';
 import submissionService from '../../services/submissionService';
 import { formatAssignmentDate } from '../../utils/assignmentDates';
+import { cx } from '../../utils/cx';
 
 const PAGE_SIZE = 10;
+const EMPTY_TRACKER = {
+  assignment: null,
+  summary: {
+    submitted_groups: 0,
+    total_groups: 0,
+    pending_groups: 0,
+  },
+  groups: [],
+};
 
 function getErrorMessage(error, fallbackMessage) {
   return error?.response?.data?.error?.message || fallbackMessage;
@@ -57,8 +68,9 @@ function SubmissionTrackerSkeleton() {
 export default function SubmissionTracker() {
   const [assignments, setAssignments] = useState([]);
   const [selectedAssignmentId, setSelectedAssignmentId] = useState('');
-  const [rows, setRows] = useState([]);
+  const [tracker, setTracker] = useState(EMPTY_TRACKER);
   const [currentPage, setCurrentPage] = useState(1);
+  const [expandedRows, setExpandedRows] = useState(new Set());
   const [isAssignmentsLoading, setIsAssignmentsLoading] = useState(true);
   const [isTableLoading, setIsTableLoading] = useState(false);
 
@@ -97,7 +109,8 @@ export default function SubmissionTracker() {
 
   useEffect(() => {
     if (!selectedAssignmentId) {
-      setRows([]);
+      setTracker(EMPTY_TRACKER);
+      setExpandedRows(new Set());
       return;
     }
 
@@ -107,88 +120,38 @@ export default function SubmissionTracker() {
       setIsTableLoading(true);
 
       try {
-        const selectedAssignment = assignments.find(
-          (assignment) => assignment.id === selectedAssignmentId
-        );
-
-        if (!selectedAssignment) {
-          setRows([]);
-          return;
-        }
-
-        const [submissions, groups] = await Promise.all([
-          submissionService.getSubmissionsByAssignment(selectedAssignmentId),
-          groupService.getAllGroupsForAdmin(),
-        ]);
+        const trackerResponse =
+          await submissionService.getAssignmentGroupStudentStatus(
+            selectedAssignmentId
+          );
 
         if (!isMounted) {
           return;
         }
 
-        const assignedGroupIds = new Set(
-          (selectedAssignment.groups ?? []).map((group) => group.id)
-        );
+        const normalizedGroups = Array.isArray(trackerResponse.groups)
+          ? trackerResponse.groups.map((group, index) => ({
+              ...group,
+              row_id:
+                group.row_id ??
+                (group.group_id ? `group:${group.group_id}` : `row:${index}`),
+              members: Array.isArray(group.members) ? group.members : [],
+            }))
+          : [];
 
-        const expectedGroups = [...groups]
-          .filter((group) =>
-            selectedAssignment.assign_to === 'all'
-              ? true
-              : assignedGroupIds.has(group.id)
-          )
-          .sort((left, right) => left.name.localeCompare(right.name));
+        const summary = trackerResponse.summary ?? EMPTY_TRACKER.summary;
 
-        const submissionsByGroupId = new Map(
-          submissions.map((submission) => [submission.group_id, submission])
-        );
-
-        const expectedRows = expectedGroups.map((group) => {
-          const submission = submissionsByGroupId.get(group.id);
-
-          return {
-            rowKey: group.id,
-            groupId: group.id,
-            groupName: submission?.group_name ?? group.name,
-            groupDeleted: Boolean(submission?.group_deleted),
-            submittedBy: submission?.submitted_by_name ?? '',
-            submittedAt: submission?.confirmed_at ?? '',
-            status: submission ? 'confirmed' : 'pending',
-          };
+        setTracker({
+          assignment: trackerResponse.assignment ?? null,
+          summary: {
+            submitted_groups: Number(summary.submitted_groups) || 0,
+            total_groups: Number(summary.total_groups) || 0,
+            pending_groups: Number(summary.pending_groups) || 0,
+          },
+          groups: normalizedGroups,
         });
-
-        const liveGroupIds = new Set(expectedGroups.map((group) => group.id));
-        const deletedRows = submissions
-          .filter(
-            (submission) =>
-              submission.group_deleted || !liveGroupIds.has(submission.group_id)
-          )
-          .map((submission) => ({
-            rowKey: submission.id,
-            groupId: submission.group_id ?? null,
-            groupName: submission.group_name ?? 'Unknown Group',
-            groupDeleted: true,
-            submittedBy: submission.submitted_by_name ?? '',
-            submittedAt: submission.confirmed_at ?? '',
-            status: 'confirmed',
-          }));
-
-        const nextRows = [...expectedRows, ...deletedRows].sort((left, right) => {
-          const nameSort = left.groupName.localeCompare(right.groupName, undefined, {
-            sensitivity: 'base',
-          });
-
-          if (nameSort !== 0) {
-            return nameSort;
-          }
-
-          const deletedSort = Number(left.groupDeleted) - Number(right.groupDeleted);
-          if (deletedSort !== 0) {
-            return deletedSort;
-          }
-
-          return left.rowKey.localeCompare(right.rowKey);
-        });
-
-        setRows(nextRows);
+        setExpandedRows(new Set());
+        setCurrentPage(1);
       } catch (error) {
         if (isMounted) {
           toast.error(getErrorMessage(error, 'Unable to load submission data.'));
@@ -200,13 +163,12 @@ export default function SubmissionTracker() {
       }
     }
 
-    setCurrentPage(1);
     loadTrackerRows();
 
     return () => {
       isMounted = false;
     };
-  }, [assignments, selectedAssignmentId]);
+  }, [selectedAssignmentId]);
 
   if (isAssignmentsLoading) {
     return <SubmissionTrackerSkeleton />;
@@ -224,12 +186,28 @@ export default function SubmissionTracker() {
 
   const selectedAssignment =
     assignments.find((assignment) => assignment.id === selectedAssignmentId) ?? null;
+  const rows = tracker.groups;
+  const summary = tracker.summary;
+
   const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   const paginatedRows = rows.slice(
     (currentPage - 1) * PAGE_SIZE,
     currentPage * PAGE_SIZE
   );
-  const confirmedCount = rows.filter((row) => row.status === 'confirmed').length;
+
+  function toggleRowExpansion(rowId) {
+    setExpandedRows((previousRows) => {
+      const nextRows = new Set(previousRows);
+
+      if (nextRows.has(rowId)) {
+        nextRows.delete(rowId);
+      } else {
+        nextRows.add(rowId);
+      }
+
+      return nextRows;
+    });
+  }
 
   return (
     <Page>
@@ -275,9 +253,7 @@ export default function SubmissionTracker() {
                 </div>
                 <div className="cluster muted" style={{ fontSize: '14px' }}>
                   <ClipboardText size={16} />
-                  <span>
-                    {confirmedCount}/{rows.length} confirmed
-                  </span>
+                  <span>{summary.submitted_groups} of {summary.total_groups} groups submitted</span>
                 </div>
               </div>
             </Card>
@@ -307,49 +283,135 @@ export default function SubmissionTracker() {
         ) : (
           <>
             <div className="table-wrap" style={{ marginTop: 20 }}>
-              <table className="table" style={{ minWidth: 720 }}>
+              <table className="table tracker-table">
                 <thead>
                   <tr>
                     <th>Group Name</th>
-                    <th>Submitted By</th>
-                    <th>Submitted At</th>
+                    <th>Member Count</th>
                     <th className="table__column--center">Status</th>
+                    <th>Submitted By</th>
+                    <th>Timestamp</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedRows.map((row) => (
-                    <tr key={row.rowKey}>
-                      <td>
-                        <div className="group-name-cell">
-                          <span
-                            className={`table__title ${
-                              row.groupDeleted ? 'group-name-cell__name--deleted' : ''
-                            }`}
-                          >
-                            {row.groupName}
-                          </span>
-                          {row.groupDeleted ? (
-                            <span
-                              className="status-badge group-name-cell__tag"
-                              style={{
-                                background: 'var(--accent-amber-soft)',
-                                color: 'var(--accent-amber)',
-                              }}
-                            >
-                              Deleted
-                            </span>
-                          ) : null}
-                        </div>
-                      </td>
-                      <td>{row.submittedBy || 'Not submitted'}</td>
-                      <td className="mono">
-                        {row.submittedAt ? formatTimestamp(row.submittedAt) : 'Not submitted'}
-                      </td>
-                      <td className="table__cell--center">
-                        <StatusBadge status={row.status} />
-                      </td>
-                    </tr>
-                  ))}
+                  {paginatedRows.map((row) => {
+                    const isExpanded = expandedRows.has(row.row_id);
+                    const memberCount =
+                      Number(row.member_count) ||
+                      (Array.isArray(row.members) ? row.members.length : 0);
+
+                    return (
+                      <Fragment key={row.row_id}>
+                        <tr
+                          className={cx('tracker-row', isExpanded && 'tracker-row--expanded')}
+                          onClick={() => toggleRowExpansion(row.row_id)}
+                        >
+                          <td>
+                            <div className="tracker-group-cell">
+                              <button
+                                type="button"
+                                className="tracker-toggle"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  toggleRowExpansion(row.row_id);
+                                }}
+                                aria-expanded={isExpanded}
+                                aria-label={isExpanded ? 'Collapse group row' : 'Expand group row'}
+                              >
+                                {isExpanded ? (
+                                  <CaretDown size={14} weight="bold" />
+                                ) : (
+                                  <CaretRight size={14} weight="bold" />
+                                )}
+                              </button>
+
+                              <div className="tracker-group-meta">
+                                <span
+                                  className={cx(
+                                    'tracker-group-name',
+                                    row.group_deleted && 'tracker-group-name--deleted'
+                                  )}
+                                >
+                                  {row.group_name}
+                                </span>
+
+                                {row.group_deleted ? (
+                                  <span className="status-badge tracker-deleted-badge">
+                                    Deleted
+                                  </span>
+                                ) : null}
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="tracker-member-count">{memberCount}</td>
+
+                          <td className="table__cell--center">
+                            <StatusBadge
+                              status={row.is_submitted ? 'submitted' : 'pending'}
+                            />
+                          </td>
+
+                          <td>
+                            {row.is_submitted
+                              ? row.submitted_by_name ?? row.submitted_by_email ?? 'Unknown student'
+                              : 'Not submitted'}
+                          </td>
+
+                          <td className="mono tracker-timestamp">
+                            {row.confirmed_at
+                              ? formatTimestamp(row.confirmed_at)
+                              : 'Not submitted'}
+                          </td>
+                        </tr>
+
+                        {isExpanded ? (
+                          <tr className="tracker-expanded-row">
+                            <td colSpan={5} className="tracker-expanded-cell">
+                              <div className="tracker-expanded-content">
+                                {row.group_deleted ? (
+                                  <p className="tracker-note">
+                                    {row.group_note ??
+                                      'Group no longer exists - members were released.'}
+                                  </p>
+                                ) : Array.isArray(row.members) && row.members.length > 0 ? (
+                                  <div className="tracker-members-wrap">
+                                    <div className="tracker-members">
+                                      <div className="tracker-members__head">
+                                        <span>Full Name</span>
+                                        <span>Email</span>
+                                        <span>Student ID</span>
+                                      </div>
+                                      <div>
+                                        {row.members.map((member) => (
+                                          <div
+                                            key={member.id}
+                                            className="tracker-members__row"
+                                          >
+                                            <span className="tracker-members__name">
+                                              {member.full_name}
+                                            </span>
+                                            <span className="tracker-members__email">
+                                              {member.email}
+                                            </span>
+                                            <span className="tracker-members__student-id">
+                                              {member.student_id}
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <p className="tracker-note">No active student members in this group.</p>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ) : null}
+                      </Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

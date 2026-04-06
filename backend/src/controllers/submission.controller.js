@@ -52,3 +52,15 @@ export async function getSubmissionsByAssignment(req, res, next) {
     return next(err);
   }
 }
+
+export async function getAssignmentGroupStudentStatus(req, res, next) {
+  try {
+    const tracker = await submissionService.getAssignmentGroupStudentStatus(
+      req.params.assignmentId
+    );
+
+    return successResponse(res, { tracker }, '', 200);
+  } catch (err) {
+    return next(err);
+  }
+}

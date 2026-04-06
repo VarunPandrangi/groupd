@@ -31,6 +31,13 @@ router.get(
 );
 
 router.get(
+  '/assignment/:assignmentId/groups-student-status',
+  requireRole('admin'),
+  validateId('assignmentId'),
+  submissionController.getAssignmentGroupStudentStatus
+);
+
+router.get(
   '/assignment/:assignmentId',
   requireRole('admin'),
   validateId('assignmentId'),

@@ -81,6 +81,129 @@ export async function getByAssignment(assignmentId, db = pool) {
   return rows;
 }
 
+export async function getAssignmentGroupTrackerRows(assignmentId, db = pool) {
+  const sql = `
+    WITH assignment_scope AS (
+      SELECT id, assign_to
+      FROM assignments
+      WHERE id = $1
+        AND is_deleted = FALSE
+    ),
+    expected_groups AS (
+      SELECT
+        g.id AS group_id,
+        g.name AS group_name
+      FROM assignment_scope a
+      JOIN groups g
+        ON a.assign_to = 'all'
+
+      UNION ALL
+
+      SELECT
+        g.id AS group_id,
+        g.name AS group_name
+      FROM assignment_scope a
+      JOIN assignment_groups ag
+        ON a.assign_to = 'specific'
+       AND ag.assignment_id = a.id
+      JOIN groups g
+        ON g.id = ag.group_id
+    ),
+    live_group_rows AS (
+      SELECT
+        eg.group_id,
+        COALESCE(g.name, s.group_name, '${UNKNOWN_GROUP_NAME}') AS group_name,
+        (s.id IS NOT NULL) AS is_submitted,
+        u.full_name AS submitted_by_name,
+        u.email AS submitted_by_email,
+        s.confirmed_at,
+        FALSE AS group_deleted,
+        NULL::text AS group_note,
+        s.id AS submission_id
+      FROM expected_groups eg
+      LEFT JOIN submissions s
+        ON s.assignment_id = $1
+       AND s.group_id = eg.group_id
+      LEFT JOIN groups g
+        ON g.id = eg.group_id
+      LEFT JOIN users u
+        ON u.id = s.submitted_by
+    ),
+    deleted_group_rows AS (
+      SELECT
+        NULL::uuid AS group_id,
+        COALESCE(s.group_name, '${UNKNOWN_GROUP_NAME}') AS group_name,
+        TRUE AS is_submitted,
+        u.full_name AS submitted_by_name,
+        u.email AS submitted_by_email,
+        s.confirmed_at,
+        TRUE AS group_deleted,
+        'Group no longer exists - members were released.'::text AS group_note,
+        s.id AS submission_id
+      FROM submissions s
+      LEFT JOIN users u
+        ON u.id = s.submitted_by
+      WHERE s.assignment_id = $1
+        AND s.group_id IS NULL
+    )
+    SELECT
+      group_id,
+      group_name,
+      is_submitted,
+      submitted_by_name,
+      submitted_by_email,
+      confirmed_at,
+      group_deleted,
+      group_note,
+      submission_id
+    FROM live_group_rows
+
+    UNION ALL
+
+    SELECT
+      group_id,
+      group_name,
+      is_submitted,
+      submitted_by_name,
+      submitted_by_email,
+      confirmed_at,
+      group_deleted,
+      group_note,
+      submission_id
+    FROM deleted_group_rows
+
+    ORDER BY
+      group_name ASC,
+      group_deleted ASC,
+      confirmed_at ASC NULLS LAST
+  `;
+
+  const { rows } = await db.query(sql, [assignmentId]);
+  return rows;
+}
+
+export async function getStudentMembersByGroupIds(groupIds, db = pool) {
+  if (!groupIds.length) {
+    return [];
+  }
+
+  const sql = `
+    SELECT
+      u.group_id,
+      u.id,
+      u.full_name,
+      u.email,
+      u.student_id
+    FROM users u
+    WHERE u.role = 'student'
+      AND u.group_id = ANY($1::uuid[])
+    ORDER BY u.group_id ASC, u.full_name ASC
+  `;
+
+  const { rows } = await db.query(sql, [groupIds]);
+  return rows;
+}
+
 export async function getByGroup(groupId, db = pool) {
   const sql = `
     SELECT
