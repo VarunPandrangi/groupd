@@ -53,18 +53,18 @@ function toSoftAccent(accent) {
 function StatCard({ title, value, icon, accent }) {
   return (
     <Card variant="accent" accent={accent}>
-      <div className="metric">
+      <div className="grid gap-3 metric">
         <div
-          className="metric__icon"
+          className="inline-flex items-center justify-center rounded-xl metric__icon"
           style={{ background: toSoftAccent(accent), color: accent }}
         >
           {icon}
         </div>
         <div>
-          <div className="metric__value">
+          <div className="text-3xl font-bold tracking-tight metric__value">
             <AnimatedCounter target={value} />
           </div>
-          <p className="metric__label">{title}</p>
+          <p className="text-sm font-medium metric__label">{title}</p>
         </div>
       </div>
     </Card>
@@ -73,14 +73,14 @@ function StatCard({ title, value, icon, accent }) {
 
 function StudentDashboardSkeleton() {
   return (
-    <div className="surface-grid">
+    <div className="grid gap-4 surface-grid">
       <Skeleton variant="text" width="120px" />
       <Skeleton variant="text" width="360px" height="36px" />
-      <div className="surface-grid surface-grid--two">
+      <div className="grid gap-4 sm:grid-cols-2 surface-grid surface-grid--two">
         <Skeleton variant="card" height="260px" />
         <Skeleton variant="card" height="260px" />
       </div>
-      <div className="stat-grid">
+      <div className="grid gap-4 md:grid-cols-3 stat-grid">
         <Skeleton variant="card" height="170px" />
         <Skeleton variant="card" height="170px" />
         <Skeleton variant="card" height="170px" />
@@ -149,7 +149,7 @@ export default function StudentDashboard() {
 
       {!dashboard ? (
         <Card>
-          <p className="card__copy" style={{ margin: 0 }}>
+          <p className="text-sm leading-relaxed card__copy" style={{ margin: 0 }}>
             Dashboard data is unavailable right now. Please refresh and try again.
           </p>
         </Card>
@@ -157,13 +157,13 @@ export default function StudentDashboard() {
 
       {dashboard && !group ? (
         <Card variant="accent" accent="var(--accent-amber)">
-          <div className="surface-grid">
-            <div className="metric__icon" style={{ background: 'var(--accent-amber-soft)', color: 'var(--accent-amber)' }}>
+          <div className="grid gap-4 surface-grid">
+            <div className="inline-flex items-center justify-center rounded-xl metric__icon" style={{ background: 'var(--accent-amber-soft)', color: 'var(--accent-amber)' }}>
               <UsersThree size={22} />
             </div>
             <div>
-              <h2 className="section-heading__title">Create or join a group to get started</h2>
-              <p className="page-description">
+              <h2 className="text-2xl font-bold tracking-tight section-heading__title">Create or join a group to get started</h2>
+              <p className="text-base leading-relaxed page-description">
                 Your dashboard comes to life once you are part of a group. Join your teammates to unlock assignment stats, upcoming deadlines, and submission tracking.
               </p>
             </div>
@@ -179,16 +179,16 @@ export default function StudentDashboard() {
 
       {dashboard && group ? (
         <>
-          <StaggerGroup className="surface-grid surface-grid--two">
+          <StaggerGroup className="grid gap-4 sm:grid-cols-2 surface-grid surface-grid--two">
             <FadeUp>
               <Card interactive>
-                <div className="card__header student-group-card__header">
+                <div className="flex items-start justify-between gap-3 card__header student-group-card__header">
                   <div>
-                    <p className="eyebrow">Your Group</p>
-                    <h2 className="section-heading__title" style={{ marginTop: 10 }}>
+                    <p className="text-xs font-medium uppercase tracking-wide eyebrow">Your Group</p>
+                    <h2 className="text-2xl font-bold tracking-tight section-heading__title" style={{ marginTop: 10 }}>
                       {group.name}
                     </h2>
-                    <p className="page-description">
+                    <p className="text-base leading-relaxed page-description">
                       {leader
                         ? `${leader.full_name} is leading a ${members.length}-member team.`
                         : `${members.length} members are currently in this group.`}
@@ -200,31 +200,31 @@ export default function StudentDashboard() {
                   </Button>
                 </div>
 
-                <div className="cluster student-group-card__meta">
-                  <span className="pill pill--blue">
+                <div className="flex items-center gap-3 gap-4 cluster student-group-card__meta">
+                  <span className="inline-flex items-center gap-2 rounded-full text-sm font-medium pill pill--blue">
                     <UsersThree size={14} />
                     {members.length} {members.length === 1 ? 'member' : 'members'}
                   </span>
-                  {leader ? <span className="pill pill--green">Leader: {leader.full_name}</span> : null}
+                  {leader ? <span className="inline-flex items-center gap-2 rounded-full text-sm font-medium pill pill--green">Leader: {leader.full_name}</span> : null}
                 </div>
 
-                <div className="cluster student-group-card__members">
+                <div className="flex items-center gap-3 items-start cluster student-group-card__members">
                   {members.slice(0, 5).map((member) => (
                     members.length <= 3 ? (
-                      <span key={member.id} className="member-chip" title={member.full_name}>
-                        <span className="member-avatar member-avatar--inline">
+                      <span key={member.id} className="inline-flex items-center gap-2 rounded-full member-chip" title={member.full_name}>
+                        <span className="inline-flex items-center justify-center rounded-full member-avatar member-avatar--inline">
                           {getInitials(member.full_name)}
                         </span>
                         <span>{member.full_name}</span>
                       </span>
                     ) : (
-                      <span key={member.id} className="member-avatar" title={member.full_name}>
+                      <span key={member.id} className="inline-flex items-center justify-center rounded-full member-avatar" title={member.full_name}>
                         {getInitials(member.full_name)}
                       </span>
                     )
                   ))}
                   {members.length > 5 ? (
-                    <span className="toolbar__meta">+{members.length - 5} more</span>
+                    <span className="text-sm toolbar__meta">+{members.length - 5} more</span>
                   ) : null}
                 </div>
               </Card>
@@ -232,13 +232,13 @@ export default function StudentDashboard() {
 
             <FadeUp>
               <Card interactive>
-                <div className="surface-grid">
+                <div className="grid gap-4 surface-grid">
                   <div>
-                    <p className="eyebrow">Overall Progress</p>
-                    <h2 className="section-heading__title" style={{ marginTop: 10 }}>
+                    <p className="text-xs font-medium uppercase tracking-wide eyebrow">Overall Progress</p>
+                    <h2 className="text-2xl font-bold tracking-tight section-heading__title" style={{ marginTop: 10 }}>
                       {submittedCount} of {totalAssignments} assignments submitted
                     </h2>
-                    <p className="page-description">
+                    <p className="text-base leading-relaxed page-description">
                       {pendingCount === 0
                         ? 'Your group is fully caught up right now.'
                         : `${pendingCount} assignment${pendingCount === 1 ? '' : 's'} still need group confirmation.`}
@@ -261,7 +261,7 @@ export default function StudentDashboard() {
             </FadeUp>
           </StaggerGroup>
 
-          <StaggerGroup className="stat-grid">
+          <StaggerGroup className="grid gap-4 md:grid-cols-3 stat-grid">
             <FadeUp>
               <StatCard
                 title="Total Assignments"
@@ -289,34 +289,34 @@ export default function StudentDashboard() {
           </StaggerGroup>
 
           <Card>
-            <div className="section-heading">
-              <p className="eyebrow">Upcoming Deadlines</p>
-              <h2 className="section-heading__title">The next moments that matter</h2>
+            <div className="grid gap-2 section-heading">
+              <p className="text-xs font-medium uppercase tracking-wide eyebrow">Upcoming Deadlines</p>
+              <h2 className="text-2xl font-bold tracking-tight section-heading__title">The next moments that matter</h2>
             </div>
 
             {upcomingDeadlines.length === 0 ? (
-              <Card className="card--compact" style={{ marginTop: 20 }}>
-                <p className="card__copy" style={{ margin: 0 }}>
+              <Card className="rounded-xl border p-4 card--compact" style={{ marginTop: 20 }}>
+                <p className="text-sm leading-relaxed card__copy" style={{ margin: 0 }}>
                   No pending deadlines right now. Your group is either fully submitted or waiting on new assignments to be published.
                 </p>
               </Card>
             ) : (
-              <div className="divider-list" style={{ marginTop: 12 }}>
+              <div className="grid divider-list" style={{ marginTop: 12 }}>
                 {upcomingDeadlines.map((assignment) => (
                   <button
                     key={assignment.id}
                     type="button"
-                    className="list-row list-row--interactive"
+                    className="flex items-center justify-between gap-4 transition duration-200 list-row list-row--interactive"
                     onClick={() => navigate(`/student/assignments/${assignment.id}`)}
                   >
                     <div>
-                      <div className="table__title">{assignment.title}</div>
-                      <span className="table__description mono">
+                      <div className="text-sm font-semibold table__title">{assignment.title}</div>
+                      <span className="text-sm leading-relaxed table__description mono">
                         <CalendarDots size={14} style={{ display: 'inline', marginRight: 6 }} />
                         Due {formatAssignmentDate(assignment.due_date)}
                       </span>
                     </div>
-                    <div className="cluster">
+                    <div className="flex items-center gap-3 cluster">
                       <StatusBadge status={assignment.status} />
                       <ArrowRight size={16} color="var(--text-faint)" />
                     </div>

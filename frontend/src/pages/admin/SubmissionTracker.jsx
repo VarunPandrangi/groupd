@@ -56,7 +56,7 @@ function formatTimestamp(dateString) {
 
 function SubmissionTrackerSkeleton() {
   return (
-    <div className="surface-grid">
+    <div className="grid gap-4 surface-grid">
       <Skeleton variant="text" width="140px" />
       <Skeleton variant="text" width="320px" height="36px" />
       <Skeleton variant="card" height="160px" />
@@ -219,14 +219,14 @@ export default function SubmissionTracker() {
       />
 
       <Card>
-        <div className="surface-grid surface-grid--two">
-          <div className="field">
-            <label htmlFor="submission-assignment-select" className="field__label">
+        <div className="grid gap-4 sm:grid-cols-2 surface-grid surface-grid--two">
+          <div className="grid gap-2 field">
+            <label htmlFor="submission-assignment-select" className="text-sm font-medium field__label">
               Assignment
             </label>
             <select
               id="submission-assignment-select"
-              className="select"
+              className="w-full rounded-md select"
               value={selectedAssignmentId}
               onChange={(event) => setSelectedAssignmentId(event.target.value)}
             >
@@ -239,19 +239,19 @@ export default function SubmissionTracker() {
           </div>
 
           {selectedAssignment ? (
-            <Card className="card--compact" style={{ background: 'var(--bg-page)' }}>
-              <div className="surface-grid">
-                <div className="cluster muted" style={{ fontSize: '14px' }}>
+            <Card className="rounded-xl border p-4 card--compact" style={{ background: 'var(--bg-page)' }}>
+              <div className="grid gap-4 surface-grid">
+                <div className="flex items-center gap-3 text-sm cluster muted" style={{ fontSize: '14px' }}>
                   <CalendarDots size={16} />
                   <span>Due {formatAssignmentDate(selectedAssignment.due_date)}</span>
                 </div>
-                <div className="cluster muted" style={{ fontSize: '14px' }}>
+                <div className="flex items-center gap-3 text-sm cluster muted" style={{ fontSize: '14px' }}>
                   <UsersThree size={16} />
                   <span>
                     {rows.length} {rows.length === 1 ? 'group' : 'groups'} in tracker
                   </span>
                 </div>
-                <div className="cluster muted" style={{ fontSize: '14px' }}>
+                <div className="flex items-center gap-3 text-sm cluster muted" style={{ fontSize: '14px' }}>
                   <ClipboardText size={16} />
                   <span>{summary.submitted_groups} of {summary.total_groups} groups submitted</span>
                 </div>
@@ -261,34 +261,34 @@ export default function SubmissionTracker() {
         </div>
       </Card>
 
-      <Card className="table-card">
+      <Card className="rounded-xl border overflow-hidden w-full table-card">
         <SectionHeading
           eyebrow="Expected Group Status"
           title="Submission confirmations by group"
         />
 
         {isTableLoading ? (
-          <div className="surface-grid" style={{ marginTop: 20 }}>
+          <div className="grid gap-4 surface-grid" style={{ marginTop: 20 }}>
             <Skeleton variant="text" height="44px" />
             <Skeleton variant="card" height="72px" />
             <Skeleton variant="card" height="72px" />
             <Skeleton variant="card" height="72px" />
           </div>
         ) : rows.length === 0 ? (
-          <Card className="card--compact" style={{ marginTop: 20 }}>
-            <p className="card__copy" style={{ margin: 0 }}>
+          <Card className="rounded-xl border p-4 card--compact" style={{ marginTop: 20 }}>
+            <p className="text-sm leading-relaxed card__copy" style={{ margin: 0 }}>
               No groups are expected for this assignment yet.
             </p>
           </Card>
         ) : (
           <>
-            <div className="table-wrap" style={{ marginTop: 20 }}>
-              <table className="table tracker-table">
+            <div className="overflow-x-auto w-full table-wrap" style={{ marginTop: 20 }}>
+              <table className="w-full table tracker-table">
                 <thead>
                   <tr>
                     <th>Group Name</th>
                     <th>Member Count</th>
-                    <th className="table__column--center">Status</th>
+                    <th className="justify-center table__column--center">Status</th>
                     <th>Submitted By</th>
                     <th>Timestamp</th>
                   </tr>
@@ -307,10 +307,10 @@ export default function SubmissionTracker() {
                           onClick={() => toggleRowExpansion(row.row_id)}
                         >
                           <td>
-                            <div className="tracker-group-cell">
+                            <div className="inline-flex items-center gap-2 tracker-group-cell">
                               <button
                                 type="button"
-                                className="tracker-toggle"
+                                className="inline-flex items-center justify-center rounded-md tracker-toggle"
                                 onClick={(event) => {
                                   event.stopPropagation();
                                   toggleRowExpansion(row.row_id);
@@ -325,7 +325,7 @@ export default function SubmissionTracker() {
                                 )}
                               </button>
 
-                              <div className="tracker-group-meta">
+                              <div className="inline-flex items-center gap-2 tracker-group-meta">
                                 <span
                                   className={cx(
                                     'tracker-group-name',
@@ -336,7 +336,7 @@ export default function SubmissionTracker() {
                                 </span>
 
                                 {row.group_deleted ? (
-                                  <span className="status-badge tracker-deleted-badge">
+                                  <span className="inline-flex items-center justify-center rounded-md text-xs font-medium status-badge tracker-deleted-badge">
                                     Deleted
                                   </span>
                                 ) : null}
@@ -344,9 +344,9 @@ export default function SubmissionTracker() {
                             </div>
                           </td>
 
-                          <td className="tracker-member-count">{memberCount}</td>
+                          <td className="font-semibold tracker-member-count">{memberCount}</td>
 
-                          <td className="table__cell--center">
+                          <td className="justify-center table__cell--center">
                             <StatusBadge
                               status={row.is_submitted ? 'submitted' : 'pending'}
                             />
@@ -358,7 +358,7 @@ export default function SubmissionTracker() {
                               : 'Not submitted'}
                           </td>
 
-                          <td className="mono tracker-timestamp">
+                          <td className="text-sm mono tracker-timestamp">
                             {row.confirmed_at
                               ? formatTimestamp(row.confirmed_at)
                               : 'Not submitted'}
@@ -366,18 +366,18 @@ export default function SubmissionTracker() {
                         </tr>
 
                         {isExpanded ? (
-                          <tr className="tracker-expanded-row">
-                            <td colSpan={5} className="tracker-expanded-cell">
-                              <div className="tracker-expanded-content">
+                          <tr className="transition duration-200 tracker-expanded-row">
+                            <td colSpan={5} className="w-full tracker-expanded-cell">
+                              <div className="overflow-x-auto tracker-expanded-content">
                                 {row.group_deleted ? (
-                                  <p className="tracker-note">
+                                  <p className="text-sm leading-relaxed tracker-note">
                                     {row.group_note ??
                                       'Group no longer exists - members were released.'}
                                   </p>
                                 ) : Array.isArray(row.members) && row.members.length > 0 ? (
-                                  <div className="tracker-members-wrap">
-                                    <div className="tracker-members">
-                                      <div className="tracker-members__head">
+                                  <div className="overflow-x-auto w-full rounded-lg border tracker-members-wrap">
+                                    <div className="w-full rounded-lg border tracker-members">
+                                      <div className="grid gap-4 tracker-members__head">
                                         <span>Full Name</span>
                                         <span>Email</span>
                                         <span>Student ID</span>
@@ -386,15 +386,15 @@ export default function SubmissionTracker() {
                                         {row.members.map((member) => (
                                           <div
                                             key={member.id}
-                                            className="tracker-members__row"
+                                            className="grid gap-4 tracker-members__row"
                                           >
-                                            <span className="tracker-members__name">
+                                            <span className="text-sm font-medium tracker-members__name">
                                               {member.full_name}
                                             </span>
-                                            <span className="tracker-members__email">
+                                            <span className="text-sm tracker-members__email">
                                               {member.email}
                                             </span>
-                                            <span className="tracker-members__student-id">
+                                            <span className="text-sm tracker-members__student-id">
                                               {member.student_id}
                                             </span>
                                           </div>
@@ -403,7 +403,7 @@ export default function SubmissionTracker() {
                                     </div>
                                   </div>
                                 ) : (
-                                  <p className="tracker-note">No active student members in this group.</p>
+                                  <p className="text-sm leading-relaxed tracker-note">No active student members in this group.</p>
                                 )}
                               </div>
                             </td>
@@ -416,8 +416,8 @@ export default function SubmissionTracker() {
               </table>
             </div>
 
-            <div className="toolbar" style={{ marginTop: 20 }}>
-              <p className="toolbar__meta">
+            <div className="flex items-center justify-between gap-4 toolbar" style={{ marginTop: 20 }}>
+              <p className="text-sm toolbar__meta">
                 Page {currentPage} of {totalPages}
               </p>
               <Pagination

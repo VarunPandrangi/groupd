@@ -36,12 +36,12 @@ const features = [
 
 export default function LandingPage() {
   return (
-    <div className="landing">
-      <header className="landing__header">
-        <Link to="/" className="brand">
-          Join<span className="brand__accent">E</span>azy
+    <div className="min-h-screen landing">
+      <header className="flex items-center justify-between gap-4 landing__header">
+        <Link to="/" className="font-bold tracking-tight brand">
+          Join<span className="font-bold brand__accent">E</span>azy
         </Link>
-        <div className="cluster">
+        <div className="flex items-center gap-3 cluster">
           <Link to="/login" className={buttonClassName({ variant: 'ghost' })}>
             Sign In
           </Link>
@@ -51,14 +51,14 @@ export default function LandingPage() {
         </div>
       </header>
 
-      <StaggerGroup className="landing__hero">
+      <StaggerGroup className="grid gap-6 landing__hero">
         <FadeUp>
-          <p className="eyebrow eyebrow--accent">Quiet confidence for classroom operations</p>
-          <h1 className="landing__hero-title">Collaborate. Submit. Succeed.</h1>
-          <p className="landing__hero-copy">
+          <p className="text-xs font-medium uppercase tracking-wide eyebrow eyebrow--accent">Quiet confidence for classroom operations</p>
+          <h1 className="text-3xl font-bold tracking-tight landing__hero-title">Collaborate. Submit. Succeed.</h1>
+          <p className="text-lg leading-relaxed landing__hero-copy">
             JoinEazy keeps student groups, assignment briefs, and submission tracking in one calm interface that feels built for real work.
           </p>
-          <div className="landing__actions">
+          <div className="flex gap-3 landing__actions">
             <Link to="/register" className={buttonClassName({ variant: 'primary' })}>
               Get Started
               <ArrowRight size={16} />
@@ -70,24 +70,24 @@ export default function LandingPage() {
         </FadeUp>
 
         <FadeUp>
-          <div className="landing__aside">
+          <div className="grid gap-4 landing__aside">
             <Card>
-              <div className="hero-card">
-                <span className="hero-card__label">Admin Visibility</span>
-                <div className="hero-card__value">Every brief, every group, one dashboard.</div>
-                <p className="page-description" style={{ marginTop: 0 }}>
+              <div className="rounded-xl border grid gap-3 hero-card">
+                <span className="text-xs font-medium uppercase tracking-wide hero-card__label">Admin Visibility</span>
+                <div className="text-3xl font-bold tracking-tight hero-card__value">Every brief, every group, one dashboard.</div>
+                <p className="text-base leading-relaxed page-description" style={{ marginTop: 0 }}>
                   Assignment analytics, submission tracking, and group detail views are all built into the same operational surface.
                 </p>
               </div>
             </Card>
             <Card variant="accent" accent="var(--accent-green)">
-              <div className="cluster" style={{ alignItems: 'flex-start' }}>
-                <div className="metric__icon" style={{ background: 'var(--accent-green-soft)', color: 'var(--accent-green)' }}>
+              <div className="flex items-center gap-3 cluster" style={{ alignItems: 'flex-start' }}>
+                <div className="inline-flex items-center justify-center rounded-xl metric__icon" style={{ background: 'var(--accent-green-soft)', color: 'var(--accent-green)' }}>
                   <CheckCircle size={20} weight="fill" />
                 </div>
                 <div>
-                  <p className="eyebrow">Submission Flow</p>
-                  <p className="page-description" style={{ marginTop: 8 }}>
+                  <p className="text-xs font-medium uppercase tracking-wide eyebrow">Submission Flow</p>
+                  <p className="text-base leading-relaxed page-description" style={{ marginTop: 8 }}>
                     OneDrive links, due dates, and confirmation status all stay attached to the assignment itself.
                   </p>
                 </div>
@@ -97,8 +97,8 @@ export default function LandingPage() {
         </FadeUp>
       </StaggerGroup>
 
-      <StaggerGroup className="landing__features">
-        <div className="landing__feature-grid">
+      <StaggerGroup className="w-full landing__features">
+        <div className="grid gap-5 md:grid-cols-3 landing__feature-grid">
           {features.map((feature) => {
             const Icon = feature.icon;
 
@@ -106,7 +106,7 @@ export default function LandingPage() {
               <FadeUp key={feature.title}>
                 <Card interactive>
                   <div
-                    className="metric__icon"
+                    className="inline-flex items-center justify-center rounded-xl metric__icon"
                     style={{
                       background: feature.tone.background,
                       color: feature.tone.color,
@@ -114,10 +114,10 @@ export default function LandingPage() {
                   >
                     <Icon size={20} />
                   </div>
-                  <h2 className="card__title" style={{ marginTop: 18 }}>
+                  <h2 className="text-lg font-semibold tracking-tight card__title" style={{ marginTop: 18 }}>
                     {feature.title}
                   </h2>
-                  <p className="card__copy">{feature.description}</p>
+                  <p className="text-sm leading-relaxed card__copy">{feature.description}</p>
                 </Card>
               </FadeUp>
             );
@@ -125,7 +125,7 @@ export default function LandingPage() {
         </div>
       </StaggerGroup>
 
-      <footer className="landing__footer">Built for JoinEazy</footer>
+      <footer className="text-sm landing__footer">Built for JoinEazy</footer>
     </div>
   );
 }

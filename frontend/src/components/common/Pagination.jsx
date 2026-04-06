@@ -43,7 +43,7 @@ export default function Pagination({
   const items = buildPageItems(currentPage, totalPages);
 
   return (
-    <div className="pagination">
+    <div className="flex items-center gap-2 pagination">
       <Button
         type="button"
         variant="secondary"
@@ -57,7 +57,7 @@ export default function Pagination({
       {items.map((item) => {
         if (typeof item !== 'number') {
           return (
-            <span key={item} className="pagination__ellipsis">
+            <span key={item} className="text-sm pagination__ellipsis">
               ...
             </span>
           );

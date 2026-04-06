@@ -31,5 +31,5 @@ export default function AnimatedCounter({ target = 0, duration = 1000 }) {
     return () => controls.stop();
   }, [duration, motionValue, safeTarget]);
 
-  return <span>{displayValue.toLocaleString()}</span>;
+  return <span className="w-full">{displayValue.toLocaleString()}</span>;
 }

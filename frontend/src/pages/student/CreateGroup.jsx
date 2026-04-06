@@ -82,41 +82,41 @@ export default function CreateGroup() {
       />
 
       <Card>
-        <form onSubmit={handleSubmit(onSubmit)} className="surface-grid">
-          <div className="field">
-            <label htmlFor="group-name" className="field__label">
+        <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 surface-grid">
+          <div className="grid gap-2 field">
+            <label htmlFor="group-name" className="text-sm font-medium field__label">
               Group Name
             </label>
             <input
               id="group-name"
               type="text"
-              className="input"
+              className="w-full rounded-md input"
               placeholder="Team Polaris"
               {...register('name')}
             />
-            <span className="field__error">{errors.name?.message}</span>
+            <span className="text-xs field__error">{errors.name?.message}</span>
           </div>
 
-          <div className="field">
-            <label htmlFor="group-description" className="field__label">
+          <div className="grid gap-2 field">
+            <label htmlFor="group-description" className="text-sm font-medium field__label">
               Description
             </label>
             <textarea
               id="group-description"
               rows={5}
-              className="textarea"
+              className="w-full rounded-md textarea"
               placeholder="What is this team working toward?"
               {...register('description')}
             />
-            <span className="field__error">{errors.description?.message}</span>
+            <span className="text-xs field__error">{errors.description?.message}</span>
           </div>
 
-          <div className="toolbar">
-            <p className="toolbar__meta">
+          <div className="flex items-center justify-between gap-4 toolbar">
+            <p className="text-sm toolbar__meta">
               You can invite up to five more students after the group is created.
             </p>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? <SpinnerGap size={16} className="spinner" /> : null}
+              {isSubmitting ? <SpinnerGap size={16} className="inline-flex items-center justify-center spinner" /> : null}
               {isSubmitting ? 'Creating...' : 'Create Group'}
             </Button>
           </div>

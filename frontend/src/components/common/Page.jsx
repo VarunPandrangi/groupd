@@ -81,30 +81,30 @@ export function PageHeader({
 }) {
   return (
     <header className={cx('page-header', className)}>
-      <div className="page-header__body">
+      <div className="w-full max-w-4xl page-header__body">
         {eyebrow ? (
           <p className={cx('eyebrow', eyebrowAccent && 'eyebrow--accent')}>
             {eyebrow}
           </p>
         ) : null}
-        <h1 className="page-title">{title}</h1>
-        {description ? <p className="page-description">{description}</p> : null}
+        <h1 className="text-3xl font-bold tracking-tight page-title">{title}</h1>
+        {description ? <p className="text-base leading-relaxed page-description">{description}</p> : null}
       </div>
-      {actions ? <div className="cluster">{actions}</div> : null}
+      {actions ? <div className="flex items-center gap-3 cluster">{actions}</div> : null}
     </header>
   );
 }
 
 export function SectionHeading({ eyebrow, title, description, eyebrowAccent = false }) {
   return (
-    <div className="section-heading">
+    <div className="grid gap-2 section-heading">
       {eyebrow ? (
         <p className={cx('eyebrow', eyebrowAccent && 'eyebrow--accent')}>
           {eyebrow}
         </p>
       ) : null}
-      <h2 className="section-heading__title">{title}</h2>
-      {description ? <p className="page-description">{description}</p> : null}
+      <h2 className="text-2xl font-bold tracking-tight section-heading__title">{title}</h2>
+      {description ? <p className="text-base leading-relaxed page-description">{description}</p> : null}
     </div>
   );
 }

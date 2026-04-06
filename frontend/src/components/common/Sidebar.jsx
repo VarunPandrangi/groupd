@@ -15,10 +15,10 @@ export default function Sidebar({
   return (
     <>
       <aside
-        className="sidebar"
+        className="overflow-y-auto sidebar"
         style={{ '--sidebar-width': `${sidebarWidth}px` }}
       >
-        <nav className="sidebar__nav">
+        <nav className="grid gap-2 sidebar__nav">
           {navItems.map((item) => {
             const Icon = item.icon;
 
@@ -31,20 +31,20 @@ export default function Sidebar({
                   cx('sidebar__item', isActive && 'sidebar__item--active')
                 }
               >
-                <span className="sidebar__icon">
+                <span className="inline-flex items-center justify-center sidebar__icon">
                   <Icon size={20} />
                 </span>
-                {!collapsed ? <span className="sidebar__label">{item.label}</span> : null}
+                {!collapsed ? <span className="text-sm truncate sidebar__label">{item.label}</span> : null}
               </NavLink>
             );
           })}
         </nav>
 
-        <div className="sidebar__footer">
+        <div className="grid gap-2 sidebar__footer">
           {!collapsed && user ? (
-            <div className="sidebar__user">
-              <span className="sidebar__user-name">{user.full_name}</span>
-              <span className="sidebar__user-role">
+            <div className="grid gap-2 rounded-xl sidebar__user">
+              <span className="grid gap-2 rounded-xl text-sm font-semibold sidebar__user-name">{user.full_name}</span>
+              <span className="grid gap-2 rounded-xl text-xs sidebar__user-role">
                 {user.role === 'admin' ? 'Admin' : 'Student'}
               </span>
             </div>
@@ -63,7 +63,7 @@ export default function Sidebar({
         </div>
       </aside>
 
-      <nav className="mobile-tabbar" aria-label="Primary">
+      <nav className="grid gap-2 mobile-tabbar" aria-label="Primary">
         {navItems.map((item) => {
           const Icon = item.icon;
 
@@ -76,10 +76,10 @@ export default function Sidebar({
                 cx('mobile-tabbar__item', isActive && 'mobile-tabbar__item--active')
               }
             >
-              <span className="mobile-tabbar__icon">
+              <span className="inline-flex items-center justify-center mobile-tabbar__icon">
                 <Icon size={20} />
               </span>
-              <span className="mobile-tabbar__label">{item.label}</span>
+              <span className="text-xs font-medium mobile-tabbar__label">{item.label}</span>
             </NavLink>
           );
         })}

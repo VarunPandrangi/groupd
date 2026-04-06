@@ -14,19 +14,19 @@ export default function SummaryCard({ title, value, icon: Icon, color }) {
 
   return (
     <Card variant="accent" accent={color}>
-      <div className="metric">
+      <div className="grid gap-3 metric">
         <div
-          className="metric__icon"
+          className="inline-flex items-center justify-center rounded-xl metric__icon"
           style={{ background: softColor, color }}
         >
           {Icon ? <Icon size={20} /> : null}
         </div>
         <div>
-          <div className="metric__value">
+          <div className="text-3xl font-bold tracking-tight metric__value">
             <AnimatedCounter target={value} />
             {isPercentage ? '%' : null}
           </div>
-          <p className="metric__label">{title}</p>
+          <p className="text-sm font-medium metric__label">{title}</p>
         </div>
       </div>
     </Card>

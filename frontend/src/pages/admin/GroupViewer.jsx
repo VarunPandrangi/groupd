@@ -93,10 +93,10 @@ export default function GroupViewer() {
         eyebrowAccent
         title="Review every student group in one place"
         description="See leaders, member counts, and creation dates across the classroom, then open any group for a closer look."
-        actions={<span className="pill">{pagination.total} total groups</span>}
+        actions={<span className="inline-flex items-center gap-2 rounded-full text-sm font-medium pill">{pagination.total} total groups</span>}
       />
 
-      <Card className="table-card">
+      <Card className="rounded-xl border overflow-hidden w-full table-card">
         {isLoading ? (
           <LoadingSpinner />
         ) : groups.length === 0 ? (
@@ -107,8 +107,8 @@ export default function GroupViewer() {
           />
         ) : (
           <>
-            <div className="table-wrap">
-              <table className="table">
+            <div className="overflow-x-auto w-full table-wrap">
+              <table className="w-full table">
                 <thead>
                   <tr>
                     <th>Name</th>
@@ -133,24 +133,24 @@ export default function GroupViewer() {
                       style={{ cursor: 'pointer' }}
                     >
                       <td>
-                        <span className="table__title">{group.name}</span>
-                        <span className="table__description">
+                        <span className="text-sm font-semibold table__title">{group.name}</span>
+                        <span className="text-sm leading-relaxed table__description">
                           {group.description || 'No description provided.'}
                         </span>
                       </td>
                       <td>{group.leader_name}</td>
                       <td>
-                        <span className="pill pill--green">{group.member_count}</span>
+                        <span className="inline-flex items-center gap-2 rounded-full text-sm font-medium pill pill--green">{group.member_count}</span>
                       </td>
-                      <td className="mono">{formatDate(group.created_at)}</td>
+                      <td className="text-sm mono">{formatDate(group.created_at)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
 
-            <div className="toolbar" style={{ marginTop: 20 }}>
-              <p className="toolbar__meta">
+            <div className="flex items-center justify-between gap-4 toolbar" style={{ marginTop: 20 }}>
+              <p className="text-sm toolbar__meta">
                 Page {pagination.page} of {pagination.totalPages}
               </p>
               <Pagination

@@ -32,7 +32,7 @@ export default function Skeleton({
   return (
     <div
       aria-hidden="true"
-      className="skeleton"
+      className="overflow-hidden rounded-lg skeleton"
       style={{
         width: width ?? variantStyle.width,
         height: height ?? variantStyle.height,

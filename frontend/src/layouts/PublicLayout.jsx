@@ -3,10 +3,10 @@ import Navbar from '../components/common/Navbar';
 
 export default function PublicLayout() {
   return (
-    <div className="public-shell">
+    <div className="min-h-screen public-shell">
       <Navbar />
-      <main className="public-shell__content">
-        <div className="public-shell__frame">
+      <main className="w-full public-shell__content">
+        <div className="w-full max-w-4xl public-shell__frame">
           <Outlet />
         </div>
       </main>

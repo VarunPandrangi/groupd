@@ -111,17 +111,17 @@ export default function AssignmentDetail() {
       </Button>
 
       <Card>
-        <div className="page-header">
-          <div className="page-header__body">
-            <p className="eyebrow eyebrow--accent">Assignment Detail</p>
-            <h1 className="page-title">{currentAssignment.title}</h1>
-            <div className="cluster" style={{ marginTop: 14 }}>
+        <div className="flex items-start justify-between gap-4 page-header">
+          <div className="w-full max-w-4xl page-header__body">
+            <p className="text-xs font-medium uppercase tracking-wide eyebrow eyebrow--accent">Assignment Detail</p>
+            <h1 className="text-3xl font-bold tracking-tight page-title">{currentAssignment.title}</h1>
+            <div className="flex items-center gap-3 cluster" style={{ marginTop: 14 }}>
               <StatusBadge status={currentAssignment.status} />
-              <span className="pill mono">
+              <span className="text-sm inline-flex items-center gap-2 rounded-full font-medium pill mono">
                 <CalendarBlank size={14} />
                 {formatAssignmentDate(currentAssignment.due_date)}
               </span>
-              <span className="toolbar__meta">
+              <span className="text-sm toolbar__meta">
                 {formatRelativeDueDate(currentAssignment.due_date)}
               </span>
             </div>
@@ -140,15 +140,15 @@ export default function AssignmentDetail() {
         </div>
       </Card>
 
-      <div className="surface-grid surface-grid--two">
+      <div className="grid gap-4 sm:grid-cols-2 surface-grid surface-grid--two">
         <Card>
-          <div className="section-heading">
-            <p className="eyebrow">Assignment Brief</p>
-            <h2 className="section-heading__title">What your group needs to deliver</h2>
+          <div className="grid gap-2 section-heading">
+            <p className="text-xs font-medium uppercase tracking-wide eyebrow">Assignment Brief</p>
+            <h2 className="text-2xl font-bold tracking-tight section-heading__title">What your group needs to deliver</h2>
           </div>
           <FormattedText
             as="div"
-            className="page-description formatted-text"
+            className="text-base leading-relaxed text-sm page-description formatted-text"
             text={currentAssignment.description}
             fallback="No description provided for this assignment."
           />
@@ -158,10 +158,10 @@ export default function AssignmentDetail() {
           variant="accent"
           accent={hasSubmitted ? 'var(--accent-green)' : 'var(--accent-blue)'}
         >
-          <div className="surface-grid">
-            <div className="cluster">
+          <div className="grid gap-4 surface-grid">
+            <div className="flex items-center gap-3 cluster">
               <div
-                className="metric__icon"
+                className="inline-flex items-center justify-center rounded-xl metric__icon"
                 style={{
                   background: hasSubmitted
                     ? 'var(--accent-green-soft)'
@@ -172,24 +172,24 @@ export default function AssignmentDetail() {
                 {hasSubmitted ? <CheckCircle size={20} weight="fill" /> : <FileText size={20} />}
               </div>
               <div>
-                <p className="eyebrow">{hasSubmitted ? 'Submission Confirmed' : 'Group Submission'}</p>
-                <h2 className="section-heading__title" style={{ marginTop: 8 }}>
+                <p className="text-xs font-medium uppercase tracking-wide eyebrow">{hasSubmitted ? 'Submission Confirmed' : 'Group Submission'}</p>
+                <h2 className="text-2xl font-bold tracking-tight section-heading__title" style={{ marginTop: 8 }}>
                   {hasSubmitted ? 'Submitted successfully' : 'Submit for your group'}
                 </h2>
               </div>
             </div>
 
             {hasSubmitted ? (
-              <p className="page-description">
+              <p className="text-base leading-relaxed page-description">
                 Confirmed by {mySubmission?.submitted_by_name || 'a group member'} on{' '}
                 {formatTimestamp(mySubmission?.confirmed_at)}.
               </p>
             ) : (
               <>
-                <p className="page-description">
+                <p className="text-base leading-relaxed page-description">
                   Ready to confirm your submission? Make sure the work has been uploaded to OneDrive before you continue.
                 </p>
-                <div className="cluster">
+                <div className="flex items-center gap-3 cluster">
                   <Button
                     type="button"
                     disabled={isSubmitting || !user?.group_id}
@@ -199,7 +199,7 @@ export default function AssignmentDetail() {
                   </Button>
                 </div>
                 {!user?.group_id ? (
-                  <span className="field__error">
+                  <span className="text-xs field__error">
                     You must join a group before you can confirm submissions.
                   </span>
                 ) : null}

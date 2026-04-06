@@ -20,7 +20,7 @@ export default function Modal({
           <Dialog.Portal forceMount>
             <Dialog.Overlay asChild>
               <Motion.div
-                className="dialog-overlay"
+                className="w-full dialog-overlay"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -29,19 +29,19 @@ export default function Modal({
             </Dialog.Overlay>
             <Dialog.Content asChild forceMount>
               <Motion.div
-                className="dialog-content"
+                className="w-full max-w-lg dialog-content"
                 style={{ maxWidth }}
                 initial={{ opacity: 0, scale: 0.96, x: '-50%', y: '-48%' }}
                 animate={{ opacity: 1, scale: 1, x: '-50%', y: '-50%' }}
                 exit={{ opacity: 0, scale: 0.96, x: '-50%', y: '-48%' }}
                 transition={{ type: 'spring', stiffness: 400, damping: 30 }}
               >
-                <div className="dialog-card">
-                  <div className="card__header">
+                <div className="rounded-xl border rounded-2xl dialog-card">
+                  <div className="flex items-start justify-between gap-3 card__header">
                     <div>
-                      {title ? <Dialog.Title className="dialog-title">{title}</Dialog.Title> : null}
+                      {title ? <Dialog.Title className="text-lg font-bold dialog-title">{title}</Dialog.Title> : null}
                       {description ? (
-                        <Dialog.Description className="dialog-description">
+                        <Dialog.Description className="text-sm leading-relaxed dialog-description">
                           {description}
                         </Dialog.Description>
                       ) : null}
@@ -55,7 +55,7 @@ export default function Modal({
                     ) : null}
                   </div>
                   {children}
-                  {footer ? <div className="dialog-actions">{footer}</div> : null}
+                  {footer ? <div className="flex justify-between gap-3 dialog-actions">{footer}</div> : null}
                 </div>
               </Motion.div>
             </Dialog.Content>

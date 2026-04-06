@@ -51,54 +51,54 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="auth-page">
-      <Card className="auth-card">
-        <p className="eyebrow eyebrow--accent">Sign in</p>
-        <h1 className="page-title" style={{ marginTop: 10 }}>
+    <div className="min-h-screen flex items-center justify-center auth-page">
+      <Card className="rounded-xl border w-full max-w-md auth-card">
+        <p className="text-xs font-medium uppercase tracking-wide eyebrow eyebrow--accent">Sign in</p>
+        <h1 className="text-3xl font-bold tracking-tight page-title" style={{ marginTop: 10 }}>
           Welcome back
         </h1>
-        <p className="page-description">
+        <p className="text-base leading-relaxed page-description">
           Sign in to continue to your workspace and pick up where your team left off.
         </p>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="surface-grid" style={{ marginTop: 24 }}>
-          <div className="field">
-            <label htmlFor="login-email" className="field__label">
+        <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 surface-grid" style={{ marginTop: 24 }}>
+          <div className="grid gap-2 field">
+            <label htmlFor="login-email" className="text-sm font-medium field__label">
               Email
             </label>
             <input
               id="login-email"
               type="email"
-              className="input"
+              className="w-full rounded-md input"
               placeholder="you@example.com"
               autoComplete="email"
               {...register('email')}
             />
-            <span className="field__error">{errors.email?.message}</span>
+            <span className="text-xs field__error">{errors.email?.message}</span>
           </div>
 
-          <div className="field">
-            <label htmlFor="login-password" className="field__label">
+          <div className="grid gap-2 field">
+            <label htmlFor="login-password" className="text-sm font-medium field__label">
               Password
             </label>
             <input
               id="login-password"
               type="password"
-              className="input"
+              className="w-full rounded-md input"
               placeholder="password"
               autoComplete="current-password"
               {...register('password')}
             />
-            <span className="field__error">{errors.password?.message}</span>
+            <span className="text-xs field__error">{errors.password?.message}</span>
           </div>
 
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? <SpinnerGap size={16} className="spinner" /> : null}
+            {isSubmitting ? <SpinnerGap size={16} className="inline-flex items-center justify-center spinner" /> : null}
             {isSubmitting ? 'Signing in...' : 'Sign In'}
           </Button>
         </form>
 
-        <p className="toolbar__meta" style={{ marginTop: 20 }}>
+        <p className="text-sm toolbar__meta" style={{ marginTop: 20 }}>
           Don&apos;t have an account?{' '}
           <Link to="/register" style={{ color: 'var(--accent-blue)', fontWeight: 600 }}>
             Sign up

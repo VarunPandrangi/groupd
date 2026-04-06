@@ -52,7 +52,7 @@ export default function ProgressBar({
 
       {showLabel ? (
         <span
-          className="mono"
+          className="text-sm mono"
           style={{
             fontSize: sizeStyle.fontSize,
             textAlign: 'right',

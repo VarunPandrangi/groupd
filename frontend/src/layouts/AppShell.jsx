@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import Navbar from '../components/common/Navbar';
 import Sidebar from '../components/common/Sidebar';
+import { cx } from '../utils/cx';
 
 const STORAGE_KEY = 'sidebar-collapsed';
 
-export default function AppShell({ navItems = [], children }) {
+export default function AppShell({ navItems = [], children, shellClassName = '' }) {
   const [collapsed, setCollapsed] = useState(() => {
     try {
       return localStorage.getItem(STORAGE_KEY) === 'true';
@@ -24,7 +25,7 @@ export default function AppShell({ navItems = [], children }) {
   const sidebarWidth = collapsed ? 72 : 240;
 
   return (
-    <div className="app-shell">
+    <div className={cx('min-h-screen app-shell', shellClassName)}>
       <Navbar />
       <Sidebar
         navItems={navItems}
@@ -32,10 +33,10 @@ export default function AppShell({ navItems = [], children }) {
         onToggleCollapse={() => setCollapsed((currentValue) => !currentValue)}
       />
       <main
-        className="app-shell__content"
+        className="min-h-screen w-full app-shell__content"
         style={{ '--sidebar-offset': `${sidebarWidth}px` }}
       >
-        <div className="app-shell__frame">{children}</div>
+        <div className="w-full max-w-4xl app-shell__frame">{children}</div>
       </main>
     </div>
   );

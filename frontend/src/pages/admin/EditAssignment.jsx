@@ -72,26 +72,28 @@ export default function EditAssignment() {
   };
 
   return (
-    <AssignmentForm
-      heading="Edit assignment"
-      description="Adjust the brief, refresh the deadline, or change the assignment scope without losing the original workflow."
-      submitLabel="Save Changes"
-      submitLabelPending="Saving..."
-      onSubmit={handleSubmit}
-      onBack={() => navigate('/admin/assignments')}
-      backLabel="Back to Assignments"
-      initialValues={
-        initialValues ?? {
-          title: '',
-          description: '',
-          due_date: '',
-          onedrive_link: '',
-          assign_to: 'all',
-          group_ids: [],
+    <div className="w-full">
+      <AssignmentForm
+        heading="Edit assignment"
+        description="Adjust the brief, refresh the deadline, or change the assignment scope without losing the original workflow."
+        submitLabel="Save Changes"
+        submitLabelPending="Saving..."
+        onSubmit={handleSubmit}
+        onBack={() => navigate('/admin/assignments')}
+        backLabel="Back to Assignments"
+        initialValues={
+          initialValues ?? {
+            title: '',
+            description: '',
+            due_date: '',
+            onedrive_link: '',
+            assign_to: 'all',
+            group_ids: [],
+          }
         }
-      }
-      isSubmitting={isSubmitting}
-      isLoadingInitial={isLoadingInitial}
-    />
+        isSubmitting={isSubmitting}
+        isLoadingInitial={isLoadingInitial}
+      />
+    </div>
   );
 }
