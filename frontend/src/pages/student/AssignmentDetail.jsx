@@ -43,7 +43,6 @@ export default function AssignmentDetail() {
 
   const [isReady, setIsReady] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [groupMembers, setGroupMembers] = useState([]);
 
   // Check if current user already submitted
   const mySubmission = mySubmissions.find(
@@ -78,30 +77,6 @@ export default function AssignmentDetail() {
       isMounted = false;
     };
   }, [fetchAssignment, fetchMySubmissions, id, navigate]);
-
-  // Derive group member submission status from assignment data
-  useEffect(() => {
-    if (!currentAssignment) return;
-
-    // The assignment detail endpoint may include submissions/member status
-    // We'll try to get this info from the assignment data or separate endpoint
-    const members = currentAssignment.group_members || currentAssignment.members || [];
-    const submissions = currentAssignment.submissions || [];
-
-    if (members.length > 0) {
-      const memberStatuses = members.map((member) => {
-        const memberSubmission = submissions.find(
-          (sub) => sub.student_id === member.id
-        );
-        return {
-          ...member,
-          hasSubmitted: Boolean(memberSubmission),
-          confirmed_at: memberSubmission?.confirmed_at || null,
-        };
-      });
-      setGroupMembers(memberStatuses);
-    }
-  }, [currentAssignment]);
 
   async function handleConfirmSubmission() {
     setShowConfirmDialog(false);

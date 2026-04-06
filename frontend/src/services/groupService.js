@@ -46,6 +46,21 @@ export async function getGroupDetail(groupId) {
   return data.data.group;
 }
 
+export async function getAllGroupsForAdmin(limit = 100) {
+  const groups = [];
+  let page = 1;
+  let totalPages = 1;
+
+  do {
+    const response = await getAllGroups(page, limit);
+    groups.push(...response.groups);
+    totalPages = response.pagination?.totalPages ?? 1;
+    page += 1;
+  } while (page <= totalPages);
+
+  return groups;
+}
+
 const groupService = {
   getMyGroup,
   createGroup,
@@ -54,6 +69,7 @@ const groupService = {
   leaveGroup,
   deleteGroup,
   getAllGroups,
+  getAllGroupsForAdmin,
   getGroupDetail,
 };
 

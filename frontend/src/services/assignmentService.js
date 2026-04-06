@@ -21,6 +21,21 @@ export async function getAssignment(id) {
   return data.data.assignment;
 }
 
+export async function getAllAssignmentsForAdmin(limit = 100) {
+  const assignments = [];
+  let page = 1;
+  let totalPages = 1;
+
+  do {
+    const response = await getAssignments({ page, limit });
+    assignments.push(...response.assignments);
+    totalPages = response.pagination?.totalPages ?? 1;
+    page += 1;
+  } while (page <= totalPages);
+
+  return assignments;
+}
+
 export async function createAssignment(payload) {
   const { data } = await api.post('/assignments', payload);
   return data.data.assignment;
@@ -39,6 +54,7 @@ export async function deleteAssignment(id) {
 const assignmentService = {
   getAssignments,
   getAssignment,
+  getAllAssignmentsForAdmin,
   createAssignment,
   updateAssignment,
   deleteAssignment,

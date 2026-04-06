@@ -48,7 +48,6 @@ export default function GroupManagement() {
   const user = useAuthStore((state) => state.user);
   const group = useGroupStore((state) => state.group);
   const members = useGroupStore((state) => state.members);
-  const isLoading = useGroupStore((state) => state.isLoading);
   const fetchMyGroup = useGroupStore((state) => state.fetchMyGroup);
   const addMember = useGroupStore((state) => state.addMember);
   const removeMember = useGroupStore((state) => state.removeMember);
