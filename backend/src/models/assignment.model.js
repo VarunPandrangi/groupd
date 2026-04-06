@@ -161,17 +161,36 @@ export async function getAll(page, limit, db = pool) {
   };
 }
 
+export async function getUnassignedStudentAssignments(_userId, db = pool) {
+  const sql = `
+    SELECT
+      ${SAFE_ASSIGNMENT_SELECT},
+      NULL::timestamptz AS group_confirmed_at,
+      NULL::text AS submitted_by_name
+    FROM assignments a
+    WHERE a.is_deleted = FALSE
+      AND a.assign_to = 'all'
+    ORDER BY a.due_date ASC, a.created_at DESC
+  `;
+
+  const { rows } = await db.query(sql);
+  return rows;
+}
+
 export async function getForStudent(userId, db = pool) {
   const sql = `
     SELECT
       ${SAFE_ASSIGNMENT_SELECT},
-      s.confirmed_at AS student_confirmed_at
+      s.confirmed_at AS group_confirmed_at,
+      submitter.full_name AS submitted_by_name
     FROM users u
     JOIN assignments a
       ON a.is_deleted = FALSE
     LEFT JOIN submissions s
       ON s.assignment_id = a.id
-     AND s.student_id = u.id
+     AND s.group_id = u.group_id
+    LEFT JOIN users submitter
+      ON submitter.id = s.submitted_by
     WHERE u.id = $1
       AND (
         a.assign_to = 'all'
@@ -277,14 +296,17 @@ export async function findVisibleForStudent(assignmentId, userId, db = pool) {
   const sql = `
     SELECT
       ${SAFE_ASSIGNMENT_SELECT},
-      s.confirmed_at AS student_confirmed_at
+      s.confirmed_at AS group_confirmed_at,
+      submitter.full_name AS submitted_by_name
     FROM users u
     JOIN assignments a
       ON a.id = $1
      AND a.is_deleted = FALSE
     LEFT JOIN submissions s
       ON s.assignment_id = a.id
-     AND s.student_id = u.id
+     AND s.group_id = u.group_id
+    LEFT JOIN users submitter
+      ON submitter.id = s.submitted_by
     WHERE u.id = $2
       AND (
         a.assign_to = 'all'
@@ -304,28 +326,12 @@ export async function findVisibleForStudent(assignmentId, userId, db = pool) {
   return rows[0] || null;
 }
 
-export async function getStudentSubmissionStatus(userId, assignmentIds, db = pool) {
-  if (!assignmentIds.length) {
-    return [];
-  }
-
-  const sql = `
-    SELECT assignment_id, confirmed_at
-    FROM submissions
-    WHERE student_id = $1
-      AND assignment_id = ANY($2::uuid[])
-  `;
-
-  const { rows } = await db.query(sql, [userId, assignmentIds]);
-  return rows;
-}
-
 export async function getAssignmentSubmissions(assignmentId, db = pool) {
   const sql = `
     SELECT
       s.id,
       s.assignment_id,
-      s.student_id,
+      s.submitted_by,
       s.group_id,
       s.confirmed_at,
       u.full_name,
@@ -333,7 +339,7 @@ export async function getAssignmentSubmissions(assignmentId, db = pool) {
       u.student_id AS student_identifier,
       g.name AS group_name
     FROM submissions s
-    JOIN users u ON u.id = s.student_id
+    JOIN users u ON u.id = s.submitted_by
     LEFT JOIN groups g ON g.id = s.group_id
     WHERE s.assignment_id = $1
     ORDER BY s.confirmed_at ASC, u.full_name ASC
@@ -341,20 +347,4 @@ export async function getAssignmentSubmissions(assignmentId, db = pool) {
 
   const { rows } = await db.query(sql, [assignmentId]);
   return rows;
-}
-
-export async function getStudentSubmissionForAssignment(
-  assignmentId,
-  userId,
-  db = pool
-) {
-  const sql = `
-    SELECT assignment_id, student_id, group_id, confirmed_at
-    FROM submissions
-    WHERE assignment_id = $1
-      AND student_id = $2
-  `;
-
-  const { rows } = await db.query(sql, [assignmentId, userId]);
-  return rows[0] || null;
 }

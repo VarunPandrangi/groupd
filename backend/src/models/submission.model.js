@@ -1,128 +1,111 @@
 import { pool } from '../config/database.js';
 
-/**
- * Insert a new submission record and return it with confirmed_at.
- */
-export async function create({ assignment_id, student_id, group_id }, db = pool) {
+export async function create(
+  { assignment_id, group_id, submitted_by },
+  db = pool
+) {
   const sql = `
-    INSERT INTO submissions (assignment_id, student_id, group_id)
-    VALUES ($1, $2, $3)
-    RETURNING id, assignment_id, student_id, group_id, confirmed_at
+    WITH inserted AS (
+      INSERT INTO submissions (assignment_id, group_id, submitted_by)
+      VALUES ($1, $2, $3)
+      RETURNING id, assignment_id, group_id, submitted_by, confirmed_at
+    )
+    SELECT
+      s.id,
+      s.assignment_id,
+      s.group_id,
+      s.submitted_by,
+      u.full_name AS submitted_by_name,
+      u.email AS submitted_by_email,
+      s.confirmed_at
+    FROM inserted s
+    JOIN users u ON u.id = s.submitted_by
   `;
 
-  const { rows } = await db.query(sql, [assignment_id, student_id, group_id]);
+  const { rows } = await db.query(sql, [assignment_id, group_id, submitted_by]);
   return rows[0];
 }
 
-/**
- * Check if a student has already submitted for a given assignment.
- * Used for the duplicate-submission guard.
- */
-export async function findByAssignmentAndStudent(assignmentId, studentId, db = pool) {
-  const sql = `
-    SELECT id, assignment_id, student_id, group_id, confirmed_at
-    FROM submissions
-    WHERE assignment_id = $1
-      AND student_id = $2
-  `;
-
-  const { rows } = await db.query(sql, [assignmentId, studentId]);
-  return rows[0] || null;
-}
-
-/**
- * Get all submissions for a specific assignment, joined with user details
- * and group name. Used by admin to view per-assignment submission status.
- */
-export async function getByAssignment(assignmentId, db = pool) {
+export async function findByAssignmentAndGroup(assignmentId, groupId, db = pool) {
   const sql = `
     SELECT
       s.id,
       s.assignment_id,
-      s.student_id,
       s.group_id,
-      s.confirmed_at,
-      u.full_name,
-      u.email,
-      u.student_id AS student_identifier,
-      g.name AS group_name
+      s.submitted_by,
+      u.full_name AS submitted_by_name,
+      u.email AS submitted_by_email,
+      s.confirmed_at
     FROM submissions s
-    JOIN users u ON u.id = s.student_id
-    LEFT JOIN groups g ON g.id = s.group_id
+    JOIN users u ON u.id = s.submitted_by
     WHERE s.assignment_id = $1
-    ORDER BY s.confirmed_at ASC, u.full_name ASC
+      AND s.group_id = $2
+    LIMIT 1
+  `;
+
+  const { rows } = await db.query(sql, [assignmentId, groupId]);
+  return rows[0] || null;
+}
+
+export async function getByAssignment(assignmentId, db = pool) {
+  const sql = `
+    SELECT
+      s.group_id,
+      g.name AS group_name,
+      u.full_name AS submitted_by_name,
+      u.email AS submitted_by_email,
+      s.confirmed_at
+    FROM submissions s
+    JOIN groups g ON g.id = s.group_id
+    JOIN users u ON u.id = s.submitted_by
+    WHERE s.assignment_id = $1
+    ORDER BY s.confirmed_at ASC, g.name ASC
   `;
 
   const { rows } = await db.query(sql, [assignmentId]);
   return rows;
 }
 
-/**
- * Get all submissions by a specific student, joined with assignment titles.
- */
-export async function getByStudent(studentId, db = pool) {
+export async function getByGroup(groupId, db = pool) {
   const sql = `
     SELECT
-      s.id,
       s.assignment_id,
-      s.student_id,
-      s.group_id,
-      s.confirmed_at,
       a.title,
       a.due_date,
-      a.onedrive_link
+      u.full_name AS submitted_by_name,
+      s.confirmed_at
     FROM submissions s
     JOIN assignments a ON a.id = s.assignment_id
-    WHERE s.student_id = $1
+    JOIN users u ON u.id = s.submitted_by
+    WHERE s.group_id = $1
       AND a.is_deleted = FALSE
-    ORDER BY s.confirmed_at DESC
+    ORDER BY a.due_date ASC, s.confirmed_at DESC
   `;
 
-  const { rows } = await db.query(sql, [studentId]);
+  const { rows } = await db.query(sql, [groupId]);
   return rows;
 }
 
-/**
- * For each assignment assigned to a group, count how many of the group's
- * members have submitted vs total members.
- *
- * Returns: { assignment_id, title, due_date, submitted_count, total_members, is_complete }
- *
- * Logic:
- * - An assignment is "assigned to this group" if assign_to='all' OR
- *   there is a matching row in assignment_groups.
- * - total_members = count of users whose group_id = this group.
- * - submitted_count = count of submissions for this assignment where
- *   the student's current group_id = this group (so members who left
- *   are not counted).
- */
 export async function getGroupProgress(groupId, db = pool) {
   const sql = `
     SELECT
-      a.id           AS assignment_id,
+      a.id AS assignment_id,
       a.title,
       a.due_date,
-      COUNT(DISTINCT s.student_id) FILTER (
-        WHERE s.id IS NOT NULL AND u_sub.group_id = $1
-      )                           AS submitted_count,
-      (
-        SELECT COUNT(*)
-        FROM users
-        WHERE group_id = $1
-      )                           AS total_members,
       CASE
-        WHEN COUNT(DISTINCT s.student_id) FILTER (
-          WHERE s.id IS NOT NULL AND u_sub.group_id = $1
-        ) >= (
-          SELECT COUNT(*) FROM users WHERE group_id = $1
-        ) THEN TRUE
-        ELSE FALSE
-      END                         AS is_complete
+        WHEN a.due_date <= NOW() THEN 'overdue'
+        WHEN a.due_date <= NOW() + INTERVAL '3 days' THEN 'active'
+        ELSE 'upcoming'
+      END AS status,
+      (s.id IS NOT NULL) AS is_submitted,
+      u.full_name AS submitted_by_name,
+      s.confirmed_at
     FROM assignments a
     LEFT JOIN submissions s
       ON s.assignment_id = a.id
-    LEFT JOIN users u_sub
-      ON u_sub.id = s.student_id
+     AND s.group_id = $1
+    LEFT JOIN users u
+      ON u.id = s.submitted_by
     WHERE a.is_deleted = FALSE
       AND (
         a.assign_to = 'all'
@@ -133,19 +116,20 @@ export async function getGroupProgress(groupId, db = pool) {
             AND ag.group_id = $1
         )
       )
-    GROUP BY a.id, a.title, a.due_date
-    ORDER BY a.due_date ASC
+    ORDER BY
+      (s.id IS NOT NULL) ASC,
+      a.due_date ASC,
+      a.created_at DESC
   `;
 
   const { rows } = await db.query(sql, [groupId]);
-
-  // Cast counts from string to number (pg returns bigint as string)
   return rows.map((row) => ({
     assignment_id: row.assignment_id,
     title: row.title,
     due_date: row.due_date,
-    submitted_count: Number(row.submitted_count),
-    total_members: Number(row.total_members),
-    is_complete: row.is_complete,
+    status: row.status,
+    is_submitted: row.is_submitted,
+    submitted_by_name: row.submitted_by_name ?? null,
+    confirmed_at: row.confirmed_at ?? null,
   }));
 }

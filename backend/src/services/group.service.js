@@ -182,6 +182,14 @@ export async function addMember(leaderId, { email, student_id }) {
       );
     }
 
+    if (targetUser.id === leaderId) {
+      throw httpError(
+        400,
+        'ALREADY_IN_GROUP',
+        'You are already in this group'
+      );
+    }
+
     if (targetUser.role === 'admin') {
       throw httpError(
         400,
@@ -307,11 +315,6 @@ export async function leaveGroup(userId) {
     );
     if (!updatedUser) {
       throw httpError(400, 'NO_GROUP', 'You are not in a group.');
-    }
-
-    const remainingMembers = await countGroupMembers(user.group_id, client);
-    if (remainingMembers === 0) {
-      await removeGroup(user.group_id, client);
     }
 
     await client.query('COMMIT');

@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { CalendarDays, FileText, Layers3 } from 'lucide-react';
+import { CalendarDays, CheckCircle, FileText, Layers3 } from 'lucide-react';
 import EmptyState from '../../components/common/EmptyState';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import StatusBadge from '../../components/common/StatusBadge';
 import { useAuthStore } from '../../stores/authStore';
 import { useAssignmentStore } from '../../stores/assignmentStore';
+import { useSubmissionStore } from '../../stores/submissionStore';
 import { formatAssignmentDate, sortAssignmentsByDueDate } from '../../utils/assignmentDates';
 
 const FILTERS = [
@@ -26,6 +27,8 @@ export default function AssignmentList() {
   const assignments = useAssignmentStore((state) => state.assignments);
   const isLoading = useAssignmentStore((state) => state.isLoading);
   const fetchAssignments = useAssignmentStore((state) => state.fetchAssignments);
+  const mySubmissions = useSubmissionStore((state) => state.mySubmissions);
+  const fetchMySubmissions = useSubmissionStore((state) => state.fetchMySubmissions);
   const [activeFilter, setActiveFilter] = useState('all');
 
   useEffect(() => {
@@ -37,7 +40,10 @@ export default function AssignmentList() {
 
     async function loadAssignments() {
       try {
-        await fetchAssignments();
+        await Promise.all([
+          fetchAssignments(),
+          fetchMySubmissions(),
+        ]);
       } catch (error) {
         if (isMounted) {
           toast.error(getErrorMessage(error, 'Unable to load assignments right now.'));
@@ -50,7 +56,13 @@ export default function AssignmentList() {
     return () => {
       isMounted = false;
     };
-  }, [fetchAssignments, user?.group_id]);
+  }, [fetchAssignments, fetchMySubmissions, user?.group_id]);
+
+  // Build a set of submitted assignment IDs for quick lookup
+  const submittedAssignmentIds = useMemo(
+    () => new Set(mySubmissions.map((sub) => sub.assignment_id)),
+    [mySubmissions]
+  );
 
   const sortedAssignments = useMemo(
     () => sortAssignmentsByDueDate(assignments),
@@ -249,16 +261,27 @@ export default function AssignmentList() {
                     alignItems: 'flex-start',
                   }}
                 >
-                  <h2
-                    style={{
-                      margin: 0,
-                      fontSize: '1.55rem',
-                      letterSpacing: '-0.04em',
-                      color: 'var(--text-primary)',
-                    }}
-                  >
-                    {assignment.title}
-                  </h2>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <h2
+                      style={{
+                        margin: 0,
+                        fontSize: '1.55rem',
+                        letterSpacing: '-0.04em',
+                        color: 'var(--text-primary)',
+                      }}
+                    >
+                      {assignment.title}
+                    </h2>
+                    {submittedAssignmentIds.has(assignment.id) && (
+                      <CheckCircle
+                        size={20}
+                        style={{
+                          color: 'var(--accent-secondary)',
+                          flexShrink: 0,
+                        }}
+                      />
+                    )}
+                  </div>
                   <StatusBadge status={assignment.status} />
                 </div>
 

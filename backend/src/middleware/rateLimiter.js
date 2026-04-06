@@ -16,7 +16,7 @@ const limitedResponse = (message, code) => ({
  */
 export const generalLimiter = rateLimit({
   windowMs: FIFTEEN_MINUTES,
-  max: 100,
+  max: process.env.NODE_ENV === 'development' ? 10000 : 100,
   standardHeaders: true,
   legacyHeaders: false,
   message: limitedResponse(
