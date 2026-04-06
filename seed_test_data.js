@@ -1,13 +1,13 @@
 const API_URL = 'http://localhost:5000/api/v1';
 
 async function seedData() {
-  console.log('Seeding dashboard smoke-test student accounts...');
+  console.log('Seeding standardized demo student accounts...');
 
-  const accounts = Array.from({ length: 7 }, (_, index) => ({
+  const accounts = Array.from({ length: 15 }, (_, index) => ({
     full_name: `Student ${index + 1}`,
-    email: `s${index + 1}@test.com`,
-    password: 'Test@1234',
-    student_id: `S00${index + 1}`,
+    email: `s${index + 1}@joineazy.com`,
+    password: 'test@123',
+    student_id: `S${String(index + 1).padStart(2, '0')}`,
   }));
 
   for (const account of accounts) {
@@ -35,14 +35,14 @@ async function seedData() {
     }
   }
 
-  console.log('\nSeed process complete. Student accounts for prompt-based smoke tests:');
+  console.log('\nSeed process complete. Student accounts:');
   console.table(
     accounts.map((account) => ({
       Email: account.email,
       Password: account.password,
     }))
   );
-  console.log('Admin account for protected admin routes: admin@joineazy.com / Admin@123');
+  console.log('Admin account for protected admin routes: admin@joineazy.com / test@123');
 }
 
 seedData();
