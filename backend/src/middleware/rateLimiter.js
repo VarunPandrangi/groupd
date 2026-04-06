@@ -31,7 +31,7 @@ export const generalLimiter = rateLimit({
  */
 export const authLimiter = rateLimit({
   windowMs: FIFTEEN_MINUTES,
-  max: 20,
+  max: process.env.NODE_ENV === 'development' ? 1000 : 20,
   standardHeaders: true,
   legacyHeaders: false,
   message: limitedResponse(
