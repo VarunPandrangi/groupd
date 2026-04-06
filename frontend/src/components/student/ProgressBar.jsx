@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { motion as Motion } from 'framer-motion';
 
 const SIZE_MAP = {
-  sm: { height: 6, borderRadius: 3, fontSize: '0.72rem' },
-  md: { height: 10, borderRadius: 5, fontSize: '0.82rem' },
-  lg: { height: 16, borderRadius: 8, fontSize: '0.92rem' },
+  sm: { height: 6, fontSize: '12px' },
+  md: { height: 8, fontSize: '12px' },
+  lg: { height: 10, fontSize: '13px' },
 };
 
 export default function ProgressBar({
@@ -11,28 +11,20 @@ export default function ProgressBar({
   total = 1,
   showLabel = false,
   size = 'md',
+  tone = 'auto',
 }) {
-  const [animatedWidth, setAnimatedWidth] = useState(0);
   const percentage = total > 0 ? Math.round((current / total) * 100) : 0;
   const sizeStyle = SIZE_MAP[size] ?? SIZE_MAP.md;
 
-  useEffect(() => {
-    // Trigger animated width on mount
-    const rafId = requestAnimationFrame(() => {
-      setAnimatedWidth(percentage);
-    });
-    return () => cancelAnimationFrame(rafId);
-  }, [percentage]);
-
-  let fillColor = 'var(--text-tertiary)';
-  if (percentage === 100) {
-    fillColor = 'var(--accent-secondary)';
-  } else if (percentage > 0) {
-    fillColor = 'var(--accent-warning)';
+  let fill = 'var(--accent-blue)';
+  if (tone === 'success' || (tone === 'auto' && percentage === 100)) {
+    fill = 'var(--accent-green)';
+  } else if (tone === 'warning' || (tone === 'auto' && percentage > 0 && percentage < 100)) {
+    fill = 'var(--accent-amber)';
   }
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%' }}>
+    <div style={{ display: 'grid', gap: '8px', width: '100%' }}>
       <div
         role="progressbar"
         aria-valuenow={current}
@@ -40,45 +32,36 @@ export default function ProgressBar({
         aria-valuemax={total}
         aria-label={`${current} of ${total}`}
         style={{
-          flex: 1,
-          height: sizeStyle.height,
-          borderRadius: sizeStyle.borderRadius,
-          background: 'color-mix(in srgb, var(--text-tertiary) 18%, transparent)',
           overflow: 'hidden',
+          height: sizeStyle.height,
+          borderRadius: 999,
+          background: 'var(--bg-hover)',
         }}
       >
-        <div
+        <Motion.div
+          initial={{ width: 0 }}
+          animate={{ width: `${percentage}%` }}
+          transition={{ type: 'spring', stiffness: 280, damping: 28 }}
           style={{
-            width: `${animatedWidth}%`,
             height: '100%',
-            borderRadius: sizeStyle.borderRadius,
-            background: fillColor,
-            transition: 'width 800ms ease-out',
-            boxShadow:
-              percentage === 100
-                ? '0 0 12px rgba(52, 211, 153, 0.35)'
-                : percentage > 0
-                  ? '0 0 12px rgba(251, 191, 36, 0.25)'
-                  : 'none',
+            borderRadius: 999,
+            background: fill,
           }}
         />
       </div>
 
-      {showLabel && (
+      {showLabel ? (
         <span
+          className="mono"
           style={{
-            fontFamily: 'var(--font-mono)',
             fontSize: sizeStyle.fontSize,
-            fontWeight: 600,
-            color: 'var(--text-secondary)',
-            whiteSpace: 'nowrap',
-            minWidth: '42px',
             textAlign: 'right',
+            color: 'var(--text-muted)',
           }}
         >
           {current}/{total}
         </span>
-      )}
+      ) : null}
     </div>
   );
 }

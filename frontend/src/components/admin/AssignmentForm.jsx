@@ -2,8 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowLeft, Sparkles } from 'lucide-react';
+import { ArrowLeft, SpinnerGap } from '@phosphor-icons/react';
 import LoadingSpinner from '../common/LoadingSpinner';
+import Card from '../common/Card';
+import Button from '../common/Button';
+import { Page, PageHeader } from '../common/Page';
 import groupService from '../../services/groupService';
 import {
   formatAssignmentInputDate,
@@ -68,11 +71,7 @@ function FieldError({ message }) {
     return null;
   }
 
-  return (
-    <p style={{ margin: '8px 0 0', fontSize: '0.86rem', color: 'var(--accent-danger)' }}>
-      {message}
-    </p>
-  );
+  return <span className="field__error">{message}</span>;
 }
 
 export default function AssignmentForm({
@@ -157,28 +156,6 @@ export default function AssignmentForm({
     };
   }, [assignTo, hasLoadedGroups]);
 
-  const inputStyle = {
-    width: '100%',
-    padding: '16px 18px',
-    borderRadius: '18px',
-    border: '1px solid var(--border-default)',
-    background: 'var(--bg-tertiary)',
-    color: 'var(--text-primary)',
-    fontFamily: 'var(--font-body)',
-    fontSize: '1rem',
-    outline: 'none',
-  };
-
-  const labelStyle = {
-    display: 'block',
-    marginBottom: '10px',
-    fontSize: '0.82rem',
-    fontWeight: 700,
-    letterSpacing: '0.08em',
-    textTransform: 'uppercase',
-    color: 'var(--text-secondary)',
-  };
-
   const handleGroupToggle = (groupId) => {
     const nextValue = selectedGroupIds.includes(groupId)
       ? selectedGroupIds.filter((value) => value !== groupId)
@@ -215,124 +192,96 @@ export default function AssignmentForm({
   });
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', padding: '24px 0' }}>
-      <section
-        style={{
-          width: '100%',
-          maxWidth: '880px',
-          borderRadius: '32px',
-          border: '1px solid var(--border-default)',
-          background:
-            'radial-gradient(circle at top right, color-mix(in srgb, var(--accent-primary) 16%, transparent), transparent 36%), var(--bg-secondary)',
-          boxShadow: '0 30px 70px rgba(0, 0, 0, 0.18)',
-          padding: 'clamp(24px, 4vw, 40px)',
-          display: 'grid',
-          gap: '28px',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
-          <div style={{ maxWidth: '620px' }}>
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '8px 14px',
-                borderRadius: '999px',
-                background: 'color-mix(in srgb, var(--accent-primary) 16%, transparent)',
-                color: 'var(--accent-primary)',
-                fontSize: '0.82rem',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-              }}
-            >
-              <Sparkles size={16} />
-              Assignment Workspace
-            </div>
-            <h1 style={{ marginTop: '18px', fontSize: 'clamp(2.2rem, 5vw, 3.1rem)', letterSpacing: '-0.05em' }}>
-              {heading}
-            </h1>
-            <p style={{ margin: '14px 0 0', maxWidth: '58ch', lineHeight: 1.8, color: 'var(--text-secondary)' }}>
-              {description}
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={onBack}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '12px 16px',
-              borderRadius: '16px',
-              border: '1px solid var(--border-default)',
-              background: 'transparent',
-              color: 'var(--text-secondary)',
-              fontFamily: 'var(--font-body)',
-              fontSize: '0.92rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
-          >
-            <ArrowLeft size={18} />
+    <Page>
+      <PageHeader
+        eyebrow="Assignment Workspace"
+        eyebrowAccent
+        title={heading}
+        description={description}
+        actions={
+          <Button type="button" variant="secondary" onClick={onBack}>
+            <ArrowLeft size={16} />
             {backLabel}
-          </button>
-        </div>
+          </Button>
+        }
+      />
 
+      <Card>
         {isLoadingInitial ? (
-          <div style={{ minHeight: '280px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <LoadingSpinner fullPage={false} size={40} />
-          </div>
+          <LoadingSpinner fullPage={false} size={32} />
         ) : (
-          <form onSubmit={handleFormSubmit} style={{ display: 'grid', gap: '22px' }}>
-            <div>
-              <label htmlFor="assignment-title" style={labelStyle}>
-                Title
-              </label>
-              <input id="assignment-title" type="text" {...register('title')} style={inputStyle} />
-              <FieldError message={errors.title?.message} />
-            </div>
+          <form onSubmit={handleFormSubmit} className="surface-grid">
+            <div className="surface-grid surface-grid--equal">
+              <div className="field" style={{ gridColumn: '1 / -1' }}>
+                <label htmlFor="assignment-title" className="field__label">
+                  Title
+                </label>
+                <input id="assignment-title" className="input" type="text" {...register('title')} />
+                <FieldError message={errors.title?.message} />
+              </div>
 
-            <div>
-              <label htmlFor="assignment-description" style={labelStyle}>
-                Description
-              </label>
-              <textarea id="assignment-description" rows={6} {...register('description')} style={{ ...inputStyle, minHeight: '160px', resize: 'vertical' }} />
-              <FieldError message={errors.description?.message} />
-            </div>
+              <div className="field" style={{ gridColumn: '1 / -1' }}>
+                <label htmlFor="assignment-description" className="field__label">
+                  Description
+                </label>
+                <textarea
+                  id="assignment-description"
+                  className="textarea"
+                  rows={6}
+                  {...register('description')}
+                />
+                <FieldError message={errors.description?.message} />
+              </div>
 
-            <div style={{ display: 'grid', gap: '22px', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>
-              <div>
-                <label htmlFor="assignment-due-date" style={labelStyle}>
+              <div className="field">
+                <label htmlFor="assignment-due-date" className="field__label">
                   Due Date
                 </label>
-                <input id="assignment-due-date" type="date" min={getTomorrowDateInputValue()} {...register('due_date')} style={inputStyle} />
+                <input
+                  id="assignment-due-date"
+                  className="input"
+                  type="date"
+                  min={getTomorrowDateInputValue()}
+                  {...register('due_date')}
+                />
                 <FieldError message={errors.due_date?.message} />
               </div>
 
-              <div>
-                <label htmlFor="assignment-link" style={labelStyle}>
+              <div className="field">
+                <label htmlFor="assignment-link" className="field__label">
                   OneDrive Link
                 </label>
-                <input id="assignment-link" type="url" {...register('onedrive_link')} style={inputStyle} />
+                <input
+                  id="assignment-link"
+                  className="input"
+                  type="url"
+                  {...register('onedrive_link')}
+                />
                 <FieldError message={errors.onedrive_link?.message} />
               </div>
             </div>
 
-            <div style={{ padding: '22px', borderRadius: '24px', border: '1px solid var(--border-default)', background: 'color-mix(in srgb, var(--bg-secondary) 82%, black)', display: 'grid', gap: '16px' }}>
-              <div>
-                <p style={{ margin: 0, ...labelStyle }}>Assign To</p>
-                <p style={{ margin: '10px 0 0', color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-                  Choose whether this assignment goes to every group or only a selected set.
+            <Card as="section" className="surface-grid">
+              <div className="section-heading">
+                <p className="eyebrow">Assign To</p>
+                <h2 className="section-heading__title">Choose the audience</h2>
+                <p className="page-description">
+                  Decide whether this assignment goes to every group or only a selected set.
                 </p>
               </div>
 
-              <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+              <div className="segmented">
                 {[
-                  { value: 'all', label: 'All Groups', hint: 'Every student group will see this assignment.' },
-                  { value: 'specific', label: 'Specific Groups', hint: 'Limit visibility to the groups you choose below.' },
+                  {
+                    value: 'all',
+                    label: 'All Groups',
+                    hint: 'Every student group will see this assignment immediately.',
+                  },
+                  {
+                    value: 'specific',
+                    label: 'Specific Groups',
+                    hint: 'Limit visibility to the groups you choose below.',
+                  },
                 ].map((option) => {
                   const isActive = assignTo === option.value;
 
@@ -340,37 +289,30 @@ export default function AssignmentForm({
                     <button
                       key={option.value}
                       type="button"
+                      className={`segmented__option ${
+                        isActive ? 'segmented__option--active' : ''
+                      }`}
                       onClick={() => handleAssignToChange(option.value)}
-                      style={{
-                        textAlign: 'left',
-                        padding: '18px',
-                        borderRadius: '20px',
-                        border: isActive ? '1px solid color-mix(in srgb, var(--accent-primary) 36%, transparent)' : '1px solid var(--border-default)',
-                        background: isActive ? 'color-mix(in srgb, var(--accent-primary) 12%, transparent)' : 'var(--bg-tertiary)',
-                        color: 'var(--text-primary)',
-                        fontFamily: 'var(--font-body)',
-                        cursor: 'pointer',
-                      }}
                     >
-                      <div style={{ fontWeight: 700 }}>{option.label}</div>
-                      <p style={{ margin: '10px 0 0', fontSize: '0.9rem', lineHeight: 1.6, color: 'var(--text-secondary)' }}>
+                      <strong>{option.label}</strong>
+                      <span className="muted" style={{ fontSize: '14px', lineHeight: 1.6 }}>
                         {option.hint}
-                      </p>
+                      </span>
                     </button>
                   );
                 })}
               </div>
 
               {assignTo === 'specific' ? (
-                <div style={{ display: 'grid', gap: '12px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-                    <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
+                <div className="surface-grid">
+                  <div className="toolbar">
+                    <p className="toolbar__meta">
                       {selectedGroupIds.length} group{selectedGroupIds.length === 1 ? '' : 's'} selected
                     </p>
                     {isLoadingGroups ? <LoadingSpinner fullPage={false} size={18} /> : null}
                   </div>
 
-                  <div style={{ maxHeight: '240px', overflowY: 'auto', padding: '8px', borderRadius: '18px', border: '1px solid var(--border-default)', background: 'var(--bg-primary)', display: 'grid', gap: '8px' }}>
+                  <div className="check-list">
                     {groups.map((group) => {
                       const isChecked = selectedGroupIds.includes(group.id);
 
@@ -378,36 +320,28 @@ export default function AssignmentForm({
                         <button
                           key={group.id}
                           type="button"
+                          className={`check-list__item ${
+                            isChecked ? 'check-list__item--active' : ''
+                          }`}
                           onClick={() => handleGroupToggle(group.id)}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'flex-start',
-                            justifyContent: 'space-between',
-                            gap: '14px',
-                            width: '100%',
-                            padding: '14px 16px',
-                            borderRadius: '16px',
-                            border: isChecked ? '1px solid color-mix(in srgb, var(--accent-primary) 30%, transparent)' : '1px solid transparent',
-                            background: isChecked ? 'color-mix(in srgb, var(--accent-primary) 10%, transparent)' : 'transparent',
-                            color: 'var(--text-primary)',
-                            fontFamily: 'var(--font-body)',
-                            textAlign: 'left',
-                            cursor: 'pointer',
-                          }}
                         >
                           <div>
-                            <p style={{ margin: 0, fontWeight: 700 }}>{group.name}</p>
-                            <p style={{ margin: '6px 0 0', fontSize: '0.88rem', lineHeight: 1.6, color: 'var(--text-secondary)' }}>
+                            <div className="table__title">{group.name}</div>
+                            <span className="table__description">
                               {group.description || 'No description provided.'}
-                            </p>
+                            </span>
                           </div>
-                          <span style={{ width: '18px', height: '18px', borderRadius: '6px', border: isChecked ? '1px solid var(--accent-primary)' : '1px solid var(--border-hover)', background: isChecked ? 'var(--accent-primary)' : 'transparent', flexShrink: 0 }} />
+                          <span
+                            className={`check-list__indicator ${
+                              isChecked ? 'check-list__indicator--active' : ''
+                            }`}
+                          />
                         </button>
                       );
                     })}
 
                     {!isLoadingGroups && groups.length === 0 ? (
-                      <p style={{ margin: 0, padding: '16px', color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+                      <p className="empty-state__message" style={{ textAlign: 'left' }}>
                         No groups are available yet. Create student groups first or switch this assignment to all groups.
                       </p>
                     ) : null}
@@ -416,42 +350,20 @@ export default function AssignmentForm({
                   <FieldError message={groupsError || errors.group_ids?.message} />
                 </div>
               ) : null}
-            </div>
+            </Card>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
-              <p style={{ margin: 0, maxWidth: '42ch', fontSize: '0.92rem', lineHeight: 1.7, color: 'var(--text-secondary)' }}>
+            <div className="toolbar">
+              <p className="toolbar__meta">
                 Students will see the assignment immediately after this change is saved.
               </p>
-
-              <button
-                type="submit"
-                disabled={isSubmitting || isLoadingInitial}
-                style={{
-                  minWidth: '190px',
-                  padding: '14px 20px',
-                  borderRadius: '16px',
-                  border: 'none',
-                  background: 'var(--accent-primary)',
-                  color: '#ffffff',
-                  fontFamily: 'var(--font-body)',
-                  fontSize: '0.95rem',
-                  fontWeight: 700,
-                  cursor: isSubmitting || isLoadingInitial ? 'not-allowed' : 'pointer',
-                  opacity: isSubmitting || isLoadingInitial ? 0.8 : 1,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  boxShadow: '0 18px 40px rgba(79, 123, 247, 0.22)',
-                }}
-              >
-                {isSubmitting ? <LoadingSpinner fullPage={false} size={18} /> : null}
+              <Button type="submit" disabled={isSubmitting || isLoadingInitial}>
+                {isSubmitting ? <SpinnerGap size={16} className="spinner" /> : null}
                 {isSubmitting ? submitLabelPending : submitLabel}
-              </button>
+              </Button>
             </div>
           </form>
         )}
-      </section>
-    </div>
+      </Card>
+    </Page>
   );
 }

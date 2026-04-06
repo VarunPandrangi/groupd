@@ -1,11 +1,13 @@
 import { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
+import { MagnifyingGlass } from '@phosphor-icons/react';
 import { useAuthStore } from './stores/authStore';
 
 import PublicLayout from './layouts/PublicLayout';
 import StudentLayout from './layouts/StudentLayout';
 import AdminLayout from './layouts/AdminLayout';
 import ProtectedRoute from './components/common/ProtectedRoute';
+import EmptyState from './components/common/EmptyState';
 
 import LandingPage from './pages/auth/LandingPage';
 import LoginPage from './pages/auth/LoginPage';
@@ -28,25 +30,12 @@ import SubmissionTracker from './pages/admin/SubmissionTracker';
 
 function NotFound() {
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'var(--bg-primary)',
-        color: 'var(--text-primary)',
-        fontFamily: 'var(--font-display)',
-        gap: '12px',
-      }}
-    >
-      <span style={{ fontSize: '4rem', fontWeight: 700, color: 'var(--accent-primary)' }}>
-        404
-      </span>
-      <span style={{ fontSize: '1.25rem', fontWeight: 500, color: 'var(--text-secondary)' }}>
-        Page Not Found
-      </span>
+    <div className="not-found">
+      <EmptyState
+        icon={MagnifyingGlass}
+        title="Page not found"
+        message="The page you were looking for may have moved or no longer exists."
+      />
     </div>
   );
 }
@@ -58,16 +47,13 @@ export default function App() {
 
   return (
     <Routes>
-      {/* Landing — uses its own built-in header */}
       <Route path="/" element={<LandingPage />} />
 
-      {/* Auth pages — global Navbar */}
       <Route element={<PublicLayout />}>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
       </Route>
 
-      {/* Student routes — protected */}
       <Route element={<ProtectedRoute allowedRoles={['student']} />}>
         <Route path="/student" element={<StudentLayout />}>
           <Route path="dashboard" element={<StudentDashboard />} />
@@ -79,7 +65,6 @@ export default function App() {
         </Route>
       </Route>
 
-      {/* Admin routes — protected */}
       <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
         <Route path="/admin" element={<AdminLayout />}>
           <Route path="dashboard" element={<AdminDashboard />} />
@@ -92,7 +77,6 @@ export default function App() {
         </Route>
       </Route>
 
-      {/* Catch-all */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

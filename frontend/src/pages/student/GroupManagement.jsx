@@ -3,25 +3,21 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
   Crown,
-  Mail,
+  EnvelopeSimple,
   Plus,
-  Trash2,
+  TrashSimple,
+  UserMinus,
   UserPlus,
-  Users,
-  UserRoundMinus,
-} from 'lucide-react';
+  UsersThree,
+} from '@phosphor-icons/react';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import EmptyState from '../../components/common/EmptyState';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
+import Card from '../../components/common/Card';
+import Button from '../../components/common/Button';
+import { Page, PageHeader, SectionHeading } from '../../components/common/Page';
 import { useAuthStore } from '../../stores/authStore';
 import { useGroupStore } from '../../stores/groupStore';
-
-const AVATAR_BACKGROUNDS = [
-  'linear-gradient(135deg, rgba(79, 123, 247, 0.28), rgba(79, 123, 247, 0.12))',
-  'linear-gradient(135deg, rgba(52, 211, 153, 0.24), rgba(52, 211, 153, 0.1))',
-  'linear-gradient(135deg, rgba(251, 191, 36, 0.24), rgba(251, 191, 36, 0.1))',
-  'linear-gradient(135deg, rgba(239, 68, 68, 0.24), rgba(239, 68, 68, 0.1))',
-];
 
 function formatDate(dateValue) {
   if (!dateValue) {
@@ -88,17 +84,19 @@ export default function GroupManagement() {
 
   const isLeader = Boolean(group && user && group.created_by === user.id);
 
-  const sortedMembers = useMemo(() => {
-    return [...members].sort((left, right) => {
-      if (left.id === group?.created_by) {
-        return -1;
-      }
-      if (right.id === group?.created_by) {
-        return 1;
-      }
-      return left.full_name.localeCompare(right.full_name);
-    });
-  }, [group?.created_by, members]);
+  const sortedMembers = useMemo(
+    () =>
+      [...members].sort((left, right) => {
+        if (left.id === group?.created_by) {
+          return -1;
+        }
+        if (right.id === group?.created_by) {
+          return 1;
+        }
+        return left.full_name.localeCompare(right.full_name);
+      }),
+    [group?.created_by, members]
+  );
 
   const confirmDialogConfig = useMemo(() => {
     if (confirmState.type === 'remove' && confirmState.member) {
@@ -151,6 +149,7 @@ export default function GroupManagement() {
     }
 
     setIsAddingMember(true);
+
     try {
       const payload = identifier.includes('@')
         ? { email: identifier }
@@ -213,7 +212,7 @@ export default function GroupManagement() {
   if (!group) {
     return (
       <EmptyState
-        icon={Users}
+        icon={UsersThree}
         title="You're not in a group yet"
         message="Create a group to invite classmates, track your team, and keep collaboration organized in one place."
         actionLabel="Create a Group"
@@ -223,684 +222,181 @@ export default function GroupManagement() {
   }
 
   return (
-    <>
-      <style>{`
-        @keyframes groupPageFade {
-          from {
-            opacity: 0;
-            transform: translateY(16px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+    <Page>
+      <PageHeader
+        eyebrow="Group Workspace"
+        eyebrowAccent
+        title={group.name}
+        description={
+          group.description ||
+          'No group description yet. Add one when you want to give your team a shared identity.'
         }
-
-        .group-page {
-          animation: groupPageFade 0.42s ease forwards;
-        }
-
-        .group-add-panel {
-          overflow: hidden;
-          transition: max-height 240ms ease, opacity 220ms ease, transform 220ms ease;
-        }
-
-        .group-add-panel--open {
-          max-height: 220px;
-          opacity: 1;
-          transform: translateY(0);
-        }
-
-        .group-add-panel--closed {
-          max-height: 0;
-          opacity: 0;
-          transform: translateY(-8px);
-        }
-
-        .group-member-grid {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 20px;
-        }
-
-        .group-member-card:hover {
-          transform: translateY(-4px);
-          border-color: var(--border-hover);
-          box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
-        }
-
-        .group-icon-button:hover:not(:disabled) {
-          background: rgba(239, 68, 68, 0.12);
-          color: var(--accent-danger);
-          border-color: rgba(239, 68, 68, 0.28);
-        }
-
-        .group-pill-button:hover:not(:disabled) {
-          transform: translateY(-1px);
-        }
-
-        @media (max-width: 1023px) {
-          .group-member-grid {
-            grid-template-columns: minmax(0, 1fr);
-          }
-        }
-
-        @media (max-width: 767px) {
-          .group-actions {
-            width: 100%;
-            flex-direction: column;
-            align-items: stretch;
-          }
-
-          .group-actions > button {
-            width: 100%;
-          }
-        }
-      `}</style>
-
-      <div className="group-page" style={{ display: 'grid', gap: '24px' }}>
-        <section
-          style={{
-            position: 'relative',
-            overflow: 'hidden',
-            borderRadius: '30px',
-            border: '1px solid var(--border-default)',
-            background:
-              'radial-gradient(circle at top right, rgba(79, 123, 247, 0.24), transparent 34%), linear-gradient(180deg, rgba(26, 29, 39, 0.96), rgba(20, 23, 33, 0.98))',
-            padding: 'clamp(24px, 4vw, 40px)',
-            boxShadow: '0 26px 60px rgba(0, 0, 0, 0.16)',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              gap: '20px',
-              flexWrap: 'wrap',
-            }}
-          >
-            <div style={{ maxWidth: '700px' }}>
-              <div
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '8px 14px',
-                  borderRadius: '999px',
-                  background: 'rgba(79, 123, 247, 0.12)',
-                  color: 'var(--accent-primary)',
-                  fontSize: '0.82rem',
-                  fontWeight: 700,
-                  letterSpacing: '0.04em',
-                  textTransform: 'uppercase',
-                }}
-              >
-                Group Workspace
-              </div>
-
-              <h1
-                style={{
-                  marginTop: '18px',
-                  fontSize: 'clamp(2.2rem, 5vw, 3.6rem)',
-                  lineHeight: 0.95,
-                  letterSpacing: '-0.05em',
-                  color: 'var(--text-primary)',
-                }}
-              >
-                {group.name}
-              </h1>
-
-              <p
-                style={{
-                  margin: '16px 0 0',
-                  fontSize: '1rem',
-                  lineHeight: 1.8,
-                  color: 'var(--text-secondary)',
-                  maxWidth: '58ch',
-                }}
-              >
-                {group.description ||
-                  'No group description yet. Add one when you want to give your team a shared identity.'}
-              </p>
-
-              <div
-                style={{
-                  display: 'flex',
-                  gap: '12px',
-                  flexWrap: 'wrap',
-                  marginTop: '22px',
-                }}
-              >
-                <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '10px 14px',
-                    borderRadius: '999px',
-                    background: 'rgba(255, 255, 255, 0.04)',
-                    border: '1px solid rgba(255, 255, 255, 0.05)',
-                    color: 'var(--text-secondary)',
-                    fontSize: '0.92rem',
-                  }}
-                >
-                  Created on {formatDate(group.created_at)}
-                </span>
-
-                <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '10px 14px',
-                    borderRadius: '999px',
-                    background: 'rgba(52, 211, 153, 0.12)',
-                    border: '1px solid rgba(52, 211, 153, 0.16)',
-                    color: 'var(--accent-secondary)',
-                    fontSize: '0.92rem',
-                    fontWeight: 700,
-                  }}
-                >
-                  {members.length} {members.length === 1 ? 'Member' : 'Members'}
-                </span>
-              </div>
-            </div>
-
-            <div
-              className="group-actions"
-              style={{
-                display: 'flex',
-                gap: '12px',
-                alignItems: 'flex-start',
-              }}
+        actions={
+          isLeader ? (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setIsAddFormOpen((currentValue) => !currentValue)}
             >
-              {isLeader ? (
-                <button
-                  type="button"
-                  className="group-pill-button"
-                  onClick={() => setIsAddFormOpen((currentValue) => !currentValue)}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '10px',
-                    padding: '14px 18px',
-                    borderRadius: '16px',
-                    border: '1px solid rgba(79, 123, 247, 0.24)',
-                    background: 'rgba(79, 123, 247, 0.12)',
-                    color: 'var(--text-primary)',
-                    fontFamily: 'var(--font-body)',
-                    fontSize: '0.95rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    transition: 'transform 180ms ease, background 180ms ease',
-                  }}
-                >
-                  <UserPlus size={18} />
-                  Add Member
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="group-pill-button"
-                  onClick={() =>
-                    setConfirmState({
-                      type: 'leave',
-                      member: null,
-                      isSubmitting: false,
-                    })
-                  }
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '10px',
-                    padding: '14px 18px',
-                    borderRadius: '16px',
-                    border: '1px solid rgba(251, 191, 36, 0.22)',
-                    background: 'rgba(251, 191, 36, 0.1)',
-                    color: 'var(--accent-warning)',
-                    fontFamily: 'var(--font-body)',
-                    fontSize: '0.95rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    transition: 'transform 180ms ease, background 180ms ease',
-                  }}
-                >
-                  <UserRoundMinus size={18} />
-                  Leave Group
-                </button>
-              )}
-            </div>
+              <UserPlus size={16} />
+              {isAddFormOpen ? 'Close Invite' : 'Add Member'}
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() =>
+                setConfirmState({
+                  type: 'leave',
+                  member: null,
+                  isSubmitting: false,
+                })
+              }
+            >
+              <UserMinus size={16} />
+              Leave Group
+            </Button>
+          )
+        }
+      />
+
+      <Card>
+        <div className="surface-grid">
+          <div className="cluster">
+            <span className="pill">
+              Created on {formatDate(group.created_at)}
+            </span>
+            <span className="pill pill--green">
+              {members.length} {members.length === 1 ? 'member' : 'members'}
+            </span>
           </div>
 
-          {isLeader ? (
-            <div
-              className={`group-add-panel ${
-                isAddFormOpen ? 'group-add-panel--open' : 'group-add-panel--closed'
-              }`}
-              style={{ marginTop: isAddFormOpen ? '24px' : '0' }}
-            >
-              <form
-                onSubmit={handleAddMember}
-                style={{
-                  display: 'grid',
-                  gap: '12px',
-                  padding: '18px',
-                  borderRadius: '22px',
-                  border: '1px solid var(--border-default)',
-                  background: 'rgba(12, 15, 22, 0.34)',
-                }}
-              >
-                <div>
-                  <p
-                    style={{
-                      margin: 0,
-                      fontSize: '0.95rem',
-                      color: 'var(--text-primary)',
-                      fontWeight: 700,
-                    }}
-                  >
-                    Invite a classmate
-                  </p>
-                  <p
-                    style={{
-                      margin: '6px 0 0',
-                      fontSize: '0.88rem',
-                      color: 'var(--text-secondary)',
-                    }}
-                  >
-                    Enter their registered email address or student ID.
-                  </p>
-                </div>
+          {isLeader && isAddFormOpen ? (
+            <Card as="section" className="surface-grid" style={{ background: 'var(--bg-page)' }}>
+              <div>
+                <div className="table__title">Invite a classmate</div>
+                <span className="table__description">
+                  Enter their registered email address or student ID.
+                </span>
+              </div>
 
-                <div
-                  style={{
-                    display: 'flex',
-                    gap: '12px',
-                    flexWrap: 'wrap',
-                  }}
-                >
-                  <div style={{ flex: '1 1 280px' }}>
-                    <input
-                      type="text"
-                      value={memberIdentifier}
-                      onChange={(event) => setMemberIdentifier(event.target.value)}
-                      placeholder="student@college.edu or 22CS101"
-                      style={{
-                        width: '100%',
-                        padding: '14px 16px',
-                        borderRadius: '16px',
-                        border: '1px solid var(--border-default)',
-                        background: 'var(--bg-tertiary)',
-                        color: 'var(--text-primary)',
-                        fontFamily: 'var(--font-body)',
-                        fontSize: '0.95rem',
-                        outline: 'none',
-                      }}
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={isAddingMember}
-                    className="group-pill-button"
-                    style={{
-                      minWidth: '136px',
-                      padding: '14px 18px',
-                      borderRadius: '16px',
-                      border: 'none',
-                      background: 'var(--accent-primary)',
-                      color: '#ffffff',
-                      fontFamily: 'var(--font-body)',
-                      fontSize: '0.95rem',
-                      fontWeight: 700,
-                      cursor: isAddingMember ? 'not-allowed' : 'pointer',
-                      opacity: isAddingMember ? 0.75 : 1,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px',
-                      boxShadow: '0 18px 40px rgba(79, 123, 247, 0.22)',
-                      transition: 'transform 180ms ease',
-                    }}
-                  >
-                    {isAddingMember ? (
-                      <LoadingSpinner fullPage={false} size={18} />
-                    ) : (
-                      <Plus size={18} />
-                    )}
-                    Add
-                  </button>
+              <form onSubmit={handleAddMember} className="toolbar">
+                <div style={{ flex: '1 1 280px' }}>
+                  <input
+                    type="text"
+                    className="input"
+                    value={memberIdentifier}
+                    onChange={(event) => setMemberIdentifier(event.target.value)}
+                    placeholder="student@college.edu or 22CS101"
+                  />
                 </div>
+                <Button type="submit" disabled={isAddingMember}>
+                  {isAddingMember ? <LoadingSpinner fullPage={false} size={18} /> : <Plus size={16} />}
+                  Add
+                </Button>
               </form>
-            </div>
+            </Card>
           ) : null}
-        </section>
+        </div>
+      </Card>
 
-        <section style={{ display: 'grid', gap: '20px' }}>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              gap: '12px',
-              alignItems: 'flex-end',
-              flexWrap: 'wrap',
-            }}
-          >
-            <div>
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: '0.85rem',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.08em',
-                  color: 'var(--text-tertiary)',
-                }}
-              >
-                Member Roster
-              </p>
-              <h2
-                style={{
-                  marginTop: '8px',
-                  fontSize: '2rem',
-                  letterSpacing: '-0.04em',
-                  color: 'var(--text-primary)',
-                }}
-              >
-                Everyone in the room
-              </h2>
-            </div>
-          </div>
+      <SectionHeading
+        eyebrow="Member Roster"
+        title="Everyone in the room"
+      />
 
-          <div className="group-member-grid">
-            {sortedMembers.map((member, index) => {
-              const memberIsLeader = member.id === group.created_by;
-              const memberIsSelf = member.id === user?.id;
+      <div
+        className="surface-grid"
+        style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}
+      >
+        {sortedMembers.map((member) => {
+          const memberIsLeader = member.id === group.created_by;
+          const memberIsSelf = member.id === user?.id;
 
-              return (
-                <article
-                  key={member.id}
-                  className="group-member-card"
-                  style={{
-                    position: 'relative',
-                    display: 'grid',
-                    gap: '18px',
-                    padding: '24px',
-                    borderRadius: '24px',
-                    border: '1px solid var(--border-default)',
-                    background:
-                      'linear-gradient(180deg, rgba(26, 29, 39, 0.96), rgba(20, 23, 33, 0.98))',
-                    transition:
-                      'transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease',
-                  }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      gap: '14px',
-                      alignItems: 'flex-start',
-                    }}
+          return (
+            <Card key={member.id} interactive className="surface-grid">
+              <div className="card__header">
+                <span className="member-avatar" style={{ width: 52, height: 52, fontSize: 18 }}>
+                  {getInitial(member.full_name)}
+                </span>
+
+                {isLeader && !memberIsSelf ? (
+                  <Button
+                    type="button"
+                    variant="icon"
+                    iconOnly
+                    onClick={() =>
+                      setConfirmState({
+                        type: 'remove',
+                        member,
+                        isSubmitting: false,
+                      })
+                    }
+                    aria-label={`Remove ${member.full_name}`}
                   >
-                    <div
-                      style={{
-                        width: '58px',
-                        height: '58px',
-                        borderRadius: '20px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontFamily: 'var(--font-display)',
-                        fontSize: '1.5rem',
-                        color: 'var(--text-primary)',
-                        background:
-                          AVATAR_BACKGROUNDS[index % AVATAR_BACKGROUNDS.length],
-                        border: '1px solid rgba(255, 255, 255, 0.06)',
-                      }}
-                    >
-                      {getInitial(member.full_name)}
-                    </div>
-
-                    {isLeader && !memberIsSelf ? (
-                      <button
-                        type="button"
-                        aria-label={`Remove ${member.full_name}`}
-                        className="group-icon-button"
-                        onClick={() =>
-                          setConfirmState({
-                            type: 'remove',
-                            member,
-                            isSubmitting: false,
-                          })
-                        }
-                        style={{
-                          width: '42px',
-                          height: '42px',
-                          borderRadius: '14px',
-                          border: '1px solid var(--border-default)',
-                          background: 'transparent',
-                          color: 'var(--text-tertiary)',
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          transition:
-                            'background 180ms ease, color 180ms ease, border-color 180ms ease',
-                        }}
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    ) : null}
-                  </div>
-
-                  <div>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px',
-                        flexWrap: 'wrap',
-                      }}
-                    >
-                      <h3
-                        style={{
-                          margin: 0,
-                          fontSize: '1.28rem',
-                          letterSpacing: '-0.03em',
-                          color: 'var(--text-primary)',
-                        }}
-                      >
-                        {member.full_name}
-                      </h3>
-
-                      {memberIsLeader ? (
-                        <span
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            padding: '6px 10px',
-                            borderRadius: '999px',
-                            background: 'rgba(251, 191, 36, 0.14)',
-                            border: '1px solid rgba(251, 191, 36, 0.2)',
-                            color: 'var(--accent-warning)',
-                            fontSize: '0.78rem',
-                            fontWeight: 700,
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.05em',
-                          }}
-                        >
-                          <Crown size={13} />
-                          Leader
-                        </span>
-                      ) : null}
-
-                      {memberIsSelf ? (
-                        <span
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            padding: '6px 10px',
-                            borderRadius: '999px',
-                            background: 'rgba(79, 123, 247, 0.12)',
-                            color: 'var(--accent-primary)',
-                            fontSize: '0.78rem',
-                            fontWeight: 700,
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.05em',
-                          }}
-                        >
-                          You
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gap: '12px' }}>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px',
-                        color: 'var(--text-secondary)',
-                        fontSize: '0.92rem',
-                      }}
-                    >
-                      <Mail size={16} />
-                      <span
-                        style={{
-                          fontFamily: 'var(--font-mono)',
-                          wordBreak: 'break-all',
-                        }}
-                      >
-                        {member.email}
-                      </span>
-                    </div>
-
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: '12px',
-                        paddingTop: '14px',
-                        borderTop: '1px solid rgba(255, 255, 255, 0.06)',
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: '0.82rem',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.08em',
-                          color: 'var(--text-tertiary)',
-                        }}
-                      >
-                        Student ID
-                      </span>
-                      <span
-                        style={{
-                          fontFamily: 'var(--font-mono)',
-                          fontSize: '0.9rem',
-                          color: 'var(--text-primary)',
-                        }}
-                      >
-                        {member.student_id}
-                      </span>
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        </section>
-
-        {isLeader ? (
-          <section
-            style={{
-              borderTop: '1px solid var(--border-default)',
-              paddingTop: '24px',
-            }}
-          >
-            <div
-              style={{
-                borderRadius: '24px',
-                border: '1px solid rgba(239, 68, 68, 0.18)',
-                background:
-                  'linear-gradient(180deg, rgba(239, 68, 68, 0.08), rgba(26, 29, 39, 0.96))',
-                padding: '24px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                gap: '18px',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-              }}
-            >
-              <div style={{ maxWidth: '640px' }}>
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: '0.85rem',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.08em',
-                    color: 'var(--accent-danger)',
-                  }}
-                >
-                  Danger Zone
-                </p>
-                <h2
-                  style={{
-                    marginTop: '10px',
-                    fontSize: '1.7rem',
-                    letterSpacing: '-0.04em',
-                    color: 'var(--text-primary)',
-                  }}
-                >
-                  Delete this group
-                </h2>
-                <p
-                  style={{
-                    margin: '10px 0 0',
-                    color: 'var(--text-secondary)',
-                    lineHeight: 1.7,
-                  }}
-                >
-                  This removes every member from the group and resets your team workspace.
-                </p>
+                    <TrashSimple size={16} />
+                  </Button>
+                ) : null}
               </div>
 
-              <button
-                type="button"
-                onClick={() =>
-                  setConfirmState({
-                    type: 'delete',
-                    member: null,
-                    isSubmitting: false,
-                  })
-                }
-                className="group-pill-button"
-                style={{
-                  padding: '14px 18px',
-                  borderRadius: '16px',
-                  border: 'none',
-                  background: 'var(--accent-danger)',
-                  color: '#ffffff',
-                  fontFamily: 'var(--font-body)',
-                  fontSize: '0.95rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  boxShadow: '0 18px 40px rgba(239, 68, 68, 0.22)',
-                  transition: 'transform 180ms ease',
-                }}
-              >
-                Delete Group
-              </button>
-            </div>
-          </section>
-        ) : null}
+              <div>
+                <div className="cluster">
+                  <h2 className="card__title">{member.full_name}</h2>
+                  {memberIsLeader ? (
+                    <span className="pill pill--amber">
+                      <Crown size={14} />
+                      Leader
+                    </span>
+                  ) : null}
+                  {memberIsSelf ? <span className="pill pill--blue">You</span> : null}
+                </div>
+              </div>
+
+              <div className="surface-grid">
+                <div className="cluster mono muted" style={{ fontSize: '13px' }}>
+                  <EnvelopeSimple size={14} />
+                  <span>{member.email}</span>
+                </div>
+                <div className="toolbar">
+                  <span className="eyebrow">Student ID</span>
+                  <span className="mono">{member.student_id}</span>
+                </div>
+              </div>
+            </Card>
+          );
+        })}
       </div>
+
+      {isLeader ? (
+        <Card variant="accent" accent="var(--accent-red)">
+          <div className="toolbar">
+            <div>
+              <p className="eyebrow" style={{ color: 'var(--accent-red)' }}>
+                Danger Zone
+              </p>
+              <h2 className="section-heading__title" style={{ marginTop: 8 }}>
+                Delete this group
+              </h2>
+              <p className="page-description">
+                This removes every member from the group and resets your team workspace.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="danger"
+              onClick={() =>
+                setConfirmState({
+                  type: 'delete',
+                  member: null,
+                  isSubmitting: false,
+                })
+              }
+            >
+              Delete Group
+            </Button>
+          </div>
+        </Card>
+      ) : null}
 
       <ConfirmDialog
         isOpen={Boolean(confirmState.type && confirmDialogConfig)}
@@ -912,6 +408,6 @@ export default function GroupManagement() {
         onConfirm={handleConfirmAction}
         variant="danger"
       />
-    </>
+    </Page>
   );
 }

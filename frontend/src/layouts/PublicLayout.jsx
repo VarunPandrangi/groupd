@@ -3,10 +3,12 @@ import Navbar from '../components/common/Navbar';
 
 export default function PublicLayout() {
   return (
-    <div className="layout-public">
+    <div className="public-shell">
       <Navbar />
-      <main className="layout-public__content">
-        <Outlet />
+      <main className="public-shell__content">
+        <div className="public-shell__frame">
+          <Outlet />
+        </div>
       </main>
     </div>
   );
