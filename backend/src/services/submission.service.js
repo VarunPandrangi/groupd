@@ -75,11 +75,17 @@ export async function confirmSubmission(userId, assignmentId) {
   }
 
   try {
-    return await createSubmission({
+    const submission = await createSubmission({
       assignment_id: assignmentId,
       group_id: user.group_id,
       submitted_by: userId,
     });
+
+    if (!submission) {
+      throw httpError(400, 'NO_GROUP', 'You must be in a group to submit');
+    }
+
+    return submission;
   } catch (err) {
     if (err?.code === '23505') {
       throw httpError(

@@ -111,12 +111,17 @@ export default function SubmissionTracker() {
           (assignment) => assignment.id === selectedAssignmentId
         );
 
+        if (!selectedAssignment) {
+          setRows([]);
+          return;
+        }
+
         const [submissions, groups] = await Promise.all([
           submissionService.getSubmissionsByAssignment(selectedAssignmentId),
           groupService.getAllGroupsForAdmin(),
         ]);
 
-        if (!isMounted || !selectedAssignment) {
+        if (!isMounted) {
           return;
         }
 
@@ -136,16 +141,51 @@ export default function SubmissionTracker() {
           submissions.map((submission) => [submission.group_id, submission])
         );
 
-        const nextRows = expectedGroups.map((group) => {
+        const expectedRows = expectedGroups.map((group) => {
           const submission = submissionsByGroupId.get(group.id);
 
           return {
+            rowKey: group.id,
             groupId: group.id,
-            groupName: group.name,
+            groupName: submission?.group_name ?? group.name,
+            groupDeleted: Boolean(submission?.group_deleted),
             submittedBy: submission?.submitted_by_name ?? '',
             submittedAt: submission?.confirmed_at ?? '',
             status: submission ? 'confirmed' : 'pending',
           };
+        });
+
+        const liveGroupIds = new Set(expectedGroups.map((group) => group.id));
+        const deletedRows = submissions
+          .filter(
+            (submission) =>
+              submission.group_deleted || !liveGroupIds.has(submission.group_id)
+          )
+          .map((submission) => ({
+            rowKey: submission.id,
+            groupId: submission.group_id ?? null,
+            groupName: submission.group_name ?? 'Unknown Group',
+            groupDeleted: true,
+            submittedBy: submission.submitted_by_name ?? '',
+            submittedAt: submission.confirmed_at ?? '',
+            status: 'confirmed',
+          }));
+
+        const nextRows = [...expectedRows, ...deletedRows].sort((left, right) => {
+          const nameSort = left.groupName.localeCompare(right.groupName, undefined, {
+            sensitivity: 'base',
+          });
+
+          if (nameSort !== 0) {
+            return nameSort;
+          }
+
+          const deletedSort = Number(left.groupDeleted) - Number(right.groupDeleted);
+          if (deletedSort !== 0) {
+            return deletedSort;
+          }
+
+          return left.rowKey.localeCompare(right.rowKey);
         });
 
         setRows(nextRows);
@@ -230,9 +270,7 @@ export default function SubmissionTracker() {
                 <div className="cluster muted" style={{ fontSize: '14px' }}>
                   <UsersThree size={16} />
                   <span>
-                    {selectedAssignment.assign_to === 'all'
-                      ? 'Assigned to all groups'
-                      : `${selectedAssignment.groups?.length ?? 0} specific groups`}
+                    {rows.length} {rows.length === 1 ? 'group' : 'groups'} in tracker
                   </span>
                 </div>
                 <div className="cluster muted" style={{ fontSize: '14px' }}>
@@ -280,8 +318,29 @@ export default function SubmissionTracker() {
                 </thead>
                 <tbody>
                   {paginatedRows.map((row) => (
-                    <tr key={row.groupId}>
-                      <td className="table__title">{row.groupName}</td>
+                    <tr key={row.rowKey}>
+                      <td>
+                        <div className="group-name-cell">
+                          <span
+                            className={`table__title ${
+                              row.groupDeleted ? 'group-name-cell__name--deleted' : ''
+                            }`}
+                          >
+                            {row.groupName}
+                          </span>
+                          {row.groupDeleted ? (
+                            <span
+                              className="status-badge group-name-cell__tag"
+                              style={{
+                                background: 'var(--accent-amber-soft)',
+                                color: 'var(--accent-amber)',
+                              }}
+                            >
+                              Deleted
+                            </span>
+                          ) : null}
+                        </div>
+                      </td>
                       <td>{row.submittedBy || 'Not submitted'}</td>
                       <td className="mono">
                         {row.submittedAt ? formatTimestamp(row.submittedAt) : 'Not submitted'}

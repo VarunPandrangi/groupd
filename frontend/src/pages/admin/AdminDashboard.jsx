@@ -49,12 +49,29 @@ function getAssignmentBarColor(completionRate) {
   return 'var(--accent-red)';
 }
 
-function ChartTooltip({ title, subtitle, percentage }) {
+function getGroupBarColor(group) {
+  return group.group_deleted ? 'var(--text-muted)' : 'var(--accent-blue)';
+}
+
+function ChartTooltip({ title, subtitle, percentage, badgeLabel = null }) {
   return (
     <div className="chart-tooltip">
-      <p className="table__title" style={{ margin: 0 }}>
-        {title}
-      </p>
+      <div className="chart-tooltip__header">
+        <p className="table__title" style={{ margin: 0 }}>
+          {title}
+        </p>
+        {badgeLabel ? (
+          <span
+            className="status-badge"
+            style={{
+              background: 'var(--accent-amber-soft)',
+              color: 'var(--accent-amber)',
+            }}
+          >
+            {badgeLabel}
+          </span>
+        ) : null}
+      </div>
       <p className="table__description" style={{ marginTop: 8 }}>
         {subtitle}
       </p>
@@ -93,6 +110,7 @@ function GroupTooltip({ active, payload }) {
       title={group.name}
       subtitle={`${group.submitted_assignments}/${group.total_assignments} assignments submitted`}
       percentage={Math.round(group.completion_rate)}
+      badgeLabel={group.group_deleted ? 'Deleted' : null}
     />
   );
 }
@@ -156,7 +174,10 @@ export default function AdminDashboard() {
         setAssignmentAnalytics(nextAssignments);
         setGroupAnalytics(
           [...nextGroups].sort(
-            (left, right) => right.completion_rate - left.completion_rate
+            (left, right) =>
+              right.completion_rate - left.completion_rate ||
+              Number(left.group_deleted) - Number(right.group_deleted) ||
+              left.name.localeCompare(right.name)
           )
         );
       } catch (error) {
@@ -352,12 +373,14 @@ export default function AdminDashboard() {
                       cursor={{ fill: 'var(--accent-blue-soft)' }}
                       content={<GroupTooltip />}
                     />
-                    <Bar
-                      dataKey="completion_rate"
-                      radius={[4, 4, 0, 0]}
-                      fill="var(--accent-blue)"
-                      barSize={chartBarSize}
-                    />
+                    <Bar dataKey="completion_rate" radius={[4, 4, 0, 0]} barSize={chartBarSize}>
+                      {groupAnalytics.map((group, index) => (
+                        <Cell
+                          key={`${group.id ?? 'deleted'}-${group.name}-${index}`}
+                          fill={getGroupBarColor(group)}
+                        />
+                      ))}
+                    </Bar>
                   </ReBarChart>
                 </ResponsiveContainer>
               )}

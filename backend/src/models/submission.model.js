@@ -1,19 +1,29 @@
 import { pool } from '../config/database.js';
 
+const UNKNOWN_GROUP_NAME = 'Unknown Group';
+
 export async function create(
   { assignment_id, group_id, submitted_by },
   db = pool
 ) {
   const sql = `
-    WITH inserted AS (
-      INSERT INTO submissions (assignment_id, group_id, submitted_by)
-      VALUES ($1, $2, $3)
-      RETURNING id, assignment_id, group_id, submitted_by, confirmed_at
+    WITH source_group AS (
+      SELECT id, name
+      FROM groups
+      WHERE id = $2
+    ),
+    inserted AS (
+      INSERT INTO submissions (assignment_id, group_id, group_name, submitted_by)
+      SELECT $1, g.id, g.name, $3
+      FROM source_group g
+      RETURNING id, assignment_id, group_id, group_name, submitted_by, confirmed_at
     )
     SELECT
       s.id,
       s.assignment_id,
       s.group_id,
+      s.group_name,
+      (s.group_id IS NULL) AS group_deleted,
       s.submitted_by,
       u.full_name AS submitted_by_name,
       u.email AS submitted_by_email,
@@ -50,16 +60,21 @@ export async function findByAssignmentAndGroup(assignmentId, groupId, db = pool)
 export async function getByAssignment(assignmentId, db = pool) {
   const sql = `
     SELECT
+      s.id,
       s.group_id,
-      g.name AS group_name,
+      COALESCE(g.name, s.group_name, '${UNKNOWN_GROUP_NAME}') AS group_name,
+      (s.group_id IS NULL) AS group_deleted,
       u.full_name AS submitted_by_name,
       u.email AS submitted_by_email,
       s.confirmed_at
     FROM submissions s
-    JOIN groups g ON g.id = s.group_id
+    LEFT JOIN groups g ON g.id = s.group_id
     JOIN users u ON u.id = s.submitted_by
     WHERE s.assignment_id = $1
-    ORDER BY s.confirmed_at ASC, g.name ASC
+    ORDER BY
+      s.confirmed_at ASC,
+      COALESCE(g.name, s.group_name, '${UNKNOWN_GROUP_NAME}') ASC,
+      u.full_name ASC
   `;
 
   const { rows } = await db.query(sql, [assignmentId]);

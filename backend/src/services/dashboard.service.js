@@ -83,6 +83,7 @@ export async function getGroupAnalytics() {
   return rows.map((row) => ({
     id: row.id,
     name: row.name,
+    group_deleted: Boolean(row.group_deleted),
     member_count: toNumber(row.member_count, 0),
     total_assignments: toNumber(row.total_assignments, 0),
     submitted_assignments: toNumber(row.submitted_assignments, 0),

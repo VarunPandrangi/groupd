@@ -1,5 +1,7 @@
 import { pool } from '../config/database.js';
 
+const UNKNOWN_GROUP_NAME = 'Unknown Group';
+
 const SAFE_ASSIGNMENT_COLUMNS = `
   id,
   title,
@@ -333,16 +335,22 @@ export async function getAssignmentSubmissions(assignmentId, db = pool) {
       s.assignment_id,
       s.submitted_by,
       s.group_id,
+      COALESCE(g.name, s.group_name, '${UNKNOWN_GROUP_NAME}') AS group_name,
+      (s.group_id IS NULL) AS group_deleted,
       s.confirmed_at,
-      u.full_name,
-      u.email,
+      u.full_name AS submitted_by_name,
+      u.email AS submitted_by_email,
       u.student_id AS student_identifier,
-      g.name AS group_name
+      u.full_name,
+      u.email
     FROM submissions s
     JOIN users u ON u.id = s.submitted_by
     LEFT JOIN groups g ON g.id = s.group_id
     WHERE s.assignment_id = $1
-    ORDER BY s.confirmed_at ASC, u.full_name ASC
+    ORDER BY
+      s.confirmed_at ASC,
+      COALESCE(g.name, s.group_name, '${UNKNOWN_GROUP_NAME}') ASC,
+      u.full_name ASC
   `;
 
   const { rows } = await db.query(sql, [assignmentId]);

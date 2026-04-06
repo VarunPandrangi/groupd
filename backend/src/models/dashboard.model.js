@@ -1,5 +1,7 @@
 import { pool } from '../config/database.js';
 
+const UNKNOWN_GROUP_NAME = 'Unknown Group';
+
 const ASSIGNMENT_STATUS_CASE = `
   CASE
     WHEN a.due_date <= NOW() THEN 'overdue'
@@ -145,9 +147,20 @@ export async function getAdminSummary(db = pool) {
     assignment_group_counts AS (
       SELECT
         ag.assignment_id,
-        COUNT(*) AS groups_assigned
+        COUNT(*) AS live_groups_assigned
       FROM assignment_groups ag
       GROUP BY ag.assignment_id
+    ),
+    deleted_submission_counts AS (
+      SELECT
+        s.assignment_id,
+        COUNT(*) AS deleted_group_submissions
+      FROM submissions s
+      JOIN assignments a
+        ON a.id = s.assignment_id
+      WHERE s.group_id IS NULL
+        AND a.is_deleted = FALSE
+      GROUP BY s.assignment_id
     ),
     pair_count AS (
       SELECT
@@ -155,8 +168,9 @@ export async function getAdminSummary(db = pool) {
           SUM(
             CASE
               WHEN a.assign_to = 'all' THEN gc.total_groups
-              ELSE COALESCE(agc.groups_assigned, 0)
+              ELSE COALESCE(agc.live_groups_assigned, 0)
             END
+            + COALESCE(dsc.deleted_group_submissions, 0)
           ),
           0
         ) AS total_pairs
@@ -164,6 +178,8 @@ export async function getAdminSummary(db = pool) {
       CROSS JOIN group_count gc
       LEFT JOIN assignment_group_counts agc
         ON agc.assignment_id = a.id
+      LEFT JOIN deleted_submission_counts dsc
+        ON dsc.assignment_id = a.id
       WHERE a.is_deleted = FALSE
     ),
     submission_count AS (
@@ -199,9 +215,20 @@ export async function getAssignmentAnalytics(db = pool) {
     assignment_group_counts AS (
       SELECT
         ag.assignment_id,
-        COUNT(*) AS groups_assigned
+        COUNT(*) AS live_groups_assigned
       FROM assignment_groups ag
       GROUP BY ag.assignment_id
+    ),
+    deleted_submission_counts AS (
+      SELECT
+        s.assignment_id,
+        COUNT(*) AS deleted_group_submissions
+      FROM submissions s
+      JOIN assignments a
+        ON a.id = s.assignment_id
+      WHERE s.group_id IS NULL
+        AND a.is_deleted = FALSE
+      GROUP BY s.assignment_id
     ),
     submission_counts AS (
       SELECT
@@ -218,22 +245,25 @@ export async function getAssignmentAnalytics(db = pool) {
       COALESCE(sc.groups_submitted, 0) AS groups_submitted,
       CASE
         WHEN a.assign_to = 'all' THEN gc.total_groups
-        ELSE COALESCE(agc.groups_assigned, 0)
-      END AS groups_assigned,
+        ELSE COALESCE(agc.live_groups_assigned, 0)
+      END
+      + COALESCE(dsc.deleted_group_submissions, 0) AS groups_assigned,
       CASE
         WHEN (
           CASE
             WHEN a.assign_to = 'all' THEN gc.total_groups
-            ELSE COALESCE(agc.groups_assigned, 0)
+            ELSE COALESCE(agc.live_groups_assigned, 0)
           END
+          + COALESCE(dsc.deleted_group_submissions, 0)
         ) = 0 THEN 0
         ELSE (
           COALESCE(sc.groups_submitted, 0)::float8
           / (
             CASE
               WHEN a.assign_to = 'all' THEN gc.total_groups
-              ELSE COALESCE(agc.groups_assigned, 0)
+              ELSE COALESCE(agc.live_groups_assigned, 0)
             END
+            + COALESCE(dsc.deleted_group_submissions, 0)
           )
         ) * 100
       END AS completion_rate
@@ -241,6 +271,8 @@ export async function getAssignmentAnalytics(db = pool) {
     CROSS JOIN group_count gc
     LEFT JOIN assignment_group_counts agc
       ON agc.assignment_id = a.id
+    LEFT JOIN deleted_submission_counts dsc
+      ON dsc.assignment_id = a.id
     LEFT JOIN submission_counts sc
       ON sc.assignment_id = a.id
     WHERE a.is_deleted = FALSE
@@ -288,38 +320,86 @@ export async function getGroupAnalytics(db = pool) {
       WHERE s.group_id IS NOT NULL
         AND a.is_deleted = FALSE
       GROUP BY s.group_id
-    )
-    SELECT
-      g.id,
-      g.name,
-      COALESCE(mc.member_count, 0) AS member_count,
-      (
-        aaa.total_all_assignments
-        + COALESCE(sac.total_assignments, 0)
-      ) AS total_assignments,
-      COALESCE(sc.submitted_assignments, 0) AS submitted_assignments,
-      CASE
-        WHEN (
+    ),
+    deleted_group_submission_counts AS (
+      SELECT
+        COALESCE(s.group_name, '${UNKNOWN_GROUP_NAME}') AS name,
+        COUNT(*) AS submitted_assignments
+      FROM submissions s
+      JOIN assignments a
+        ON a.id = s.assignment_id
+      WHERE s.group_id IS NULL
+        AND a.is_deleted = FALSE
+      GROUP BY COALESCE(s.group_name, '${UNKNOWN_GROUP_NAME}')
+    ),
+    live_group_analytics AS (
+      SELECT
+        g.id,
+        g.name,
+        FALSE AS group_deleted,
+        COALESCE(mc.member_count, 0) AS member_count,
+        (
           aaa.total_all_assignments
           + COALESCE(sac.total_assignments, 0)
-        ) = 0 THEN 0
-        ELSE (
-          COALESCE(sc.submitted_assignments, 0)::float8
-          / (
+        ) AS total_assignments,
+        COALESCE(sc.submitted_assignments, 0) AS submitted_assignments,
+        CASE
+          WHEN (
             aaa.total_all_assignments
             + COALESCE(sac.total_assignments, 0)
-          )
-        ) * 100
-      END AS completion_rate
-    FROM groups g
-    CROSS JOIN active_all_assignments aaa
-    LEFT JOIN member_counts mc
-      ON mc.group_id = g.id
-    LEFT JOIN specific_assignment_counts sac
-      ON sac.group_id = g.id
-    LEFT JOIN submission_counts sc
-      ON sc.group_id = g.id
-    ORDER BY completion_rate DESC, g.name ASC
+          ) = 0 THEN 0
+          ELSE (
+            COALESCE(sc.submitted_assignments, 0)::float8
+            / (
+              aaa.total_all_assignments
+              + COALESCE(sac.total_assignments, 0)
+            )
+          ) * 100
+        END AS completion_rate
+      FROM groups g
+      CROSS JOIN active_all_assignments aaa
+      LEFT JOIN member_counts mc
+        ON mc.group_id = g.id
+      LEFT JOIN specific_assignment_counts sac
+        ON sac.group_id = g.id
+      LEFT JOIN submission_counts sc
+        ON sc.group_id = g.id
+    ),
+    deleted_group_analytics AS (
+      SELECT
+        NULL::uuid AS id,
+        dgsc.name,
+        TRUE AS group_deleted,
+        0::bigint AS member_count,
+        dgsc.submitted_assignments AS total_assignments,
+        dgsc.submitted_assignments AS submitted_assignments,
+        CASE
+          WHEN dgsc.submitted_assignments = 0 THEN 0
+          ELSE 100::float8
+        END AS completion_rate
+      FROM deleted_group_submission_counts dgsc
+    )
+    SELECT
+      id,
+      name,
+      group_deleted,
+      member_count,
+      total_assignments,
+      submitted_assignments,
+      completion_rate
+    FROM live_group_analytics
+    UNION ALL
+    SELECT
+      id,
+      name,
+      group_deleted,
+      member_count,
+      total_assignments,
+      submitted_assignments,
+      completion_rate
+    FROM deleted_group_analytics
+    WHERE submitted_assignments > 0
+    ORDER BY completion_rate DESC, group_deleted ASC, name ASC
   `;
 
   const { rows } = await db.query(sql);

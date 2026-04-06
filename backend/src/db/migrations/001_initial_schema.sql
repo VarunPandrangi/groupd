@@ -80,7 +80,8 @@ DROP TABLE IF EXISTS submissions;
 CREATE TABLE IF NOT EXISTS submissions (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     assignment_id UUID NOT NULL REFERENCES assignments(id) ON DELETE CASCADE,
-    group_id      UUID NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+    group_id      UUID REFERENCES groups(id) ON DELETE SET NULL,
+    group_name    VARCHAR(100),
     submitted_by  UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     confirmed_at  TIMESTAMPTZ DEFAULT NOW(),
     created_at    TIMESTAMPTZ DEFAULT NOW(),
