@@ -1,5 +1,5 @@
 services:
-  db:
+  postgres:
     image: postgres:16-alpine
     container_name: joineazy-db
     restart: unless-stopped
@@ -18,6 +18,36 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  backend:
+    build:
+      context: ./backend
+    container_name: joineazy-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://joineazy_user:joineazy_pass@postgres:5432/joineazy
+      JWT_SECRET: change-this-to-a-random-secret-string
+      JWT_REFRESH_SECRET: change-this-to-another-random-secret
+      PORT: 5000
+      CORS_ORIGIN: http://localhost:3000
+      NODE_ENV: production
+    ports:
+      - "5000:5000"
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: http://localhost:5000/api/v1
+    container_name: joineazy-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
 
 volumes:
   pgdata:
