@@ -6,7 +6,7 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Request interceptor — attach access token when present
+// Request interceptor - attach access token when present
 api.interceptors.request.use(
   (config) => {
     try {
@@ -15,14 +15,14 @@ api.interceptors.request.use(
         config.headers.Authorization = `Bearer ${token}`;
       }
     } catch {
-      // Store not initialized yet — proceed without token
+      // Store not initialized yet - proceed without token
     }
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// Response interceptor — 401 refresh flow
+// Response interceptor - 401 refresh flow
 let isRefreshing = false;
 let failedQueue = [];
 

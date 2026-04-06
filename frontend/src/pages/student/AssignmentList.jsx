@@ -1,10 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { CalendarDays, CheckCircle, FileText, Layers3 } from 'lucide-react';
+import {
+  CalendarDots,
+  CheckCircle,
+  FileText,
+  UsersThree,
+} from '@phosphor-icons/react';
 import EmptyState from '../../components/common/EmptyState';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import StatusBadge from '../../components/common/StatusBadge';
+import Card from '../../components/common/Card';
+import { Page, PageHeader } from '../../components/common/Page';
 import { useAuthStore } from '../../stores/authStore';
 import { useAssignmentStore } from '../../stores/assignmentStore';
 import { useSubmissionStore } from '../../stores/submissionStore';
@@ -40,10 +47,7 @@ export default function AssignmentList() {
 
     async function loadAssignments() {
       try {
-        await Promise.all([
-          fetchAssignments(),
-          fetchMySubmissions(),
-        ]);
+        await Promise.all([fetchAssignments(), fetchMySubmissions()]);
       } catch (error) {
         if (isMounted) {
           toast.error(getErrorMessage(error, 'Unable to load assignments right now.'));
@@ -58,9 +62,8 @@ export default function AssignmentList() {
     };
   }, [fetchAssignments, fetchMySubmissions, user?.group_id]);
 
-  // Build a set of submitted assignment IDs for quick lookup
   const submittedAssignmentIds = useMemo(
-    () => new Set(mySubmissions.map((sub) => sub.assignment_id)),
+    () => new Set(mySubmissions.map((submission) => submission.assignment_id)),
     [mySubmissions]
   );
 
@@ -80,7 +83,7 @@ export default function AssignmentList() {
   if (!user?.group_id) {
     return (
       <EmptyState
-        icon={Layers3}
+        icon={UsersThree}
         title="Join a group to see assignments"
         message="Assignments unlock once you are part of a student group, so you can track only the work that belongs to your team."
         actionLabel="Go to My Group"
@@ -90,240 +93,76 @@ export default function AssignmentList() {
   }
 
   return (
-    <>
-      <style>{`
-        .assignment-card:hover {
-          transform: translateY(-4px);
-          border-color: var(--border-hover);
-          box-shadow: 0 22px 44px rgba(0, 0, 0, 0.18);
-        }
-      `}</style>
+    <Page>
+      <PageHeader
+        eyebrow="Assignments"
+        eyebrowAccent
+        title="Keep every deadline in sharp focus"
+        description="Browse the assignments for your group, filter by urgency, and jump into the full brief whenever you are ready to submit."
+        actions={<span className="pill">{sortedAssignments.length} assignments</span>}
+      />
 
-      <div style={{ display: 'grid', gap: '24px' }}>
-      <section
-        style={{
-          borderRadius: '30px',
-          border: '1px solid var(--border-default)',
-          background:
-            'radial-gradient(circle at top right, color-mix(in srgb, var(--accent-primary) 16%, transparent), transparent 34%), var(--bg-secondary)',
-          padding: 'clamp(24px, 4vw, 36px)',
-          boxShadow: '0 24px 56px rgba(0, 0, 0, 0.14)',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            gap: '16px',
-            alignItems: 'flex-end',
-            flexWrap: 'wrap',
-          }}
-        >
-          <div style={{ maxWidth: '680px' }}>
-            <p
-              style={{
-                margin: 0,
-                fontSize: '0.82rem',
-                fontWeight: 700,
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                color: 'var(--accent-primary)',
-              }}
-            >
-              Assignment Board
-            </p>
-            <h1
-              style={{
-                marginTop: '10px',
-                fontSize: 'clamp(2.3rem, 5vw, 3.2rem)',
-                letterSpacing: '-0.05em',
-                color: 'var(--text-primary)',
-              }}
-            >
-              Keep every deadline in sharp focus
-            </h1>
-            <p
-              style={{
-                margin: '14px 0 0',
-                lineHeight: 1.8,
-                color: 'var(--text-secondary)',
-                maxWidth: '58ch',
-              }}
-            >
-              Browse the assignments for your group, filter by urgency, and jump into
-              the full brief whenever you are ready to submit.
-            </p>
-          </div>
-
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '10px',
-              padding: '12px 16px',
-              borderRadius: '18px',
-              background: 'color-mix(in srgb, var(--bg-primary) 20%, transparent)',
-              border: '1px solid var(--border-default)',
-              color: 'var(--text-secondary)',
-            }}
+      <div className="filter-pills">
+        {FILTERS.map((filter) => (
+          <button
+            key={filter.key}
+            type="button"
+            className={`filter-pill ${
+              activeFilter === filter.key ? 'filter-pill--active' : ''
+            }`}
+            onClick={() => setActiveFilter(filter.key)}
           >
-            <FileText size={18} />
-            {sortedAssignments.length} assignment{sortedAssignments.length === 1 ? '' : 's'}
-          </div>
-        </div>
-      </section>
-
-      <section style={{ display: 'grid', gap: '20px' }}>
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-          {FILTERS.map((filter) => {
-            const isActive = activeFilter === filter.key;
-
-            return (
-              <button
-                key={filter.key}
-                type="button"
-                onClick={() => setActiveFilter(filter.key)}
-                style={{
-                  padding: '12px 18px',
-                  borderRadius: '999px',
-                  border: isActive
-                    ? '1px solid color-mix(in srgb, var(--accent-primary) 32%, transparent)'
-                    : '1px solid var(--border-default)',
-                  background: isActive
-                    ? 'color-mix(in srgb, var(--accent-primary) 12%, transparent)'
-                    : 'var(--bg-secondary)',
-                  color: isActive ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                  fontFamily: 'var(--font-body)',
-                  fontSize: '0.88rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                {filter.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {isLoading ? (
-          <div
-            style={{
-              minHeight: '320px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <LoadingSpinner fullPage={false} size={38} />
-          </div>
-        ) : filteredAssignments.length === 0 ? (
-          <EmptyState
-            icon={FileText}
-            title="No assignments here yet"
-            message={
-              activeFilter === 'all'
-                ? 'Once your instructor assigns work to your group, it will show up here with due dates and status badges.'
-                : `There are no ${activeFilter} assignments for your group right now.`
-            }
-          />
-        ) : (
-          <div
-            style={{
-              display: 'grid',
-              gap: '18px',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            }}
-          >
-            {filteredAssignments.map((assignment) => (
-              <button
-                key={assignment.id}
-                type="button"
-                onClick={() => navigate(`/student/assignments/${assignment.id}`)}
-                className="assignment-card"
-                style={{
-                  textAlign: 'left',
-                  display: 'grid',
-                  gap: '18px',
-                  padding: '22px',
-                  borderRadius: '24px',
-                  border: '1px solid var(--border-default)',
-                  background: 'var(--bg-secondary)',
-                  cursor: 'pointer',
-                  boxShadow: '0 16px 30px rgba(0, 0, 0, 0.08)',
-                  transition: 'transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease',
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    gap: '12px',
-                    alignItems: 'flex-start',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <h2
-                      style={{
-                        margin: 0,
-                        fontSize: '1.55rem',
-                        letterSpacing: '-0.04em',
-                        color: 'var(--text-primary)',
-                      }}
-                    >
-                      {assignment.title}
-                    </h2>
-                    {submittedAssignmentIds.has(assignment.id) && (
-                      <CheckCircle
-                        size={20}
-                        style={{
-                          color: 'var(--accent-secondary)',
-                          flexShrink: 0,
-                        }}
-                      />
-                    )}
-                  </div>
-                  <StatusBadge status={assignment.status} />
-                </div>
-
-                <p
-                  style={{
-                    margin: 0,
-                    color: 'var(--text-secondary)',
-                    lineHeight: 1.75,
-                    minHeight: '3.6em',
-                    display: '-webkit-box',
-                    WebkitBoxOrient: 'vertical',
-                    WebkitLineClamp: 2,
-                    overflow: 'hidden',
-                  }}
-                >
-                  {assignment.description || 'No description provided for this assignment.'}
-                </p>
-
-                <div
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    color: 'var(--text-secondary)',
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: '0.9rem',
-                    paddingTop: '14px',
-                    borderTop:
-                      '1px solid color-mix(in srgb, var(--border-default) 70%, transparent)',
-                  }}
-                >
-                  <CalendarDays size={18} />
-                  <span style={{ color: 'var(--text-primary)' }}>
-                    {formatAssignmentDate(assignment.due_date)}
-                  </span>
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-      </section>
+            {filter.label}
+          </button>
+        ))}
       </div>
-    </>
+
+      {isLoading ? (
+        <LoadingSpinner />
+      ) : filteredAssignments.length === 0 ? (
+        <EmptyState
+          icon={FileText}
+          title="No assignments here yet"
+          message={
+            activeFilter === 'all'
+              ? 'Once your instructor assigns work to your group, it will show up here with due dates and status badges.'
+              : `There are no ${activeFilter} assignments for your group right now.`
+          }
+        />
+      ) : (
+        <div className="surface-grid surface-grid--three">
+          {filteredAssignments.map((assignment) => (
+            <Card
+              key={assignment.id}
+              as="button"
+              interactive
+              className="surface-grid"
+              style={{ textAlign: 'left', cursor: 'pointer' }}
+              onClick={() => navigate(`/student/assignments/${assignment.id}`)}
+            >
+              <div className="card__header">
+                <div>
+                  <div className="cluster" style={{ gap: 8 }}>
+                    <h2 className="card__title">{assignment.title}</h2>
+                    {submittedAssignmentIds.has(assignment.id) ? (
+                      <CheckCircle size={18} color="var(--accent-green)" weight="fill" />
+                    ) : null}
+                  </div>
+                  <p className="card__copy">
+                    {assignment.description || 'No description provided for this assignment.'}
+                  </p>
+                </div>
+                <StatusBadge status={assignment.status} />
+              </div>
+
+              <div className="cluster mono muted" style={{ fontSize: '13px' }}>
+                <CalendarDots size={16} />
+                <span>Due {formatAssignmentDate(assignment.due_date)}</span>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+    </Page>
   );
 }

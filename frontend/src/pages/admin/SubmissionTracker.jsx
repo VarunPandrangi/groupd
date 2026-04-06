@@ -1,10 +1,17 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { CalendarDays, ClipboardCheck, FolderSearch, Users } from 'lucide-react';
+import {
+  CalendarDots,
+  ClipboardText,
+  FolderSimple,
+  UsersThree,
+} from '@phosphor-icons/react';
 import EmptyState from '../../components/common/EmptyState';
 import Pagination from '../../components/common/Pagination';
 import Skeleton from '../../components/common/Skeleton';
 import StatusBadge from '../../components/common/StatusBadge';
+import Card from '../../components/common/Card';
+import { Page, PageHeader, SectionHeading } from '../../components/common/Page';
 import assignmentService from '../../services/assignmentService';
 import groupService from '../../services/groupService';
 import submissionService from '../../services/submissionService';
@@ -38,25 +45,11 @@ function formatTimestamp(dateString) {
 
 function SubmissionTrackerSkeleton() {
   return (
-    <div style={{ display: 'grid', gap: '24px' }}>
-      <section
-        style={{
-          borderRadius: '30px',
-          border: '1px solid var(--border-default)',
-          background:
-            'radial-gradient(circle at top right, color-mix(in srgb, var(--accent-primary) 14%, transparent), transparent 36%), var(--bg-secondary)',
-          padding: 'clamp(24px, 4vw, 36px)',
-          display: 'grid',
-          gap: '14px',
-        }}
-      >
-        <Skeleton width="130px" />
-        <Skeleton width="320px" height="56px" />
-        <Skeleton width="58%" />
-      </section>
-
-      <Skeleton variant="card" height="150px" />
-      <Skeleton variant="card" height="360px" />
+    <div className="surface-grid">
+      <Skeleton variant="text" width="140px" />
+      <Skeleton variant="text" width="320px" height="36px" />
+      <Skeleton variant="card" height="160px" />
+      <Skeleton variant="card" height="340px" />
     </div>
   );
 }
@@ -182,7 +175,7 @@ export default function SubmissionTracker() {
   if (assignments.length === 0) {
     return (
       <EmptyState
-        icon={FolderSearch}
+        icon={FolderSimple}
         title="No assignments yet"
         message="Create your first assignment to start tracking which groups have confirmed submission."
       />
@@ -199,372 +192,122 @@ export default function SubmissionTracker() {
   const confirmedCount = rows.filter((row) => row.status === 'confirmed').length;
 
   return (
-    <>
-      <style>{`
-        @keyframes submissionTrackerFade {
-          from { opacity: 0; transform: translateY(14px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
+    <Page>
+      <PageHeader
+        eyebrow="Submission Tracker"
+        eyebrowAccent
+        title="Verify every group against every assignment"
+        description="Choose an assignment to see the exact groups expected to submit, who confirmed on their behalf, and who is still pending."
+      />
 
-        .submission-tracker-page {
-          animation: submissionTrackerFade 420ms ease forwards;
-        }
+      <Card>
+        <div className="surface-grid surface-grid--two">
+          <div className="field">
+            <label htmlFor="submission-assignment-select" className="field__label">
+              Assignment
+            </label>
+            <select
+              id="submission-assignment-select"
+              className="select"
+              value={selectedAssignmentId}
+              onChange={(event) => setSelectedAssignmentId(event.target.value)}
+            >
+              {assignments.map((assignment) => (
+                <option key={assignment.id} value={assignment.id}>
+                  {assignment.title}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        .submission-tracker-card:hover {
-          transform: translateY(-3px);
-          border-color: var(--border-hover);
-          box-shadow: 0 24px 56px rgba(0, 0, 0, 0.16);
-        }
-
-        @media (max-width: 1023px) {
-          .submission-tracker-controls {
-            grid-template-columns: minmax(0, 1fr);
-          }
-        }
-      `}</style>
-
-      <div className="submission-tracker-page" style={{ display: 'grid', gap: '24px' }}>
-        <section
-          style={{
-            borderRadius: '30px',
-            border: '1px solid var(--border-default)',
-            background:
-              'radial-gradient(circle at top right, color-mix(in srgb, var(--accent-primary) 16%, transparent), transparent 34%), linear-gradient(180deg, rgba(26, 29, 39, 0.96), rgba(20, 23, 33, 0.98))',
-            padding: 'clamp(24px, 4vw, 38px)',
-            boxShadow: '0 24px 56px rgba(0, 0, 0, 0.14)',
-          }}
-        >
-          <p
-            style={{
-              margin: 0,
-              fontSize: '0.82rem',
-              fontWeight: 700,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              color: 'var(--accent-primary)',
-            }}
-          >
-            Submission Tracker
-          </p>
-
-          <h1
-            style={{
-              marginTop: '12px',
-              fontSize: 'clamp(2.4rem, 5vw, 3.5rem)',
-              lineHeight: 0.96,
-              letterSpacing: '-0.05em',
-              color: 'var(--text-primary)',
-            }}
-          >
-            Verify every group against every assignment
-          </h1>
-
-          <p
-            style={{
-              margin: '16px 0 0',
-              maxWidth: '58ch',
-              lineHeight: 1.8,
-              color: 'var(--text-secondary)',
-            }}
-          >
-            Choose an assignment to see the exact groups expected to submit, who
-            confirmed on their behalf, and who is still pending.
-          </p>
-        </section>
-
-        <section
-          className="submission-tracker-card"
-          style={{
-            padding: '24px',
-            borderRadius: '28px',
-            border: '1px solid var(--border-default)',
-            background: 'var(--bg-secondary)',
-            boxShadow: '0 18px 42px rgba(0, 0, 0, 0.12)',
-            display: 'grid',
-            gap: '18px',
-            transition: 'transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease',
-          }}
-        >
-          <div
-            className="submission-tracker-controls"
-            style={{
-              display: 'grid',
-              gap: '18px',
-              gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 0.8fr)',
-            }}
-          >
-            <div style={{ display: 'grid', gap: '10px' }}>
-              <label
-                htmlFor="submission-assignment-select"
-                style={{
-                  fontSize: '0.82rem',
-                  fontWeight: 700,
-                  letterSpacing: '0.08em',
-                  textTransform: 'uppercase',
-                  color: 'var(--text-tertiary)',
-                }}
-              >
-                Assignment
-              </label>
-              <select
-                id="submission-assignment-select"
-                value={selectedAssignmentId}
-                onChange={(event) => setSelectedAssignmentId(event.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '14px 16px',
-                  borderRadius: '16px',
-                  border: '1px solid var(--border-default)',
-                  background: 'var(--bg-tertiary)',
-                  color: 'var(--text-primary)',
-                  fontFamily: 'var(--font-body)',
-                  fontSize: '0.96rem',
-                  outline: 'none',
-                }}
-              >
-                {assignments.map((assignment) => (
-                  <option key={assignment.id} value={assignment.id}>
-                    {assignment.title}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {selectedAssignment ? (
-              <div
-                style={{
-                  display: 'grid',
-                  gap: '10px',
-                  alignContent: 'start',
-                  padding: '14px 16px',
-                  borderRadius: '18px',
-                  border: '1px solid var(--border-default)',
-                  background: 'color-mix(in srgb, var(--bg-primary) 18%, transparent)',
-                }}
-              >
-                <div
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    color: 'var(--text-secondary)',
-                    fontSize: '0.9rem',
-                  }}
-                >
-                  <CalendarDays size={16} />
-                  Due {formatAssignmentDate(selectedAssignment.due_date)}
+          {selectedAssignment ? (
+            <Card className="card--compact" style={{ background: 'var(--bg-page)' }}>
+              <div className="surface-grid">
+                <div className="cluster muted" style={{ fontSize: '14px' }}>
+                  <CalendarDots size={16} />
+                  <span>Due {formatAssignmentDate(selectedAssignment.due_date)}</span>
                 </div>
-
-                <div
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    color: 'var(--text-secondary)',
-                    fontSize: '0.9rem',
-                  }}
-                >
-                  <Users size={16} />
-                  {selectedAssignment.assign_to === 'all'
-                    ? 'Assigned to all groups'
-                    : `${selectedAssignment.groups?.length ?? 0} specific groups`}
+                <div className="cluster muted" style={{ fontSize: '14px' }}>
+                  <UsersThree size={16} />
+                  <span>
+                    {selectedAssignment.assign_to === 'all'
+                      ? 'Assigned to all groups'
+                      : `${selectedAssignment.groups?.length ?? 0} specific groups`}
+                  </span>
                 </div>
-
-                <div
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    color: 'var(--text-secondary)',
-                    fontSize: '0.9rem',
-                  }}
-                >
-                  <ClipboardCheck size={16} />
-                  {confirmedCount}/{rows.length} confirmed
+                <div className="cluster muted" style={{ fontSize: '14px' }}>
+                  <ClipboardText size={16} />
+                  <span>
+                    {confirmedCount}/{rows.length} confirmed
+                  </span>
                 </div>
               </div>
-            ) : null}
-          </div>
-        </section>
+            </Card>
+          ) : null}
+        </div>
+      </Card>
 
-        <section
-          className="submission-tracker-card"
-          style={{
-            padding: '24px',
-            borderRadius: '28px',
-            border: '1px solid var(--border-default)',
-            background: 'var(--bg-secondary)',
-            boxShadow: '0 18px 42px rgba(0, 0, 0, 0.12)',
-            display: 'grid',
-            gap: '20px',
-            transition: 'transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease',
-          }}
-        >
-          <div>
-            <p
-              style={{
-                margin: 0,
-                fontSize: '0.82rem',
-                fontWeight: 700,
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                color: 'var(--text-tertiary)',
-              }}
-            >
-              Expected Group Status
-            </p>
-            <h2
-              style={{
-                marginTop: '8px',
-                fontSize: 'clamp(1.6rem, 4vw, 2rem)',
-                letterSpacing: '-0.04em',
-                color: 'var(--text-primary)',
-              }}
-            >
-              Submission confirmations by group
-            </h2>
-          </div>
+      <Card className="table-card">
+        <SectionHeading
+          eyebrow="Expected Group Status"
+          title="Submission confirmations by group"
+        />
 
-          {isTableLoading ? (
-            <div style={{ display: 'grid', gap: '12px' }}>
-              <Skeleton variant="text" height="44px" />
-              <Skeleton variant="card" height="72px" />
-              <Skeleton variant="card" height="72px" />
-              <Skeleton variant="card" height="72px" />
-            </div>
-          ) : rows.length === 0 ? (
-            <div
-              style={{
-                minHeight: '220px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: '22px',
-                border: '1px dashed var(--border-default)',
-                color: 'var(--text-secondary)',
-                textAlign: 'center',
-                lineHeight: 1.7,
-                padding: '20px',
-              }}
-            >
+        {isTableLoading ? (
+          <div className="surface-grid" style={{ marginTop: 20 }}>
+            <Skeleton variant="text" height="44px" />
+            <Skeleton variant="card" height="72px" />
+            <Skeleton variant="card" height="72px" />
+            <Skeleton variant="card" height="72px" />
+          </div>
+        ) : rows.length === 0 ? (
+          <Card className="card--compact" style={{ marginTop: 20 }}>
+            <p className="card__copy" style={{ margin: 0 }}>
               No groups are expected for this assignment yet.
-            </div>
-          ) : (
-            <>
-              <div style={{ overflowX: 'auto' }}>
-                <table
-                  style={{
-                    width: '100%',
-                    minWidth: '720px',
-                    borderCollapse: 'collapse',
-                  }}
-                >
-                  <thead>
-                    <tr
-                      style={{
-                        borderBottom: '1px solid var(--border-default)',
-                        background: 'rgba(255, 255, 255, 0.02)',
-                      }}
-                    >
-                      {['Group Name', 'Submitted By', 'Submitted At', 'Status'].map(
-                        (label) => (
-                          <th
-                            key={label}
-                            style={{
-                              padding: '16px 18px',
-                              textAlign: 'left',
-                              fontSize: '0.78rem',
-                              fontWeight: 700,
-                              letterSpacing: '0.08em',
-                              textTransform: 'uppercase',
-                              color: 'var(--text-tertiary)',
-                            }}
-                          >
-                            {label}
-                          </th>
-                        )
-                      )}
+            </p>
+          </Card>
+        ) : (
+          <>
+            <div className="table-wrap" style={{ marginTop: 20 }}>
+              <table className="table" style={{ minWidth: 720 }}>
+                <thead>
+                  <tr>
+                    <th>Group Name</th>
+                    <th>Submitted By</th>
+                    <th>Submitted At</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedRows.map((row) => (
+                    <tr key={row.groupId}>
+                      <td className="table__title">{row.groupName}</td>
+                      <td>{row.submittedBy || 'Not submitted'}</td>
+                      <td className="mono">
+                        {row.submittedAt ? formatTimestamp(row.submittedAt) : 'Not submitted'}
+                      </td>
+                      <td>
+                        <StatusBadge status={row.status} />
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {paginatedRows.map((row) => (
-                      <tr
-                        key={row.groupId}
-                        style={{
-                          borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-                        }}
-                      >
-                        <td
-                          style={{
-                            padding: '18px',
-                            color: 'var(--text-primary)',
-                            fontWeight: 700,
-                          }}
-                        >
-                          {row.groupName}
-                        </td>
-                        <td
-                          style={{
-                            padding: '18px',
-                            color: row.submittedBy
-                              ? 'var(--text-primary)'
-                              : 'var(--text-tertiary)',
-                          }}
-                        >
-                          {row.submittedBy || ''}
-                        </td>
-                        <td
-                          style={{
-                            padding: '18px',
-                            color: row.submittedAt
-                              ? 'var(--text-secondary)'
-                              : 'var(--text-tertiary)',
-                            fontFamily: row.submittedAt
-                              ? 'var(--font-mono)'
-                              : 'var(--font-body)',
-                            fontSize: '0.88rem',
-                          }}
-                        >
-                          {row.submittedAt ? formatTimestamp(row.submittedAt) : ''}
-                        </td>
-                        <td style={{ padding: '18px' }}>
-                          <StatusBadge status={row.status} />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  gap: '16px',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                }}
-              >
-                <p
-                  style={{
-                    margin: 0,
-                    color: 'var(--text-secondary)',
-                    fontSize: '0.92rem',
-                  }}
-                >
-                  Page {currentPage} of {totalPages}
-                </p>
-
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={setCurrentPage}
-                />
-              </div>
-            </>
-          )}
-        </section>
-      </div>
-    </>
+            <div className="toolbar" style={{ marginTop: 20 }}>
+              <p className="toolbar__meta">
+                Page {currentPage} of {totalPages}
+              </p>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+          </>
+        )}
+      </Card>
+    </Page>
   );
 }

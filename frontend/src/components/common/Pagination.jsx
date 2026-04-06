@@ -1,3 +1,6 @@
+import { CaretLeft, CaretRight } from '@phosphor-icons/react';
+import Button from './Button';
+
 function buildPageItems(currentPage, totalPages) {
   if (totalPages <= 7) {
     return Array.from({ length: totalPages }, (_, index) => index + 1);
@@ -28,24 +31,6 @@ function buildPageItems(currentPage, totalPages) {
   return items;
 }
 
-function baseButtonStyle(disabled) {
-  return {
-    minWidth: '42px',
-    height: '42px',
-    padding: '0 14px',
-    borderRadius: '14px',
-    border: '1px solid var(--border-default)',
-    background: 'transparent',
-    color: 'var(--text-secondary)',
-    fontFamily: 'var(--font-body)',
-    fontSize: '0.92rem',
-    fontWeight: 700,
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    opacity: disabled ? 0.42 : 1,
-    transition: 'transform 180ms ease, border-color 180ms ease, color 180ms ease',
-  };
-}
-
 export default function Pagination({
   currentPage = 1,
   totalPages = 1,
@@ -55,77 +40,51 @@ export default function Pagination({
     return null;
   }
 
-  const pageItems = buildPageItems(currentPage, totalPages);
+  const items = buildPageItems(currentPage, totalPages);
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '10px',
-        flexWrap: 'wrap',
-      }}
-    >
-      <button
+    <div className="pagination">
+      <Button
         type="button"
-        onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+        variant="secondary"
+        size="sm"
         disabled={currentPage <= 1}
-        style={baseButtonStyle(currentPage <= 1)}
+        onClick={() => onPageChange(Math.max(1, currentPage - 1))}
       >
-        Previous
-      </button>
+        <CaretLeft size={14} />
+      </Button>
 
-      {pageItems.map((item) => {
+      {items.map((item) => {
         if (typeof item !== 'number') {
           return (
-            <span
-              key={item}
-              style={{
-                minWidth: '24px',
-                textAlign: 'center',
-                color: 'var(--text-tertiary)',
-                fontWeight: 700,
-              }}
-            >
+            <span key={item} className="pagination__ellipsis">
               ...
             </span>
           );
         }
 
-        const isActive = item === currentPage;
-
         return (
-          <button
+          <Button
             key={item}
             type="button"
+            variant={item === currentPage ? 'primary' : 'secondary'}
+            size="sm"
             onClick={() => onPageChange(item)}
-            style={{
-              ...baseButtonStyle(false),
-              minWidth: '42px',
-              padding: '0 12px',
-              border: isActive
-                ? '1px solid color-mix(in srgb, var(--accent-primary) 35%, transparent)'
-                : '1px solid var(--border-default)',
-              background: isActive
-                ? 'color-mix(in srgb, var(--accent-primary) 14%, transparent)'
-                : 'transparent',
-              color: isActive ? 'var(--accent-primary)' : 'var(--text-secondary)',
-            }}
           >
             {item}
-          </button>
+          </Button>
         );
       })}
 
-      <button
+      <Button
         type="button"
-        onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+        variant="secondary"
+        size="sm"
         disabled={currentPage >= totalPages}
-        style={baseButtonStyle(currentPage >= totalPages)}
+        onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
       >
-        Next
-      </button>
+        <CaretRight size={14} />
+      </Button>
     </div>
   );
 }

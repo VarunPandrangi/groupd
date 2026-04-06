@@ -1,60 +1,47 @@
-import { CheckCircle, Clock, Circle } from 'lucide-react';
+import { CheckCircle, Circle, ClockCountdown } from '@phosphor-icons/react';
 
 const STATUS_CONFIG = {
   complete: {
     label: 'Complete',
-    color: 'var(--accent-secondary)',
-    background: 'color-mix(in srgb, var(--accent-secondary) 14%, transparent)',
-    borderColor: 'color-mix(in srgb, var(--accent-secondary) 26%, transparent)',
+    color: 'var(--accent-green)',
+    background: 'var(--accent-green-soft)',
     Icon: CheckCircle,
   },
   'in-progress': {
     label: 'In Progress',
-    color: 'var(--accent-warning)',
-    background: 'color-mix(in srgb, var(--accent-warning) 14%, transparent)',
-    borderColor: 'color-mix(in srgb, var(--accent-warning) 26%, transparent)',
-    Icon: Clock,
+    color: 'var(--accent-amber)',
+    background: 'var(--accent-amber-soft)',
+    Icon: ClockCountdown,
   },
   'not-started': {
     label: 'Not Started',
-    color: 'var(--text-tertiary)',
-    background: 'color-mix(in srgb, var(--text-tertiary) 12%, transparent)',
-    borderColor: 'color-mix(in srgb, var(--text-tertiary) 22%, transparent)',
+    color: 'var(--text-muted)',
+    background: 'var(--bg-hover)',
     Icon: Circle,
   },
   pending: {
     label: 'Pending',
-    color: 'var(--text-tertiary)',
-    background: 'color-mix(in srgb, var(--text-tertiary) 12%, transparent)',
-    borderColor: 'color-mix(in srgb, var(--text-tertiary) 22%, transparent)',
+    color: 'var(--text-muted)',
+    background: 'var(--bg-hover)',
     Icon: Circle,
   },
 };
 
 export default function CompletionBadge({ status = 'not-started' }) {
   const config = STATUS_CONFIG[status] ?? STATUS_CONFIG['not-started'];
-  const { Icon } = config;
+  const Icon = config.Icon;
 
   return (
     <span
+      className="status-badge"
       style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '6px',
-        padding: '6px 12px',
-        borderRadius: '999px',
-        border: `1px solid ${config.borderColor}`,
         background: config.background,
         color: config.color,
-        fontSize: '0.74rem',
-        fontWeight: 700,
-        letterSpacing: '0.06em',
-        textTransform: 'uppercase',
-        whiteSpace: 'nowrap',
-        lineHeight: 1,
+        display: 'inline-flex',
+        gap: '6px',
       }}
     >
-      <Icon size={14} />
+      <Icon size={14} weight="fill" />
       {config.label}
     </span>
   );
