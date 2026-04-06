@@ -1,6 +1,7 @@
 export default function PlaceholderPage({ name }) {
   return (
     <div
+      className="min-h-screen flex items-center justify-center text-3xl font-semibold tracking-tight"
       style={{
         minHeight: '100vh',
         display: 'flex',

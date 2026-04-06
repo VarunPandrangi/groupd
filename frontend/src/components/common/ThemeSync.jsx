@@ -8,5 +8,5 @@ export default function ThemeSync() {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
 
-  return null;
+  return <span className="w-full hidden" aria-hidden="true" />;
 }

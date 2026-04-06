@@ -28,7 +28,7 @@ export default function Card({
 
   return (
     <Component
-      className={cardClassName({ variant, interactive, className })}
+      className={`rounded-xl border ${cardClassName({ variant, interactive, className })}`}
       style={{
         ...(accent ? { '--card-accent': accent } : null),
         ...style,

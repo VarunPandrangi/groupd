@@ -261,30 +261,30 @@ export default function GroupManagement() {
       />
 
       <Card>
-        <div className="surface-grid">
-          <div className="cluster">
-            <span className="pill">
+        <div className="grid gap-4 surface-grid">
+          <div className="flex items-center gap-3 cluster">
+            <span className="inline-flex items-center gap-2 rounded-full text-sm font-medium pill">
               Created on {formatDate(group.created_at)}
             </span>
-            <span className="pill pill--green">
+            <span className="inline-flex items-center gap-2 rounded-full text-sm font-medium pill pill--green">
               {members.length} {members.length === 1 ? 'member' : 'members'}
             </span>
           </div>
 
           {isLeader && isAddFormOpen ? (
-            <Card as="section" className="surface-grid" style={{ background: 'var(--bg-page)' }}>
+            <Card as="section" className="grid gap-4 surface-grid" style={{ background: 'var(--bg-page)' }}>
               <div>
-                <div className="table__title">Invite a classmate</div>
-                <span className="table__description">
+                <div className="text-sm font-semibold table__title">Invite a classmate</div>
+                <span className="text-sm leading-relaxed table__description">
                   Enter their registered email address or student ID.
                 </span>
               </div>
 
-              <form onSubmit={handleAddMember} className="toolbar">
+              <form onSubmit={handleAddMember} className="flex items-center justify-between gap-4 toolbar">
                 <div style={{ flex: '1 1 280px' }}>
                   <input
                     type="text"
-                    className="input"
+                    className="w-full rounded-md input"
                     value={memberIdentifier}
                     onChange={(event) => setMemberIdentifier(event.target.value)}
                     placeholder="student@college.edu or 22CS101"
@@ -306,7 +306,7 @@ export default function GroupManagement() {
       />
 
       <div
-        className="surface-grid"
+        className="grid gap-4 surface-grid"
         style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}
       >
         {sortedMembers.map((member) => {
@@ -314,9 +314,9 @@ export default function GroupManagement() {
           const memberIsSelf = member.id === user?.id;
 
           return (
-            <Card key={member.id} interactive className="surface-grid">
-              <div className="card__header">
-                <span className="member-avatar" style={{ width: 52, height: 52, fontSize: 18 }}>
+            <Card key={member.id} interactive className="grid gap-4 surface-grid">
+              <div className="flex items-start justify-between gap-3 card__header">
+                <span className="inline-flex items-center justify-center rounded-full member-avatar" style={{ width: 52, height: 52, fontSize: 18 }}>
                   {getInitial(member.full_name)}
                 </span>
 
@@ -340,26 +340,26 @@ export default function GroupManagement() {
               </div>
 
               <div>
-                <div className="cluster">
-                  <h2 className="card__title">{member.full_name}</h2>
+                <div className="flex items-center gap-3 cluster">
+                  <h2 className="text-lg font-semibold tracking-tight card__title">{member.full_name}</h2>
                   {memberIsLeader ? (
-                    <span className="pill pill--amber">
+                    <span className="inline-flex items-center gap-2 rounded-full text-sm font-medium pill pill--amber">
                       <Crown size={14} />
                       Leader
                     </span>
                   ) : null}
-                  {memberIsSelf ? <span className="pill pill--blue">You</span> : null}
+                  {memberIsSelf ? <span className="inline-flex items-center gap-2 rounded-full text-sm font-medium pill pill--blue">You</span> : null}
                 </div>
               </div>
 
-              <div className="surface-grid">
-                <div className="cluster mono muted" style={{ fontSize: '13px' }}>
+              <div className="grid gap-4 surface-grid">
+                <div className="flex items-center gap-3 text-sm cluster mono muted" style={{ fontSize: '13px' }}>
                   <EnvelopeSimple size={14} />
                   <span>{member.email}</span>
                 </div>
-                <div className="toolbar">
-                  <span className="eyebrow">Student ID</span>
-                  <span className="mono">{member.student_id}</span>
+                <div className="flex items-center justify-between gap-4 toolbar">
+                  <span className="text-xs font-medium uppercase tracking-wide eyebrow">Student ID</span>
+                  <span className="text-sm mono">{member.student_id}</span>
                 </div>
               </div>
             </Card>
@@ -369,15 +369,15 @@ export default function GroupManagement() {
 
       {isLeader ? (
         <Card variant="accent" accent="var(--accent-red)">
-          <div className="toolbar">
+          <div className="flex items-center justify-between gap-4 toolbar">
             <div>
-              <p className="eyebrow" style={{ color: 'var(--accent-red)' }}>
+              <p className="text-xs font-medium uppercase tracking-wide eyebrow" style={{ color: 'var(--accent-red)' }}>
                 Danger Zone
               </p>
-              <h2 className="section-heading__title" style={{ marginTop: 8 }}>
+              <h2 className="text-2xl font-bold tracking-tight section-heading__title" style={{ marginTop: 8 }}>
                 Delete this group
               </h2>
-              <p className="page-description">
+              <p className="text-base leading-relaxed page-description">
                 This removes every member from the group and resets your team workspace.
               </p>
             </div>

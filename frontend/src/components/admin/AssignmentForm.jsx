@@ -79,7 +79,7 @@ function FieldError({ message }) {
     return null;
   }
 
-  return <span className="field__error">{message}</span>;
+  return <span className="text-xs field__error">{message}</span>;
 }
 
 export default function AssignmentForm({
@@ -220,18 +220,18 @@ export default function AssignmentForm({
         {isLoadingInitial ? (
           <LoadingSpinner fullPage={false} size={32} />
         ) : (
-          <form onSubmit={handleFormSubmit} className="surface-grid">
-            <div className="surface-grid surface-grid--equal">
-              <div className="field" style={{ gridColumn: '1 / -1' }}>
-                <label htmlFor="assignment-title" className="field__label">
+          <form onSubmit={handleFormSubmit} className="grid gap-4 surface-grid">
+            <div className="grid gap-4 sm:grid-cols-2 surface-grid surface-grid--equal">
+              <div className="grid gap-2 field" style={{ gridColumn: '1 / -1' }}>
+                <label htmlFor="assignment-title" className="text-sm font-medium field__label">
                   Title
                 </label>
-                <input id="assignment-title" className="input" type="text" {...register('title')} />
+                <input id="assignment-title" className="w-full rounded-md input" type="text" {...register('title')} />
                 <FieldError message={errors.title?.message} />
               </div>
 
-              <div className="field" style={{ gridColumn: '1 / -1' }}>
-                <label htmlFor="assignment-description" className="field__label">
+              <div className="grid gap-2 field" style={{ gridColumn: '1 / -1' }}>
+                <label htmlFor="assignment-description" className="text-sm font-medium field__label">
                   Description
                 </label>
                 <RichTextEditor
@@ -253,19 +253,19 @@ export default function AssignmentForm({
                   value={descriptionValue}
                   readOnly
                 />
-                <span className="field__hint">
+                <span className="text-xs field__hint">
                   Select text, then use the toolbar to make it bold, italic, or underlined.
                 </span>
                 <FieldError message={errors.description?.message} />
               </div>
 
-              <div className="field">
-                <label htmlFor="assignment-due-date" className="field__label">
+              <div className="grid gap-2 field">
+                <label htmlFor="assignment-due-date" className="text-sm font-medium field__label">
                   Due Date
                 </label>
                 <input
                   id="assignment-due-date"
-                  className="input"
+                  className="w-full rounded-md input"
                   type="date"
                   min={getTomorrowDateInputValue()}
                   {...register('due_date')}
@@ -273,13 +273,13 @@ export default function AssignmentForm({
                 <FieldError message={errors.due_date?.message} />
               </div>
 
-              <div className="field">
-                <label htmlFor="assignment-link" className="field__label">
+              <div className="grid gap-2 field">
+                <label htmlFor="assignment-link" className="text-sm font-medium field__label">
                   OneDrive Link
                 </label>
                 <input
                   id="assignment-link"
-                  className="input"
+                  className="w-full rounded-md input"
                   type="url"
                   {...register('onedrive_link')}
                 />
@@ -287,16 +287,16 @@ export default function AssignmentForm({
               </div>
             </div>
 
-            <Card as="section" className="surface-grid">
-              <div className="section-heading">
-                <p className="eyebrow">Assign To</p>
-                <h2 className="section-heading__title">Choose the audience</h2>
-                <p className="page-description">
+            <Card as="section" className="grid gap-4 surface-grid">
+              <div className="grid gap-2 section-heading">
+                <p className="text-xs font-medium uppercase tracking-wide eyebrow">Assign To</p>
+                <h2 className="text-2xl font-bold tracking-tight section-heading__title">Choose the audience</h2>
+                <p className="text-base leading-relaxed page-description">
                   Decide whether this assignment goes to every group or only a selected set.
                 </p>
               </div>
 
-              <div className="segmented">
+              <div className="grid gap-3 segmented">
                 {[
                   {
                     value: 'all',
@@ -321,7 +321,7 @@ export default function AssignmentForm({
                       onClick={() => handleAssignToChange(option.value)}
                     >
                       <strong>{option.label}</strong>
-                      <span className="muted" style={{ fontSize: '14px', lineHeight: 1.6 }}>
+                      <span className="text-sm muted" style={{ fontSize: '14px', lineHeight: 1.6 }}>
                         {option.hint}
                       </span>
                     </button>
@@ -330,15 +330,15 @@ export default function AssignmentForm({
               </div>
 
               {assignTo === 'specific' ? (
-                <div className="surface-grid">
-                  <div className="toolbar">
-                    <p className="toolbar__meta">
+                <div className="grid gap-4 surface-grid">
+                  <div className="flex items-center justify-between gap-4 toolbar">
+                    <p className="text-sm toolbar__meta">
                       {selectedGroupIds.length} group{selectedGroupIds.length === 1 ? '' : 's'} selected
                     </p>
                     {isLoadingGroups ? <LoadingSpinner fullPage={false} size={18} /> : null}
                   </div>
 
-                  <div className="check-list">
+                  <div className="grid gap-2 overflow-y-auto rounded-lg check-list">
                     {groups.map((group) => {
                       const isChecked = selectedGroupIds.includes(group.id);
 
@@ -352,8 +352,8 @@ export default function AssignmentForm({
                           onClick={() => handleGroupToggle(group.id)}
                         >
                           <div>
-                            <div className="table__title">{group.name}</div>
-                            <span className="table__description">
+                            <div className="text-sm font-semibold table__title">{group.name}</div>
+                            <span className="text-sm leading-relaxed table__description">
                               {group.description || 'No description provided.'}
                             </span>
                           </div>
@@ -367,7 +367,7 @@ export default function AssignmentForm({
                     })}
 
                     {!isLoadingGroups && groups.length === 0 ? (
-                      <p className="empty-state__message" style={{ textAlign: 'left' }}>
+                      <p className="text-base leading-relaxed empty-state__message" style={{ textAlign: 'left' }}>
                         No groups are available yet. Create student groups first or switch this assignment to all groups.
                       </p>
                     ) : null}
@@ -378,12 +378,12 @@ export default function AssignmentForm({
               ) : null}
             </Card>
 
-            <div className="toolbar">
-              <p className="toolbar__meta">
+            <div className="flex items-center justify-between gap-4 toolbar">
+              <p className="text-sm toolbar__meta">
                 Students will see the assignment immediately after this change is saved.
               </p>
               <Button type="submit" disabled={isSubmitting || isLoadingInitial}>
-                {isSubmitting ? <SpinnerGap size={16} className="spinner" /> : null}
+                {isSubmitting ? <SpinnerGap size={16} className="inline-flex items-center justify-center spinner" /> : null}
                 {isSubmitting ? submitLabelPending : submitLabel}
               </Button>
             </div>

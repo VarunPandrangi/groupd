@@ -115,14 +115,14 @@ export default function GroupProgress() {
       />
 
       <Card>
-        <div className="surface-grid">
-          <div className="cluster">
-            <div className="metric__icon">
+        <div className="grid gap-4 surface-grid">
+          <div className="flex items-center gap-3 cluster">
+            <div className="inline-flex items-center justify-center rounded-xl metric__icon">
               <ChartBar size={20} />
             </div>
             <div>
-              <p className="eyebrow">Overall Completion</p>
-              <h2 className="section-heading__title" style={{ marginTop: 8 }}>
+              <p className="text-xs font-medium uppercase tracking-wide eyebrow">Overall Completion</p>
+              <h2 className="text-2xl font-bold tracking-tight section-heading__title" style={{ marginTop: 8 }}>
                 {completedAssignments} of {totalAssignments} assignments completed
               </h2>
             </div>
@@ -143,19 +143,19 @@ export default function GroupProgress() {
           message="Once your instructor assigns work to your group, progress tracking will appear here."
         />
       ) : (
-        <div className="surface-grid surface-grid--three">
+        <div className="grid gap-4 md:grid-cols-3 surface-grid surface-grid--three">
           {sortedAssignments.map((assignment) => {
             const submitted = assignment.is_submitted ? 1 : 0;
             const status = assignment.is_submitted ? 'complete' : 'pending';
 
             return (
-              <Card key={assignment.assignment_id ?? assignment.id} interactive className="surface-grid">
-                <div className="card__header">
-                  <h2 className="card__title">{assignment.title}</h2>
+              <Card key={assignment.assignment_id ?? assignment.id} interactive className="grid gap-4 surface-grid">
+                <div className="flex items-start justify-between gap-3 card__header">
+                  <h2 className="text-lg font-semibold tracking-tight card__title">{assignment.title}</h2>
                   <StatusBadge status={assignment.status} />
                 </div>
 
-                <div className="cluster mono muted" style={{ fontSize: '13px' }}>
+                <div className="flex items-center gap-3 text-sm cluster mono muted" style={{ fontSize: '13px' }}>
                   <CalendarDots size={16} />
                   <span>{formatAssignmentDate(assignment.due_date)}</span>
                 </div>
@@ -163,12 +163,12 @@ export default function GroupProgress() {
                 <ProgressBar current={submitted} total={1} showLabel tone="success" />
 
                 {assignment.is_submitted && assignment.confirmed_at ? (
-                  <p className="card__copy">
+                  <p className="text-sm leading-relaxed card__copy">
                     Confirmed by {assignment.submitted_by_name || 'a group member'} on{' '}
                     {formatTimestamp(assignment.confirmed_at)}.
                   </p>
                 ) : (
-                  <p className="card__copy">Pending group confirmation.</p>
+                  <p className="text-sm leading-relaxed card__copy">Pending group confirmation.</p>
                 )}
 
                 <div>

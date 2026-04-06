@@ -21,5 +21,9 @@ export default function ProtectedRoute({ allowedRoles }) {
     return <Navigate to={destination} replace />;
   }
 
-  return <Outlet />;
+  return (
+    <div className="w-full">
+      <Outlet />
+    </div>
+  );
 }

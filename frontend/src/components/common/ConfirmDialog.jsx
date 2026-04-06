@@ -22,7 +22,7 @@ export default function ConfirmDialog({
       title={title}
       description={message}
       footer={
-        <>
+        <div className="inline-flex items-center gap-3">
           <Button type="button" variant="secondary" onClick={onCancel}>
             {cancelText}
           </Button>
@@ -33,7 +33,7 @@ export default function ConfirmDialog({
           >
             {confirmText}
           </Button>
-        </>
+        </div>
       }
     />
   );

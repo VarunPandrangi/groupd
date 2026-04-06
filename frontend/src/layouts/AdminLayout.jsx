@@ -16,8 +16,10 @@ const adminNavItems = [
 
 export default function AdminLayout() {
   return (
-    <AppShell navItems={adminNavItems}>
-      <Outlet />
+    <AppShell navItems={adminNavItems} shellClassName="w-full">
+      <div className="w-full">
+        <Outlet />
+      </div>
     </AppShell>
   );
 }

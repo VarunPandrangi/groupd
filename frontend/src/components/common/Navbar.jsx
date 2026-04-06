@@ -6,6 +6,7 @@ import {
 } from '@phosphor-icons/react';
 import { useAuthStore } from '../../stores/authStore';
 import { useThemeStore } from '../../stores/themeStore';
+import { cx } from '../../utils/cx';
 import Button from './Button';
 import { buttonClassName } from './buttonClassName';
 
@@ -22,25 +23,24 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="topbar">
-      <div className="topbar__inner">
-        <div className="topbar__left">
-          <Link to="/" className="brand">
-            Join<span className="brand__accent">E</span>azy
+    <nav className="w-full topbar">
+      <div className="flex items-center justify-between gap-4 topbar__inner">
+        <div className="flex items-center gap-3 topbar__left">
+          <Link to="/" className="font-bold tracking-tight brand">
+            Join<span className="font-bold brand__accent">E</span>azy
           </Link>
         </div>
 
-        <div className="topbar__right">
+        <div className="flex items-center gap-3 topbar__right">
           {isAuthenticated && user ? (
             <>
-              <div className="topbar__meta">
-                <span className="topbar__name">{user.full_name}</span>
+              <div className="inline-flex items-center gap-2 topbar__meta">
+                <span className="text-sm font-medium topbar__name">{user.full_name}</span>
                 <span
-                  className={`role-badge ${
-                    user.role === 'admin'
-                      ? 'role-badge--admin'
-                      : 'role-badge--student'
-                  }`}
+                  className={cx(
+                    'inline-flex items-center justify-center rounded-full text-xs font-semibold role-badge',
+                    user.role === 'admin' ? 'role-badge--admin' : 'role-badge--student'
+                  )}
                 >
                   {user.role}
                 </span>

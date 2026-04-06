@@ -106,7 +106,7 @@ export default function AssignmentManager() {
         }
       />
 
-      <Card className="table-card">
+      <Card className="rounded-xl border overflow-hidden w-full table-card">
         {isLoading ? (
           <LoadingSpinner />
         ) : assignments.length === 0 ? (
@@ -119,14 +119,14 @@ export default function AssignmentManager() {
           />
         ) : (
           <>
-            <div className="table-wrap">
-              <table className="table" style={{ minWidth: 980 }}>
+            <div className="overflow-x-auto w-full table-wrap">
+              <table className="w-full table" style={{ minWidth: 980 }}>
                 <thead>
                   <tr>
                     <th>Title</th>
                     <th>Due Date</th>
-                    <th className="table__column--center">Status</th>
-                    <th className="table__column--center">Assign To</th>
+                    <th className="justify-center table__column--center">Status</th>
+                    <th className="justify-center table__column--center">Assign To</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -134,19 +134,19 @@ export default function AssignmentManager() {
                   {assignments.map((assignment) => (
                     <tr key={assignment.id}>
                       <td>
-                        <span className="table__title">{assignment.title}</span>
+                        <span className="text-sm font-semibold table__title">{assignment.title}</span>
                         <FormattedText
                           as="div"
-                          className="table__description formatted-text"
+                          className="text-sm leading-relaxed table__description formatted-text"
                           text={assignment.description}
                           fallback="No description provided."
                         />
                       </td>
-                      <td className="mono">{formatAssignmentDate(assignment.due_date)}</td>
-                      <td className="table__cell--center">
+                      <td className="text-sm mono">{formatAssignmentDate(assignment.due_date)}</td>
+                      <td className="justify-center table__cell--center">
                         <StatusBadge status={assignment.status} />
                       </td>
-                      <td className="table__cell--center">
+                      <td className="justify-center table__cell--center">
                         <span
                           className={`pill ${
                             assignment.assign_to === 'all' ? 'pill--green' : 'pill--blue'
@@ -156,7 +156,7 @@ export default function AssignmentManager() {
                         </span>
                       </td>
                       <td>
-                        <div className="cluster">
+                        <div className="flex items-center gap-3 cluster">
                           <Button
                             type="button"
                             variant="icon"
@@ -184,8 +184,8 @@ export default function AssignmentManager() {
               </table>
             </div>
 
-            <div className="toolbar" style={{ marginTop: 20 }}>
-              <p className="toolbar__meta">
+            <div className="flex items-center justify-between gap-4 toolbar" style={{ marginTop: 20 }}>
+              <p className="text-sm toolbar__meta">
                 Page {pagination.page} of {pagination.totalPages}
               </p>
               <Pagination

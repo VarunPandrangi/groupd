@@ -17,6 +17,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useAssignmentStore } from '../../stores/assignmentStore';
 import { useSubmissionStore } from '../../stores/submissionStore';
 import { formatAssignmentDate, sortAssignmentsByDueDate } from '../../utils/assignmentDates';
+import { cx } from '../../utils/cx';
 
 const FILTERS = [
   { key: 'all', label: 'All' },
@@ -100,17 +101,18 @@ export default function AssignmentList() {
         eyebrowAccent
         title="Keep every deadline in sharp focus"
         description="Browse the assignments for your group, filter by urgency, and jump into the full brief whenever you are ready to submit."
-        actions={<span className="pill">{sortedAssignments.length} assignments</span>}
+        actions={<span className="inline-flex items-center gap-2 rounded-full text-sm font-medium pill">{sortedAssignments.length} assignments</span>}
       />
 
-      <div className="filter-pills">
+      <div className="flex gap-2 filter-pills">
         {FILTERS.map((filter) => (
           <button
             key={filter.key}
             type="button"
-            className={`filter-pill ${
-              activeFilter === filter.key ? 'filter-pill--active' : ''
-            }`}
+            className={cx(
+              'rounded-full text-sm font-medium transition duration-200 filter-pill',
+              activeFilter === filter.key && 'filter-pill--active'
+            )}
             onClick={() => setActiveFilter(filter.key)}
           >
             {filter.label}
@@ -131,27 +133,27 @@ export default function AssignmentList() {
           }
         />
       ) : (
-        <div className="surface-grid surface-grid--three">
+        <div className="grid gap-4 md:grid-cols-3 surface-grid surface-grid--three">
           {filteredAssignments.map((assignment) => (
             <Card
               key={assignment.id}
               as="button"
               interactive
-              className="surface-grid"
+              className="grid gap-4 surface-grid"
               style={{ textAlign: 'left', cursor: 'pointer' }}
               onClick={() => navigate(`/student/assignments/${assignment.id}`)}
             >
-              <div className="card__header">
+              <div className="flex items-start justify-between gap-3 card__header">
                 <div>
-                  <div className="cluster" style={{ gap: 8 }}>
-                    <h2 className="card__title">{assignment.title}</h2>
+                  <div className="flex items-center gap-3 cluster" style={{ gap: 8 }}>
+                    <h2 className="text-lg font-semibold tracking-tight card__title">{assignment.title}</h2>
                     {submittedAssignmentIds.has(assignment.id) ? (
                       <CheckCircle size={18} color="var(--accent-green)" weight="fill" />
                     ) : null}
                   </div>
                   <FormattedText
                     as="div"
-                    className="card__copy formatted-text"
+                    className="text-sm leading-relaxed card__copy formatted-text"
                     text={assignment.description}
                     fallback="No description provided for this assignment."
                   />
@@ -159,7 +161,7 @@ export default function AssignmentList() {
                 <StatusBadge status={assignment.status} />
               </div>
 
-              <div className="cluster mono muted" style={{ fontSize: '13px' }}>
+              <div className="flex items-center gap-3 text-sm cluster mono muted" style={{ fontSize: '13px' }}>
                 <CalendarDots size={16} />
                 <span>Due {formatAssignmentDate(assignment.due_date)}</span>
               </div>

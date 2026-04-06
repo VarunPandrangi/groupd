@@ -2,7 +2,7 @@ import { SpinnerGap } from '@phosphor-icons/react';
 
 export default function LoadingSpinner({ fullPage = true, size = 40 }) {
   const spinner = (
-    <span className="spinner" aria-hidden="true">
+    <span className="inline-flex items-center justify-center spinner" aria-hidden="true">
       <SpinnerGap size={size} />
     </span>
   );
@@ -11,5 +11,5 @@ export default function LoadingSpinner({ fullPage = true, size = 40 }) {
     return spinner;
   }
 
-  return <div className="loading-screen">{spinner}</div>;
+  return <div className="min-h-screen flex items-center justify-center loading-screen">{spinner}</div>;
 }

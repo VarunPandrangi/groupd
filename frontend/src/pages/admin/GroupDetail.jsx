@@ -8,6 +8,7 @@ import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import { Page, PageHeader } from '../../components/common/Page';
 import groupService from '../../services/groupService';
+import { cx } from '../../utils/cx';
 
 function formatDate(dateValue) {
   return new Intl.DateTimeFormat('en-US', {
@@ -94,43 +95,43 @@ export default function GroupDetail() {
         }
       />
 
-      <div className="surface-grid surface-grid--two">
+      <div className="grid gap-4 sm:grid-cols-2 surface-grid surface-grid--two">
         <Card>
-          <p className="eyebrow">Leader</p>
-          <div className="cluster" style={{ marginTop: 10 }}>
-            <div className="metric__icon" style={{ background: 'var(--accent-amber-soft)', color: 'var(--accent-amber)' }}>
+          <p className="text-xs font-medium uppercase tracking-wide eyebrow">Leader</p>
+          <div className="flex items-center gap-3 cluster" style={{ marginTop: 10 }}>
+            <div className="inline-flex items-center justify-center rounded-xl metric__icon" style={{ background: 'var(--accent-amber-soft)', color: 'var(--accent-amber)' }}>
               <Crown size={18} />
             </div>
             <div>
-              <div className="table__title">{leader?.full_name || 'Unavailable'}</div>
-              <span className="table__description">Group lead</span>
+              <div className="text-sm font-semibold table__title">{leader?.full_name || 'Unavailable'}</div>
+              <span className="text-sm leading-relaxed table__description">Group lead</span>
             </div>
           </div>
         </Card>
 
         <Card>
-          <p className="eyebrow">Snapshot</p>
-          <div className="surface-grid" style={{ marginTop: 10 }}>
-            <div className="table__title">{members.length} members</div>
-            <span className="table__description">Created on {formatDate(group.created_at)}</span>
+          <p className="text-xs font-medium uppercase tracking-wide eyebrow">Snapshot</p>
+          <div className="grid gap-4 surface-grid" style={{ marginTop: 10 }}>
+            <div className="text-sm font-semibold table__title">{members.length} members</div>
+            <span className="text-sm leading-relaxed table__description">Created on {formatDate(group.created_at)}</span>
           </div>
         </Card>
       </div>
 
-      <Card className="table-card">
-        <div className="section-heading" style={{ marginBottom: 12 }}>
-          <p className="eyebrow">Members</p>
-          <h2 className="section-heading__title">Current roster</h2>
+      <Card className="rounded-xl border overflow-hidden w-full table-card">
+        <div className="grid gap-2 section-heading" style={{ marginBottom: 12 }}>
+          <p className="text-xs font-medium uppercase tracking-wide eyebrow">Members</p>
+          <h2 className="text-2xl font-bold tracking-tight section-heading__title">Current roster</h2>
         </div>
 
-        <div className="table-wrap">
-          <table className="table" style={{ minWidth: 780 }}>
+        <div className="overflow-x-auto w-full table-wrap">
+          <table className="w-full table" style={{ minWidth: 780 }}>
             <thead>
               <tr>
                 <th>Name</th>
                 <th>Email</th>
                 <th>Student ID</th>
-                <th className="table__column--center">Role</th>
+                <th className="justify-center table__column--center">Role</th>
               </tr>
             </thead>
             <tbody>
@@ -139,14 +140,15 @@ export default function GroupDetail() {
 
                 return (
                   <tr key={member.id}>
-                    <td className="table__title">{member.full_name}</td>
-                    <td className="mono">{member.email}</td>
-                    <td className="mono">{member.student_id}</td>
-                    <td className="table__cell--center">
+                    <td className="text-sm font-semibold table__title">{member.full_name}</td>
+                    <td className="text-sm mono">{member.email}</td>
+                    <td className="text-sm mono">{member.student_id}</td>
+                    <td className="justify-center table__cell--center">
                       <span
-                        className={`pill ${
+                        className={cx(
+                          'inline-flex items-center gap-2 rounded-full text-sm font-medium pill',
                           memberRole === 'Leader' ? 'pill--amber' : 'pill--blue'
-                        }`}
+                        )}
                       >
                         {memberRole}
                       </span>

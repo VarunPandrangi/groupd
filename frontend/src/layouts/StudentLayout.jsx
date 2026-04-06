@@ -11,8 +11,10 @@ const studentNavItems = [
 
 export default function StudentLayout() {
   return (
-    <AppShell navItems={studentNavItems}>
-      <Outlet />
+    <AppShell navItems={studentNavItems} shellClassName="w-full">
+      <div className="w-full">
+        <Outlet />
+      </div>
     </AppShell>
   );
 }

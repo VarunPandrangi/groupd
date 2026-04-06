@@ -16,35 +16,37 @@ import ThemeSync from './components/common/ThemeSync';
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
-      <ThemeSync />
-      <App />
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          duration: 4000,
-          style: {
-            background: 'var(--bg-card)',
-            color: 'var(--text-primary)',
-            fontFamily: 'var(--font-sans)',
-            fontSize: '0.9rem',
-            border: '1px solid var(--border-default)',
-            borderRadius: '12px',
-            boxShadow: 'var(--shadow-float)',
-          },
-          success: {
-            iconTheme: {
-              primary: '#059669',
-              secondary: '#ffffff',
+      <div className="min-h-screen w-full">
+        <ThemeSync />
+        <App />
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 4000,
+            style: {
+              background: 'var(--bg-card)',
+              color: 'var(--text-primary)',
+              fontFamily: 'var(--font-sans)',
+              fontSize: '0.9rem',
+              border: '1px solid var(--border-default)',
+              borderRadius: '12px',
+              boxShadow: 'var(--shadow-float)',
             },
-          },
-          error: {
-            iconTheme: {
-              primary: '#dc2626',
-              secondary: '#ffffff',
+            success: {
+              iconTheme: {
+                primary: '#059669',
+                secondary: '#ffffff',
+              },
             },
-          },
-        }}
-      />
+            error: {
+              iconTheme: {
+                primary: '#dc2626',
+                secondary: '#ffffff',
+              },
+            },
+          }}
+        />
+      </div>
     </BrowserRouter>
   </StrictMode>
 );

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { TextB, TextItalic, TextUnderline } from '@phosphor-icons/react';
 import { normalizeRichTextHtml, sanitizedRichTextHtml } from '../../utils/richText';
+import { cx } from '../../utils/cx';
 
 const TOOLBAR_ACTIONS = [
   { command: 'bold', label: 'Bold', icon: TextB },
@@ -133,8 +134,8 @@ export default function RichTextEditor({
   };
 
   return (
-    <div className="rich-text-editor">
-      <div className="rich-text-editor__toolbar" aria-label="Text formatting">
+    <div className="grid gap-2 rich-text-editor">
+      <div className="flex items-center gap-2 rich-text-editor__toolbar" aria-label="Text formatting">
         {TOOLBAR_ACTIONS.map((action) => {
           const Icon = action.icon;
 
@@ -142,9 +143,10 @@ export default function RichTextEditor({
             <button
               key={action.command}
               type="button"
-              className={`rich-text-editor__button ${
-                activeFormats[action.command] ? 'rich-text-editor__button--active' : ''
-              }`}
+              className={cx(
+                'inline-flex items-center justify-center rounded-md transition duration-200 rich-text-editor__button',
+                activeFormats[action.command] && 'rich-text-editor__button--active'
+              )}
               title={action.label}
               aria-label={action.label}
               aria-pressed={activeFormats[action.command]}
@@ -159,7 +161,7 @@ export default function RichTextEditor({
 
       <div
         ref={editorRef}
-        className="rich-text-editor__surface"
+        className="w-full rounded-lg rich-text-editor__surface"
         contentEditable
         suppressContentEditableWarning
         data-placeholder={placeholder}

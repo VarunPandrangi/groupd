@@ -14,14 +14,14 @@ export default function Button({
 
   if (to) {
     return (
-      <Link to={to} className={classes} {...props}>
+      <Link to={to} className={`inline-flex items-center justify-center ${classes}`} {...props}>
         {children}
       </Link>
     );
   }
 
   return (
-    <button className={classes} {...props}>
+    <button className={`inline-flex items-center justify-center ${classes}`} {...props}>
       {children}
     </button>
   );

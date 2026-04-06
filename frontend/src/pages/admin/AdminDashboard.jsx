@@ -55,14 +55,14 @@ function getGroupBarColor(group) {
 
 function ChartTooltip({ title, subtitle, percentage, badgeLabel = null }) {
   return (
-    <div className="chart-tooltip">
-      <div className="chart-tooltip__header">
-        <p className="table__title" style={{ margin: 0 }}>
+    <div className="rounded-lg border chart-tooltip">
+      <div className="flex items-center gap-2 chart-tooltip__header">
+        <p className="text-sm font-semibold table__title" style={{ margin: 0 }}>
           {title}
         </p>
         {badgeLabel ? (
           <span
-            className="status-badge"
+            className="inline-flex items-center justify-center rounded-md text-xs font-medium status-badge"
             style={{
               background: 'var(--accent-amber-soft)',
               color: 'var(--accent-amber)',
@@ -72,10 +72,10 @@ function ChartTooltip({ title, subtitle, percentage, badgeLabel = null }) {
           </span>
         ) : null}
       </div>
-      <p className="table__description" style={{ marginTop: 8 }}>
+      <p className="text-sm leading-relaxed table__description" style={{ marginTop: 8 }}>
         {subtitle}
       </p>
-      <p className="mono muted" style={{ margin: '10px 0 0', fontSize: '13px' }}>
+      <p className="text-sm mono muted" style={{ margin: '10px 0 0', fontSize: '13px' }}>
         {percentage}%
       </p>
     </div>
@@ -119,23 +119,23 @@ function ChartCard({ eyebrow, title, children }) {
   return (
     <Card>
       <SectionHeading eyebrow={eyebrow} title={title} />
-      <div className="chart-card__canvas">{children}</div>
+      <div className="w-full chart-card__canvas">{children}</div>
     </Card>
   );
 }
 
 function AdminDashboardSkeleton() {
   return (
-    <div className="surface-grid">
+    <div className="grid gap-4 surface-grid">
       <Skeleton variant="text" width="120px" />
       <Skeleton variant="text" width="280px" height="36px" />
-      <div className="surface-grid surface-grid--four">
+      <div className="grid gap-4 lg:grid-cols-4 surface-grid surface-grid--four">
         <Skeleton variant="card" height="170px" />
         <Skeleton variant="card" height="170px" />
         <Skeleton variant="card" height="170px" />
         <Skeleton variant="card" height="170px" />
       </div>
-      <div className="surface-grid surface-grid--two">
+      <div className="grid gap-4 sm:grid-cols-2 surface-grid surface-grid--two">
         <Skeleton variant="chart" />
         <Skeleton variant="chart" />
       </div>
@@ -235,13 +235,13 @@ export default function AdminDashboard() {
 
       {!summary ? (
         <Card>
-          <p className="card__copy" style={{ margin: 0 }}>
+          <p className="text-sm leading-relaxed card__copy" style={{ margin: 0 }}>
             Dashboard data is unavailable right now. Please refresh and try again.
           </p>
         </Card>
       ) : (
         <>
-          <div className="surface-grid surface-grid--four">
+          <div className="grid gap-4 lg:grid-cols-4 surface-grid surface-grid--four">
             <SummaryCard
               title="Total Students"
               value={summary.totalStudents}
@@ -268,14 +268,14 @@ export default function AdminDashboard() {
             />
           </div>
 
-          <div className="surface-grid surface-grid--two">
+          <div className="grid gap-4 sm:grid-cols-2 surface-grid surface-grid--two">
             <ChartCard
               eyebrow="Assignment Completion"
               title="How each assignment is progressing"
             >
               {assignmentAnalytics.length === 0 ? (
-                <Card className="card--compact" style={{ height: '100%' }}>
-                  <p className="card__copy" style={{ margin: 0 }}>
+                <Card className="rounded-xl border p-4 card--compact" style={{ height: '100%' }}>
+                  <p className="text-sm leading-relaxed card__copy" style={{ margin: 0 }}>
                     No assignment analytics yet. Once assignments are published and groups begin submitting, this chart will fill in.
                   </p>
                 </Card>
@@ -331,8 +331,8 @@ export default function AdminDashboard() {
 
             <ChartCard eyebrow="Group Performance" title="Which teams are staying ahead">
               {groupAnalytics.length === 0 ? (
-                <Card className="card--compact" style={{ height: '100%' }}>
-                  <p className="card__copy" style={{ margin: 0 }}>
+                <Card className="rounded-xl border p-4 card--compact" style={{ height: '100%' }}>
+                  <p className="text-sm leading-relaxed card__copy" style={{ margin: 0 }}>
                     No group analytics yet. Create groups and assign work to see performance trends here.
                   </p>
                 </Card>
@@ -393,7 +393,7 @@ export default function AdminDashboard() {
               title="Jump straight into the next move"
             />
             <div
-              className="surface-grid surface-grid--three"
+              className="grid gap-4 md:grid-cols-3 surface-grid surface-grid--three"
               style={{ marginTop: '18px' }}
             >
               {[
@@ -417,7 +417,7 @@ export default function AdminDashboard() {
                   key={action.path}
                   as="button"
                   interactive
-                  className="card--compact toolbar"
+                  className="rounded-xl border p-4 flex items-center justify-between gap-4 card--compact toolbar"
                   style={{
                     cursor: 'pointer',
                     textAlign: 'left',
@@ -425,7 +425,7 @@ export default function AdminDashboard() {
                   }}
                   onClick={() => navigate(action.path)}
                 >
-                  <span className="table__title">{action.label}</span>
+                  <span className="text-sm font-semibold table__title">{action.label}</span>
                   <ArrowRight size={18} color={action.color} />
                 </Card>
               ))}

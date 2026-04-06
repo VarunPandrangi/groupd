@@ -28,23 +28,25 @@ export default function CreateAssignment() {
   };
 
   return (
-    <AssignmentForm
-      heading="Create a new assignment"
-      description="Capture the brief, set a clear due date, and decide whether it should reach every group or only a hand-picked set."
-      submitLabel="Create Assignment"
-      submitLabelPending="Creating..."
-      onSubmit={handleSubmit}
-      onBack={() => navigate('/admin/assignments')}
-      backLabel="Back to Assignments"
-      initialValues={{
-        title: '',
-        description: '',
-        due_date: '',
-        onedrive_link: '',
-        assign_to: 'all',
-        group_ids: [],
-      }}
-      isSubmitting={isSubmitting}
-    />
+    <div className="w-full">
+      <AssignmentForm
+        heading="Create a new assignment"
+        description="Capture the brief, set a clear due date, and decide whether it should reach every group or only a hand-picked set."
+        submitLabel="Create Assignment"
+        submitLabelPending="Creating..."
+        onSubmit={handleSubmit}
+        onBack={() => navigate('/admin/assignments')}
+        backLabel="Back to Assignments"
+        initialValues={{
+          title: '',
+          description: '',
+          due_date: '',
+          onedrive_link: '',
+          assign_to: 'all',
+          group_ids: [],
+        }}
+        isSubmitting={isSubmitting}
+      />
+    </div>
   );
 }

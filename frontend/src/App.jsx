@@ -30,7 +30,7 @@ import SubmissionTracker from './pages/admin/SubmissionTracker';
 
 function NotFound() {
   return (
-    <div className="not-found">
+    <div className="min-h-screen flex items-center justify-center not-found">
       <EmptyState
         icon={MagnifyingGlass}
         title="Page not found"

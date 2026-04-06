@@ -42,7 +42,7 @@ export default function StatusBadge({ status = 'pending', label }) {
 
   return (
     <span
-      className="status-badge"
+      className="inline-flex items-center justify-center rounded-md text-xs font-medium status-badge"
       style={{
         background: style.background,
         color: style.color,
