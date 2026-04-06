@@ -10,6 +10,7 @@ import {
   getAssignmentGroups,
   getAssignmentSubmissions,
   getForStudent as getStudentAssignments,
+  getUnassignedStudentAssignments,
   getGroupsForAssignments,
   softDelete as softDeleteAssignment,
   update as updateAssignmentRecord,
@@ -61,10 +62,11 @@ function computeStatus(dueDate) {
   return 'upcoming';
 }
 
-function buildSubmissionStatus(confirmedAt) {
+function buildSubmissionStatus(confirmedAt, submittedByName = null) {
   return {
     is_submitted: Boolean(confirmedAt),
     confirmed_at: confirmedAt ?? null,
+    submitted_by_name: submittedByName ?? null,
   };
 }
 
@@ -289,9 +291,14 @@ export async function getAll(page, limit) {
 }
 
 export async function getForStudent(userId) {
-  await requireUser(userId);
+  const user = await requireUser(userId);
 
-  const assignments = await getStudentAssignments(userId);
+  let assignments;
+  if (!user.group_id) {
+    assignments = await getUnassignedStudentAssignments(userId);
+  } else {
+    assignments = await getStudentAssignments(userId);
+  }
 
   return assignments.map((assignment) => ({
     id: assignment.id,
@@ -305,12 +312,15 @@ export async function getForStudent(userId) {
     created_at: assignment.created_at,
     updated_at: assignment.updated_at,
     status: computeStatus(assignment.due_date),
-    submission_status: buildSubmissionStatus(assignment.student_confirmed_at),
+    submission_status: buildSubmissionStatus(
+      assignment.group_confirmed_at,
+      assignment.submitted_by_name
+    ),
   }));
 }
 
 export async function getDetail(id, user) {
-  await requireUser(user.userId);
+  const currentUser = await requireUser(user.userId);
 
   if (user.role === 'admin') {
     const assignment = await findById(id);
@@ -339,6 +349,25 @@ export async function getDetail(id, user) {
   const groups =
     assignment.assign_to === 'specific' ? await getAssignmentGroups(id) : [];
 
+  if (assignment.assign_to === 'specific') {
+    const isAssignedToUserGroup = groups.some(
+      (group) => group.id === currentUser.group_id
+    );
+    if (!isAssignedToUserGroup) {
+      throw httpError(
+        403,
+        'NOT_ASSIGNED',
+        'This assignment is not assigned to your group'
+      );
+    }
+  } else if (!currentUser.group_id && assignment.assign_to !== 'all') {
+    throw httpError(
+      403,
+      'NOT_ASSIGNED',
+      'This assignment is not assigned to your group'
+    );
+  }
+
   return {
     id: assignment.id,
     title: assignment.title,
@@ -352,6 +381,9 @@ export async function getDetail(id, user) {
     updated_at: assignment.updated_at,
     status: computeStatus(assignment.due_date),
     groups,
-    submission_status: buildSubmissionStatus(assignment.student_confirmed_at),
+    submission_status: buildSubmissionStatus(
+      assignment.group_confirmed_at,
+      assignment.submitted_by_name
+    ),
   };
 }

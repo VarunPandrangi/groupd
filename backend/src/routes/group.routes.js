@@ -4,6 +4,7 @@ import * as groupController from '../controllers/group.controller.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { requireRole } from '../middleware/roleGuard.js';
 import { validate } from '../middleware/validate.js';
+import { validateId } from '../middleware/validateId.js';
 import {
   addMemberSchema,
   createGroupSchema,
@@ -29,12 +30,13 @@ router.post(
 router.delete(
   '/members/:userId',
   requireRole('student'),
+  validateId('userId'),
   groupController.removeMember
 );
 router.post('/leave', requireRole('student'), groupController.leaveGroup);
 router.delete('/', requireRole('student'), groupController.deleteGroup);
 
 router.get('/', requireRole('admin'), groupController.getAllGroups);
-router.get('/:groupId', requireRole('admin'), groupController.getGroupDetail);
+router.get('/:groupId', requireRole('admin'), validateId('groupId'), groupController.getGroupDetail);
 
 export default router;

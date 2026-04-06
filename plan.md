@@ -81,9 +81,9 @@ These are the non-negotiable business rules that define how the system operates:
 1. **One group per student.** A student cannot be in two groups simultaneously.
 2. **Groups have a leader.** The student who creates the group is the leader. Only the leader can add/remove members.
 3. **Max 6 members per group.** This is an enforced constraint.
-4. **Submission is a confirmation, not a file upload.** Students upload their work to OneDrive externally. JoinEazy records that the student confirms they have submitted. This is an auditable timestamp.
-5. **Two-step confirmation.** To prevent accidental confirmations, students must confirm twice before a submission is recorded.
-6. **Submissions are irreversible.** Once confirmed, a submission cannot be undone. This ensures audit integrity.
+4. **Submission is a group-level confirmation, not individual.** When any member of a group confirms submission for an assignment, the entire group is marked as submitted. The system records WHICH member triggered the confirmation (submitted_by) and WHEN (confirmed_at). Students upload their work to OneDrive externally — JoinEazy only records the confirmation.
+5. **Two-step confirmation.** To prevent accidental confirmations, the confirming student must confirm twice (button click → modal) before the group's submission is recorded.
+6. **Submissions are irreversible.** Once a group's submission is confirmed, it cannot be undone. This ensures audit integrity.
 7. **Assignments can be assigned to all groups or specific groups.** The "all" option assigns to every group that exists. The "specific" option lets professors pick individual groups.
 8. **Soft delete for assignments.** Deleted assignments are hidden but retained in the database for audit purposes.
 9. **Late submissions are allowed.** Students can confirm after the due date. The timestamp will show it was late, but the system does not block it.
@@ -153,12 +153,12 @@ These are the non-negotiable business rules that define how the system operates:
 - FR-ASSIGN-07: The OneDrive link shall open in a new browser tab when clicked.
 
 #### FR-SUBMIT: Submission Confirmation
-- FR-SUBMIT-01: Students shall be able to confirm submission of an assignment via a two-step process (button click → confirmation modal → recorded).
+- FR-SUBMIT-01: Any member of a group shall be able to confirm submission for an assignment on behalf of the entire group via a two-step process.
 - FR-SUBMIT-02: Submission confirmation shall be irreversible.
-- FR-SUBMIT-03: The system shall record the exact timestamp of confirmation.
-- FR-SUBMIT-04: The system shall prevent duplicate submissions (same student, same assignment).
-- FR-SUBMIT-05: Students shall be able to see their group members' submission status for each assignment.
-- FR-SUBMIT-06: Group progress shall be tracked as "X of Y members submitted" per assignment.
+- FR-SUBMIT-03: The system shall record the exact timestamp and the identity of the student who triggered the confirmation.
+- FR-SUBMIT-04: The system shall prevent duplicate submissions for the same group and assignment (one submission per group per assignment).
+- FR-SUBMIT-05: All group members shall see who submitted and when, once any member confirms.
+- FR-SUBMIT-06: Group progress shall be tracked as "X of Y assignments submitted" per group.
 
 #### FR-DASH: Dashboard & Analytics
 - FR-DASH-01: Students shall see a personal dashboard with group info, pending assignments, and progress overview.
@@ -281,25 +281,25 @@ Acceptance Criteria:
 - Shows group submission progress: "X of Y members have submitted."
 - Shows list of group members with checkmark (submitted) or pending icon next to each.
 
-**S-09: Confirm Submission (Two-Step)**
-> As a student, I want to confirm that I have submitted my assignment via a deliberate two-step process.
+**S-09: Confirm Submission for Group (Two-Step)**
+> As a group member, I want to confirm that my group has submitted our assignment so the professor knows we're done.
 
 Acceptance Criteria:
-- Step 1: Student clicks "Mark as Submitted" button.
-- Step 2: A modal appears with text "Have you uploaded your work to OneDrive? This action cannot be undone." and two buttons: "Yes, I have submitted" and "Cancel."
+- Any group member (not just the leader) can confirm submission for the group.
+- Step 1: Student clicks "Submit for Group" button.
+- Step 2: A modal appears with text "Has your group uploaded the work to OneDrive? This action cannot be undone." and two buttons: "Yes, we have submitted" and "Cancel."
 - On cancel: nothing happens, modal closes.
-- On confirm: submission is recorded with timestamp. The button permanently changes to "Submitted ✓" with the confirmation timestamp displayed.
-- Cannot submit twice — the button is replaced after confirmation.
+- On confirm: submission is recorded with the confirming student's ID and timestamp. The button permanently changes to "Submitted ✓ by [Name] on [date]" for ALL group members viewing this assignment.
+- If the group has already submitted (by any member): the button is replaced with "Submitted ✓ by [Name] on [date]" and no action is possible.
 - Student without a group cannot submit — show error.
 
 **S-10: Track Group Progress**
-> As a student, I want to see my group's progress across all assignments.
+> As a student, I want to see which assignments my group has submitted and which are still pending.
 
 Acceptance Criteria:
-- Overall progress: "X of Y assignments completed" with a visual progress bar.
-- Per-assignment card showing: title, due date, progress bar (X/Y members submitted), completion badge.
-- Completion badge states: "Complete" (all members submitted, green), "In Progress" (some submitted, amber), "Not Started" (none submitted, gray).
-- Incomplete assignments shown first, then completed.
+- Overall progress: "X of Y assignments submitted" with a visual progress bar.
+- Per-assignment row or card showing: title, due date, status badge, and either "Submitted ✓ by [Name]" (green) or "Pending" (amber/gray).
+- Pending assignments shown first, then submitted.
 
 **S-11: Student Dashboard**
 > As a student, I want a personal dashboard that shows me everything at a glance.
@@ -369,8 +369,9 @@ Acceptance Criteria:
 
 Acceptance Criteria:
 - Summary cards: Total Students, Total Groups, Active Assignments, Overall Completion Rate.
-- Bar chart: Per-assignment completion percentage.
-- Bar chart: Group performance comparison (completed vs total assignments).
+- Completion rate is now GROUP-based: (groups that submitted / groups assigned) × 100
+- Assignment completion chart: per assignment, shows % of assigned groups that have submitted
+- Group performance chart: per group, shows submitted assignments / total assignments assigned
 - Charts use real data, update dynamically, have tooltips.
 
 ---
@@ -457,7 +458,7 @@ Page loads → Frontend calls GET /dashboard/admin/summary + /admin/assignments-
 
 **assignment_groups** — Junction table linking specific assignments to specific groups. Only populated when assign_to is "specific." Has a unique constraint on (assignment_id, group_id) to prevent duplicate mappings. Cascade deletes when either the assignment or group is removed.
 
-**submissions** — Records individual submission confirmations. Each record means "student X confirmed submission for assignment Y as part of group Z at time T." Has a unique constraint on (assignment_id, student_id) to prevent duplicate confirmations. The `confirmed_at` timestamp is the critical audit field showing exactly when the student confirmed.
+**submissions** — Records group-level submission confirmations. Each record means "group G confirmed submission for assignment A, triggered by student S at time T." Has a unique constraint on (assignment_id, group_id) to prevent duplicate group submissions. The `submitted_by` field identifies which specific student triggered the confirmation. The `confirmed_at` timestamp is the critical audit field.
 
 ### 8.3 Key Indexes
 
@@ -475,8 +476,10 @@ assignment_groups ──(assignment_id FK)──► assignments
 assignment_groups ──(group_id FK)──► groups
 
 submissions ──(assignment_id FK)──► assignments
-submissions ──(student_id FK)──► users
+submissions ──(submitted_by FK)──► users
 submissions ──(group_id FK)──► groups
+
+UNIQUE CONSTRAINT: (assignment_id, group_id)
 ```
 
 ### 8.5 Assignment Status Computation
@@ -538,10 +541,10 @@ Every API response follows this structure:
 
 | Method | Path | Description | Auth | Role |
 |--------|------|-------------|------|------|
-| POST | / | Confirm submission for an assignment | Yes | Student |
-| GET | /my-submissions | Get all current student's submissions | Yes | Student |
-| GET | /assignment/:assignmentId | Get all submissions for an assignment | Yes | Admin |
-| GET | /group-progress | Get student's group progress across assignments | Yes | Student |
+| POST | / | Confirm submission for the group for an assignment | Yes | Student |
+| GET | /my-group-submissions | Get all submissions for the current student's group | Yes | Student |
+| GET | /group-progress | Get the current student's group progress across all assignments | Yes | Student |
+| GET | /assignment/:assignmentId | Get all group submissions for a specific assignment | Yes | Admin |
 
 #### Dashboard Module — /api/v1/dashboard
 
@@ -592,7 +595,7 @@ Every API response follows this structure:
 
 ### 10.4 Component Organization
 
-**common/** — Shared across the entire app: Navbar, Sidebar, ProtectedRoute, LoadingSpinner, EmptyState, StatusBadge, Modal, ConfirmDialog, Skeleton, ErrorBoundary, ProgressBar, AnimatedCounter.
+**common/** — Shared across the entire app: Navbar, Sidebar, ProtectedRoute, LoadingSpinner, EmptyState, StatusBadge, Modal, ConfirmDialog, Skeleton, ErrorBoundary, ProgressBar, AnimatedCounter, Pagination.
 
 **student/** — Domain-specific student components: MemberCard, SubmissionButton, ProgressCard, CompletionBadge.
 
@@ -746,11 +749,19 @@ Desktop (1024px+): full layout, sidebar expanded, cards in 3-4 column grid, tabl
 - Student with no group → sees "all" assignments but cannot submit
 
 ### Submissions
-- Student without group → 400
-- Assignment not assigned to student's group → 403
-- Double submission → 409 (also enforced by DB unique constraint)
-- Late submission → allowed, timestamp records lateness
-- Submission to deleted assignment → 404
+- Student without a group → 400 "You must be in a group to submit"
+- Assignment not assigned to student's group → 403 "This assignment is not assigned to your group"
+- Group already submitted this assignment (by any member) → 409 "Your group has already submitted this assignment"
+- Late submission (after due date) → allowed, timestamp records lateness
+- Submission to deleted assignment → 404 "Assignment not found"
+- Concurrent double-click by same member → database unique constraint prevents duplicates
+- Two members submitting simultaneously → one succeeds, one gets 409 (unique constraint)
+- Student submits, then leaves group → submission record retained with original group_id
+
+### General Edge Cases
+- Invalid UUID in URL params (/:userId, /:groupId, /:assignmentId) → 400 "Invalid ID format"
+- Student with no group viewing assignments → sees "all" assignments but cannot submit
+- Student with no group on dashboard → shows CTA to create/join group, no assignment stats
 
 ---
 

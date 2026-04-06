@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 -- Now add the deferred FK from groups.created_by -> users.id
+ALTER TABLE groups DROP CONSTRAINT IF EXISTS fk_groups_created_by;
 ALTER TABLE groups
     ADD CONSTRAINT fk_groups_created_by
     FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL;
@@ -75,13 +76,15 @@ CREATE TABLE IF NOT EXISTS assignment_groups (
 -- =====================================================================
 -- submissions
 -- =====================================================================
+DROP TABLE IF EXISTS submissions;
 CREATE TABLE IF NOT EXISTS submissions (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     assignment_id UUID NOT NULL REFERENCES assignments(id) ON DELETE CASCADE,
-    student_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    group_id      UUID REFERENCES groups(id) ON DELETE SET NULL,
-    confirmed_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT submissions_unique_per_student UNIQUE (assignment_id, student_id)
+    group_id      UUID NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+    submitted_by  UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    confirmed_at  TIMESTAMPTZ DEFAULT NOW(),
+    created_at    TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE (assignment_id, group_id)
 );
 
 -- =====================================================================
@@ -95,8 +98,8 @@ CREATE INDEX IF NOT EXISTS idx_assignments_due_date   ON assignments(due_date);
 CREATE INDEX IF NOT EXISTS idx_assignments_is_deleted ON assignments(is_deleted);
 
 CREATE INDEX IF NOT EXISTS idx_submissions_assignment_id ON submissions(assignment_id);
-CREATE INDEX IF NOT EXISTS idx_submissions_student_id    ON submissions(student_id);
 CREATE INDEX IF NOT EXISTS idx_submissions_group_id      ON submissions(group_id);
+CREATE INDEX IF NOT EXISTS idx_submissions_submitted_by  ON submissions(submitted_by);
 
 CREATE INDEX IF NOT EXISTS idx_assignment_groups_assignment_id ON assignment_groups(assignment_id);
 CREATE INDEX IF NOT EXISTS idx_assignment_groups_group_id      ON assignment_groups(group_id);
