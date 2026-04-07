@@ -10,6 +10,10 @@ import {
   getStudentMembersByGroupIds,
 } from '../models/submission.model.js';
 import { findById as findUserById } from '../models/user.model.js';
+import {
+  generateSubmissionConfirmationToken,
+  verifySubmissionConfirmationToken,
+} from '../utils/jwt.js';
 
 const httpError = (statusCode, code, message) =>
   Object.assign(new Error(message), { statusCode, code });
@@ -44,13 +48,7 @@ async function isAssignmentAssignedToGroup(assignmentId, groupId) {
   return rowCount > 0;
 }
 
-export async function confirmSubmission(userId, assignmentId) {
-  const user = await requireUser(userId);
-
-  if (!user.group_id) {
-    throw httpError(400, 'NO_GROUP', 'You must be in a group to submit');
-  }
-
+async function assertSubmissionEligibility({ user, assignmentId }) {
   const assignment = await requireAssignment(assignmentId);
 
   if (
@@ -75,6 +73,89 @@ export async function confirmSubmission(userId, assignmentId) {
       'Your group has already submitted this assignment'
     );
   }
+
+  return assignment;
+}
+
+function validateConfirmationToken({ token, user, assignmentId }) {
+  let payload;
+
+  try {
+    payload = verifySubmissionConfirmationToken(token);
+  } catch (err) {
+    if (err?.name === 'TokenExpiredError') {
+      throw httpError(
+        400,
+        'CONFIRMATION_TOKEN_EXPIRED',
+        'Your confirmation token has expired. Please retry submission.'
+      );
+    }
+
+    throw httpError(
+      400,
+      'INVALID_CONFIRMATION_TOKEN',
+      'Invalid confirmation token. Please retry submission.'
+    );
+  }
+
+  const isValidAction = payload?.action === 'submission_confirmation';
+  const isSameUser = payload?.userId === user.id;
+  const isSameGroup = payload?.groupId === user.group_id;
+  const isSameAssignment = payload?.assignmentId === assignmentId;
+
+  if (!isValidAction || !isSameUser || !isSameGroup || !isSameAssignment) {
+    throw httpError(
+      400,
+      'INVALID_CONFIRMATION_TOKEN',
+      'Invalid confirmation token. Please retry submission.'
+    );
+  }
+}
+
+export async function prepareSubmissionConfirmation(userId, assignmentId) {
+  const user = await requireUser(userId);
+
+  if (!user.group_id) {
+    throw httpError(400, 'NO_GROUP', 'You must be in a group to submit');
+  }
+
+  await assertSubmissionEligibility({ user, assignmentId });
+
+  const confirmation_token = generateSubmissionConfirmationToken({
+    userId: user.id,
+    groupId: user.group_id,
+    assignmentId,
+  });
+
+  return {
+    assignment_id: assignmentId,
+    confirmation_token,
+    expires_in_seconds: 300,
+  };
+}
+
+export async function confirmSubmission(userId, assignmentId, confirmationToken) {
+  const user = await requireUser(userId);
+
+  if (!user.group_id) {
+    throw httpError(400, 'NO_GROUP', 'You must be in a group to submit');
+  }
+
+  if (!confirmationToken) {
+    throw httpError(
+      400,
+      'CONFIRMATION_TOKEN_REQUIRED',
+      'Please confirm submission before finalizing.'
+    );
+  }
+
+  validateConfirmationToken({
+    token: confirmationToken,
+    user,
+    assignmentId,
+  });
+
+  await assertSubmissionEligibility({ user, assignmentId });
 
   try {
     const submission = await createSubmission({

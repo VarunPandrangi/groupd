@@ -1,7 +1,19 @@
 import api from './api';
 
-export async function confirmSubmission(assignmentId) {
-  const { data } = await api.post('/submissions', { assignment_id: assignmentId });
+export async function requestSubmissionConfirmation(assignmentId) {
+  const { data } = await api.post('/submissions/prepare', {
+    assignment_id: assignmentId,
+  });
+
+  return data.data.confirmation;
+}
+
+export async function confirmSubmission(assignmentId, confirmationToken) {
+  const { data } = await api.post('/submissions', {
+    assignment_id: assignmentId,
+    confirmation_token: confirmationToken,
+  });
+
   return data.data.submission;
 }
 
@@ -37,6 +49,7 @@ export async function getAssignmentGroupStudentStatus(assignmentId) {
 }
 
 const submissionService = {
+  requestSubmissionConfirmation,
   confirmSubmission,
   getMySubmissions,
   getGroupProgress,

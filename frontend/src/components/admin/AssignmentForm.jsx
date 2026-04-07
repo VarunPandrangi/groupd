@@ -11,12 +11,15 @@ import { Page, PageHeader } from '../common/Page';
 import groupService from '../../services/groupService';
 import {
   formatAssignmentInputDate,
+  formatAssignmentInputTime,
   getTomorrowDateInputValue,
   toAssignmentDueDate,
 } from '../../utils/assignmentDates';
 import { getRichTextPlainText, sanitizedRichTextHtml } from '../../utils/richText';
 
 const GROUP_PAGE_SIZE = 50;
+const DEFAULT_DUE_TIME = '23:59';
+const TIME_INPUT_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
 function getErrorMessage(error, fallbackMessage) {
   return error?.response?.data?.error?.message || fallbackMessage;
@@ -38,17 +41,32 @@ function buildSchema() {
       due_date: z.string().min(1, 'Due date is required').refine((value) => value >= tomorrow, {
         message: 'Due date must be in the future',
       }),
+      due_time: z
+        .string()
+        .min(1, 'Due time is required')
+        .regex(TIME_INPUT_PATTERN, 'Due time must be valid'),
       onedrive_link: z
         .string()
         .trim()
-        .url('OneDrive link must be a valid URL')
+        .url('Link must be a valid URL')
         .refine((value) => /^https?:\/\//i.test(value), {
-          message: 'OneDrive link must start with http:// or https://',
+          message: 'Link must start with http:// or https://',
         }),
       assign_to: z.enum(['all', 'specific']),
       group_ids: z.array(z.string()).default([]),
     })
     .superRefine((value, context) => {
+      if (value.due_date && TIME_INPUT_PATTERN.test(value.due_time)) {
+        const dueAt = new Date(`${value.due_date}T${value.due_time}:00`);
+        if (Number.isNaN(dueAt.getTime()) || dueAt.getTime() <= Date.now()) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Due date and time must be in the future',
+            path: ['due_time'],
+          });
+        }
+      }
+
       if (value.assign_to === 'specific' && value.group_ids.length === 0) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
@@ -103,6 +121,7 @@ export default function AssignmentForm({
       title: initialValues?.title ?? '',
       description: initialValues?.description ?? '',
       due_date: formatAssignmentInputDate(initialValues?.due_date),
+      due_time: formatAssignmentInputTime(initialValues?.due_date) || DEFAULT_DUE_TIME,
       onedrive_link: initialValues?.onedrive_link ?? '',
       assign_to: initialValues?.assign_to ?? 'all',
       group_ids: initialValues?.group_ids ?? [],
@@ -194,7 +213,7 @@ export default function AssignmentForm({
     await onSubmit({
       title: values.title.trim(),
       description: sanitizedRichTextHtml(values.description) || undefined,
-      due_date: toAssignmentDueDate(values.due_date),
+      due_date: toAssignmentDueDate(values.due_date, values.due_time),
       onedrive_link: values.onedrive_link.trim(),
       assign_to: values.assign_to,
       group_ids: values.assign_to === 'specific' ? values.group_ids : undefined,
@@ -274,8 +293,21 @@ export default function AssignmentForm({
               </div>
 
               <div className="grid gap-2 field">
+                <label htmlFor="assignment-due-time" className="text-sm font-medium field__label">
+                  Due Time
+                </label>
+                <input
+                  id="assignment-due-time"
+                  className="w-full rounded-md input"
+                  type="time"
+                  {...register('due_time')}
+                />
+                <FieldError message={errors.due_time?.message} />
+              </div>
+
+              <div className="grid gap-2 field" style={{ gridColumn: '1 / -1' }}>
                 <label htmlFor="assignment-link" className="text-sm font-medium field__label">
-                  OneDrive Link
+                  Link
                 </label>
                 <input
                   id="assignment-link"

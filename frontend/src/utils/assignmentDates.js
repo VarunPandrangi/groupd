@@ -1,5 +1,7 @@
 const DATE_PART_PATTERN = /^(\d{4})-(\d{2})-(\d{2})/;
+const TIME_PART_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
+const DEFAULT_DUE_TIME = '23:59';
 
 function extractDateParts(dateValue) {
   if (!dateValue) {
@@ -18,6 +20,37 @@ function extractDateParts(dateValue) {
     day: Number(day),
     datePart: `${year}-${month}-${day}`,
   };
+}
+
+function extractTimeParts(timeValue) {
+  if (!timeValue) {
+    return null;
+  }
+
+  const match = String(timeValue).match(TIME_PART_PATTERN);
+  if (!match) {
+    return null;
+  }
+
+  const [, hours, minutes] = match;
+  return {
+    hours: Number(hours),
+    minutes: Number(minutes),
+    timePart: `${hours}:${minutes}`,
+  };
+}
+
+function parseDateValue(dateValue) {
+  if (!dateValue) {
+    return null;
+  }
+
+  const parsedDate = new Date(dateValue);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return null;
+  }
+
+  return parsedDate;
 }
 
 function getTimeZoneOffset(date) {
@@ -47,8 +80,27 @@ export function formatAssignmentDate(dateValue) {
 }
 
 export function formatAssignmentInputDate(dateValue) {
-  const parts = extractDateParts(dateValue);
-  return parts?.datePart ?? '';
+  const parsedDate = parseDateValue(dateValue);
+  if (!parsedDate) {
+    return '';
+  }
+
+  return [
+    parsedDate.getFullYear(),
+    String(parsedDate.getMonth() + 1).padStart(2, '0'),
+    String(parsedDate.getDate()).padStart(2, '0'),
+  ].join('-');
+}
+
+export function formatAssignmentInputTime(dateValue) {
+  const parsedDate = parseDateValue(dateValue);
+  if (!parsedDate) {
+    return '';
+  }
+
+  return `${String(parsedDate.getHours()).padStart(2, '0')}:${String(
+    parsedDate.getMinutes()
+  ).padStart(2, '0')}`;
 }
 
 export function formatRelativeDueDate(dateValue) {
@@ -79,9 +131,11 @@ export function formatRelativeDueDate(dateValue) {
   return relativeFormatter.format(Math.round(difference / (60 * 1000)), 'minute');
 }
 
-export function toAssignmentDueDate(dateValue) {
+export function toAssignmentDueDate(dateValue, timeValue = DEFAULT_DUE_TIME) {
   const parts = extractDateParts(dateValue);
-  if (!parts) {
+  const timeParts = extractTimeParts(timeValue) ?? extractTimeParts(DEFAULT_DUE_TIME);
+
+  if (!parts || !timeParts) {
     return '';
   }
 
@@ -89,13 +143,13 @@ export function toAssignmentDueDate(dateValue) {
     parts.year,
     parts.month - 1,
     parts.day,
-    23,
-    59,
-    59,
-    999
+    timeParts.hours,
+    timeParts.minutes,
+    0,
+    0
   );
 
-  return `${parts.datePart}T23:59:59.999${getTimeZoneOffset(localDueDate)}`;
+  return `${parts.datePart}T${timeParts.timePart}:00.000${getTimeZoneOffset(localDueDate)}`;
 }
 
 export function getTomorrowDateInputValue() {

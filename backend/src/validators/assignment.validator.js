@@ -29,9 +29,9 @@ const assignmentSchema = z.object({
   onedrive_link: z
     .string()
     .trim()
-    .url('OneDrive link must be a valid URL')
+    .url('Link must be a valid URL')
     .refine((value) => /^https?:\/\//i.test(value), {
-      message: 'OneDrive link must start with http:// or https://',
+      message: 'Link must start with http:// or https://',
     }),
   assign_to: z.enum(['all', 'specific']),
   group_ids: z

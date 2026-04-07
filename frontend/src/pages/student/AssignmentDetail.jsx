@@ -48,12 +48,16 @@ export default function AssignmentDetail() {
   const isLoading = useAssignmentStore((state) => state.isLoading);
   const fetchAssignment = useAssignmentStore((state) => state.fetchAssignment);
   const mySubmissions = useSubmissionStore((state) => state.mySubmissions);
+  const requestSubmissionConfirmation = useSubmissionStore(
+    (state) => state.requestSubmissionConfirmation
+  );
   const confirmSubmission = useSubmissionStore((state) => state.confirmSubmission);
   const fetchMySubmissions = useSubmissionStore((state) => state.fetchMySubmissions);
   const isSubmitting = useSubmissionStore((state) => state.isLoading);
 
   const [isReady, setIsReady] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [confirmationToken, setConfirmationToken] = useState('');
 
   const mySubmission = mySubmissions.find((submission) => submission.assignment_id === id);
   const hasSubmitted = Boolean(mySubmission);
@@ -83,15 +87,36 @@ export default function AssignmentDetail() {
     };
   }, [fetchAssignment, fetchMySubmissions, id, navigate]);
 
+  async function handlePrepareSubmission() {
+    if (!user?.group_id || isSubmitting) {
+      return;
+    }
+
+    try {
+      const confirmation = await requestSubmissionConfirmation(id);
+      setConfirmationToken(confirmation.confirmation_token);
+      setShowConfirmDialog(true);
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'Unable to prepare confirmation. Please try again.'));
+    }
+  }
+
   async function handleConfirmSubmission() {
     setShowConfirmDialog(false);
 
+    if (!confirmationToken) {
+      toast.error('Confirmation session expired. Please try again.');
+      return;
+    }
+
     try {
-      await confirmSubmission(id);
+      await confirmSubmission(id, confirmationToken);
       toast.success('Submission confirmed successfully!');
       await fetchAssignment(id);
     } catch (error) {
       toast.error(getErrorMessage(error, 'Unable to confirm submission.'));
+    } finally {
+      setConfirmationToken('');
     }
   }
 
@@ -187,15 +212,15 @@ export default function AssignmentDetail() {
             ) : (
               <>
                 <p className="text-base leading-relaxed page-description">
-                  Ready to confirm your submission? Make sure the work has been uploaded to OneDrive before you continue.
+                  Ready to confirm your submission? Make sure the work has been uploaded using the assignment link before you continue.
                 </p>
                 <div className="flex items-center gap-3 cluster">
                   <Button
                     type="button"
                     disabled={isSubmitting || !user?.group_id}
-                    onClick={() => setShowConfirmDialog(true)}
+                    onClick={handlePrepareSubmission}
                   >
-                    {isSubmitting ? 'Confirming...' : 'Mark as Submitted'}
+                    {isSubmitting ? 'Preparing...' : 'Mark as Submitted'}
                   </Button>
                 </div>
                 {!user?.group_id ? (
@@ -212,11 +237,14 @@ export default function AssignmentDetail() {
       <ConfirmDialog
         isOpen={showConfirmDialog}
         title="Confirm submission"
-        message="Have you uploaded your work to OneDrive? This action cannot be undone."
+        message="Have you uploaded your work using the assignment link? This action cannot be undone."
         confirmText="Yes, I have submitted"
         cancelText="Cancel"
         onConfirm={handleConfirmSubmission}
-        onCancel={() => setShowConfirmDialog(false)}
+        onCancel={() => {
+          setShowConfirmDialog(false);
+          setConfirmationToken('');
+        }}
       />
     </Page>
   );

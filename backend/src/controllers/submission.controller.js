@@ -1,11 +1,30 @@
 import * as submissionService from '../services/submission.service.js';
 import { successResponse } from '../utils/apiResponse.js';
 
+export async function prepareSubmissionConfirmation(req, res, next) {
+  try {
+    const confirmation = await submissionService.prepareSubmissionConfirmation(
+      req.user.userId,
+      req.body.assignment_id
+    );
+
+    return successResponse(
+      res,
+      { confirmation },
+      'Submission confirmation step prepared',
+      200
+    );
+  } catch (err) {
+    return next(err);
+  }
+}
+
 export async function confirmSubmission(req, res, next) {
   try {
     const submission = await submissionService.confirmSubmission(
       req.user.userId,
-      req.body.assignment_id
+      req.body.assignment_id,
+      req.body.confirmation_token
     );
 
     return successResponse(

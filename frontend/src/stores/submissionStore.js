@@ -33,10 +33,27 @@ export const useSubmissionStore = create((set) => ({
     }
   },
 
-  confirmSubmission: async (assignmentId) => {
+  requestSubmissionConfirmation: async (assignmentId) => {
     set({ isLoading: true });
     try {
-      const submission = await submissionService.confirmSubmission(assignmentId);
+      const confirmation = await submissionService.requestSubmissionConfirmation(
+        assignmentId
+      );
+      set({ isLoading: false });
+      return confirmation;
+    } catch (error) {
+      set({ isLoading: false });
+      throw error;
+    }
+  },
+
+  confirmSubmission: async (assignmentId, confirmationToken) => {
+    set({ isLoading: true });
+    try {
+      const submission = await submissionService.confirmSubmission(
+        assignmentId,
+        confirmationToken
+      );
       set((state) => ({
         mySubmissions: state.mySubmissions.some(
           (entry) => entry.assignment_id === submission.assignment_id

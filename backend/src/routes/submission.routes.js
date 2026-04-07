@@ -5,11 +5,21 @@ import { authMiddleware } from '../middleware/auth.js';
 import { requireRole } from '../middleware/roleGuard.js';
 import { validate } from '../middleware/validate.js';
 import { validateId } from '../middleware/validateId.js';
-import { confirmSubmissionSchema } from '../validators/submission.validator.js';
+import {
+  confirmSubmissionSchema,
+  prepareSubmissionSchema,
+} from '../validators/submission.validator.js';
 
 const router = Router();
 
 router.use(authMiddleware);
+
+router.post(
+  '/prepare',
+  requireRole('student'),
+  validate(prepareSubmissionSchema),
+  submissionController.prepareSubmissionConfirmation
+);
 
 router.post(
   '/',
