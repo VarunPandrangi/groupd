@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   motion as Motion,
@@ -7,6 +7,7 @@ import {
 import {
   ArrowRight,
   CalendarDots,
+  ChalkboardTeacher,
   ChartBar,
   CheckCircle,
   FileText,
@@ -22,6 +23,8 @@ import Card from '../../components/common/Card';
 import LogoWordmark from '../../components/common/LogoWordmark';
 import { buttonClassName } from '../../components/common/buttonClassName';
 import { useThemeStore } from '../../stores/themeStore';
+
+/* ───────────────────────────── static data ───────────────────────────── */
 
 const featureCards = [
   {
@@ -100,118 +103,260 @@ const roleViews = [
   },
 ];
 
+const dashboardPreviewCards = [
+  {
+    title: 'Student Command Center',
+    icon: SquaresFour,
+    detail: 'One timeline for group tasks, due dates, and submission readiness.',
+  },
+  {
+    title: 'Professor Intelligence',
+    icon: ChartBar,
+    detail: 'Completion signals spotlight risk early so interventions happen before misses.',
+  },
+  {
+    title: 'Submission Evidence',
+    icon: CalendarDots,
+    detail: 'Each delivery captures owner, timestamp, and proof for confident reviews.',
+  },
+];
+
+/* ─────────────── network visual — geometric layout ─────────────── */
+
+/*
+  Geometric 3-column, 2-row grid layout:
+
+  Row 1:  Professors (10,22)  →  Assignments (38,22)  ─────→  Analytics (82,22)
+                                      │                           ▲
+                                      ▼                           │
+  Row 2:  Students (10,78)    →  Groups (38,78)       →  Submissions (66,65)
+
+  Connections (all conceptually correct):
+  - Professors → Assignments  (professors create assignments)
+  - Students → Groups         (students form groups)
+  - Groups → Submissions      (groups confirm submissions)
+  - Assignments → Submissions (assignments receive submissions — diagonal)
+  - Submissions → Analytics   (submissions feed the dashboard)
+  - Professors → Analytics    (professors view analytics)
+*/
+
 const collaborationNodes = [
+  {
+    id: 'professors',
+    icon: ChalkboardTeacher,
+    label: 'Professors',
+    description: 'Professors create assignments and monitor class-wide analytics.',
+    x: 10,
+    y: 22,
+  },
   {
     id: 'students',
     icon: UsersThree,
-    label: 'Student Space',
-    description:
-      'Students coordinate tasks, split ownership, and move from brief to submission without context switching.',
-    x: 16,
-    y: 64,
-  },
-  {
-    id: 'groups',
-    icon: Users,
-    label: 'Group Hub',
-    description:
-      'A shared workspace that keeps members, responsibilities, and delivery status perfectly aligned.',
-    x: 33,
-    y: 42,
+    label: 'Students',
+    description: 'Students register, join groups, and collaborate on submissions.',
+    x: 10,
+    y: 78,
   },
   {
     id: 'assignments',
     icon: FileText,
-    label: 'Assignment Briefs',
-    description:
-      'Clear briefs, due dates, and resources remove ambiguity so every group executes with confidence.',
-    x: 54,
+    label: 'Assignments',
+    description: 'Assignments carry briefs, due dates, and OneDrive submission links.',
+    x: 40,
     y: 22,
+  },
+  {
+    id: 'groups',
+    icon: Users,
+    label: 'Groups',
+    description: 'Students form groups of up to 6 to collaborate on assignments.',
+    x: 40,
+    y: 78,
   },
   {
     id: 'submissions',
     icon: CheckCircle,
-    label: 'Submission Flow',
-    description:
-      'Every handoff is captured with proof, timestamp, and owner so nothing is lost in review.',
+    label: 'Submissions',
+    description: 'One member confirms on behalf of the group — timestamped and irreversible.',
     x: 68,
-    y: 60,
+    y: 65,
   },
   {
-    id: 'professors',
-    icon: TrendUp,
-    label: 'Faculty View',
-    description:
-      'Professors get instant completion signals and can intervene before deadlines slip.',
-    x: 75,
-    y: 34,
+    id: 'analytics',
+    icon: ChartBar,
+    label: 'Analytics',
+    description: 'Real-time dashboards show completion rates and group performance.',
+    x: 86,
+    y: 22,
   },
 ];
 
 const collaborationEdges = [
+  ['professors', 'assignments'],
   ['students', 'groups'],
-  ['groups', 'assignments'],
   ['groups', 'submissions'],
   ['assignments', 'submissions'],
-  ['submissions', 'professors'],
-  ['assignments', 'professors'],
+  ['submissions', 'analytics'],
+  ['professors', 'analytics'],
 ];
 
-function buildCurvedPath(source, destination) {
-  const xGap = destination.x - source.x;
-  const yGap = destination.y - source.y;
-  const direction = xGap >= 0 ? 1 : -1;
-  const bend = Math.max(4, Math.abs(yGap) * 0.45);
-  const c1x = source.x + xGap * 0.35;
-  const c1y = source.y - bend;
-  const c2x = source.x + xGap * 0.68 + direction * 1.5;
-  const c2y = destination.y + bend * 0.62;
+/* ─── geometry helpers (unchanged from original) ─── */
 
-  return `M ${source.x} ${source.y} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${destination.x} ${destination.y}`;
+function getNodeGeometry(node, nodeMeasurements) {
+  const measurement = nodeMeasurements[node.id];
+  if (!measurement) {
+    return { x: node.x, y: node.y, rx: 6.8, ry: 4 };
+  }
+  return {
+    x: measurement.x,
+    y: measurement.y,
+    rx: measurement.width / 2,
+    ry: measurement.height / 2,
+  };
 }
+
+function projectPointToPillEdge(center, target, radiusX, radiusY) {
+  const dx = target.x - center.x;
+  const dy = target.y - center.y;
+  const safeRadiusX = Math.max(radiusX, 0.0001);
+  const safeRadiusY = Math.max(radiusY, 0.0001);
+  const denominator = Math.sqrt(
+    (dx * dx) / (safeRadiusX * safeRadiusX) +
+      (dy * dy) / (safeRadiusY * safeRadiusY)
+  );
+  if (!Number.isFinite(denominator) || denominator === 0) {
+    return { x: center.x, y: center.y };
+  }
+  const scale = 1 / denominator;
+  return { x: center.x + dx * scale, y: center.y + dy * scale };
+}
+
+function buildConnectedPath(sourceNode, destinationNode, nodeMeasurements) {
+  const source = getNodeGeometry(sourceNode, nodeMeasurements);
+  const destination = getNodeGeometry(destinationNode, nodeMeasurements);
+  const start = projectPointToPillEdge(source, destination, source.rx, source.ry);
+  const end = projectPointToPillEdge(destination, source, destination.rx, destination.ry);
+
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const absDy = Math.abs(dy);
+
+  /* Horizontal connections: gentle arc instead of boring straight line */
+  if (absDy < 5) {
+    const arcBend = Math.abs(dx) * 0.12;
+    return `M ${start.x} ${start.y} Q ${start.x + dx * 0.5} ${start.y - arcBend}, ${end.x} ${end.y}`;
+  }
+
+  /* Diagonal connections: smooth S-curve through a midpoint */
+  const midX = start.x + dx * 0.5;
+  const midY = start.y + dy * 0.5;
+  return `M ${start.x} ${start.y} C ${midX} ${start.y}, ${midX} ${end.y}, ${end.x} ${end.y}`;
+}
+
+/* ─── NetworkVisual component ─── */
 
 function NetworkVisual() {
   const prefersReducedMotion = useReducedMotion();
-  const [activeNode, setActiveNode] = useState('groups');
+  const [activeNode, setActiveNode] = useState('students');
+  const [nodeMeasurements, setNodeMeasurements] = useState({});
   const [spotlight, setSpotlight] = useState({ x: 50, y: 50 });
+  const canvasRef = useRef(null);
+  const nodeRefs = useRef({});
 
   const activeNodeData = useMemo(
-    () =>
-      collaborationNodes.find((node) => node.id === activeNode) ||
-      collaborationNodes[1],
+    () => collaborationNodes.find((node) => node.id === activeNode) || collaborationNodes[0],
     [activeNode]
   );
 
   const nodeMap = useMemo(
-    () =>
-      collaborationNodes.reduce((accumulator, node) => {
-        accumulator[node.id] = node;
-        return accumulator;
-      }, {}),
+    () => collaborationNodes.reduce((acc, node) => { acc[node.id] = node; return acc; }, {}),
     []
   );
 
   const handlePointerMove = (event) => {
     const bounds = event.currentTarget.getBoundingClientRect();
-    const x = ((event.clientX - bounds.left) / bounds.width) * 100;
-    const y = ((event.clientY - bounds.top) / bounds.height) * 100;
-    setSpotlight({ x, y });
+    setSpotlight({
+      x: ((event.clientX - bounds.left) / bounds.width) * 100,
+      y: ((event.clientY - bounds.top) / bounds.height) * 100,
+    });
   };
 
-  const handlePointerLeave = () => {
-    setSpotlight({ x: 50, y: 50 });
-  };
+  const handlePointerLeave = () => setSpotlight({ x: 50, y: 50 });
+
+  useEffect(() => {
+    let frameId = 0;
+
+    const measureNodePositions = () => {
+      const canvasElement = canvasRef.current;
+      if (!canvasElement) return;
+      const canvasRect = canvasElement.getBoundingClientRect();
+      if (!canvasRect.width || !canvasRect.height) return;
+
+      const nextMeasurements = {};
+      collaborationNodes.forEach((node) => {
+        const el = nodeRefs.current[node.id];
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        nextMeasurements[node.id] = {
+          x: ((rect.left - canvasRect.left + rect.width / 2) / canvasRect.width) * 100,
+          y: ((rect.top - canvasRect.top + rect.height / 2) / canvasRect.height) * 100,
+          width: (rect.width / canvasRect.width) * 100,
+          height: (rect.height / canvasRect.height) * 100,
+        };
+      });
+
+      setNodeMeasurements((prev) => {
+        const prevKeys = Object.keys(prev);
+        const nextKeys = Object.keys(nextMeasurements);
+        if (prevKeys.length !== nextKeys.length) return nextMeasurements;
+        const changed = nextKeys.some((key) => {
+          const p = prev[key];
+          const n = nextMeasurements[key];
+          if (!p || !n) return true;
+          return (
+            Math.abs(p.x - n.x) > 0.05 ||
+            Math.abs(p.y - n.y) > 0.05 ||
+            Math.abs(p.width - n.width) > 0.05 ||
+            Math.abs(p.height - n.height) > 0.05
+          );
+        });
+        return changed ? nextMeasurements : prev;
+      });
+    };
+
+    const schedule = () => {
+      if (frameId) cancelAnimationFrame(frameId);
+      frameId = requestAnimationFrame(measureNodePositions);
+    };
+
+    schedule();
+    window.addEventListener('resize', schedule);
+
+    let resizeObserver;
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(schedule);
+      if (canvasRef.current) resizeObserver.observe(canvasRef.current);
+      collaborationNodes.forEach((node) => {
+        const el = nodeRefs.current[node.id];
+        if (el) resizeObserver.observe(el);
+      });
+    }
+
+    return () => {
+      if (frameId) cancelAnimationFrame(frameId);
+      window.removeEventListener('resize', schedule);
+      resizeObserver?.disconnect();
+    };
+  }, []);
 
   return (
     <div
       className="landing-network"
-      style={{
-        '--spot-x': `${spotlight.x}%`,
-        '--spot-y': `${spotlight.y}%`,
-      }}
+      style={{ '--spot-x': `${spotlight.x}%`, '--spot-y': `${spotlight.y}%` }}
     >
       <div
         className="landing-network__canvas"
+        ref={canvasRef}
         onMouseMove={handlePointerMove}
         onMouseLeave={handlePointerLeave}
       >
@@ -222,6 +367,22 @@ function NetworkVisual() {
               <stop offset="52%" stopColor="var(--accent-brand-electric)" stopOpacity="0.9" />
               <stop offset="100%" stopColor="var(--accent-green)" stopOpacity="0.66" />
             </linearGradient>
+            <marker
+              id="network-link-arrow"
+              viewBox="0 0 10 10"
+              refX="8.4"
+              refY="5"
+              markerWidth="4.8"
+              markerHeight="4.8"
+              orient="auto"
+              markerUnits="strokeWidth"
+            >
+              <path
+                d="M 0 0 L 10 5 L 0 10 z"
+                fill="var(--accent-brand-electric)"
+                fillOpacity="0.6"
+              />
+            </marker>
             <filter id="network-link-glow" x="-40%" y="-40%" width="180%" height="180%">
               <feGaussianBlur stdDeviation="0.9" result="blur" />
               <feMerge>
@@ -230,44 +391,79 @@ function NetworkVisual() {
               </feMerge>
             </filter>
           </defs>
+
+          {/* subtle dot grid for geometric feel */}
+          {Array.from({ length: 11 }, (_, col) =>
+            Array.from({ length: 7 }, (_, row) => (
+              <circle
+                key={`dot-${col}-${row}`}
+                cx={5 + col * 9}
+                cy={5 + row * 13}
+                r="0.3"
+                fill="var(--text-primary)"
+                opacity="0.07"
+              />
+            ))
+          )}
+
           {collaborationEdges.map(([from, to], index) => {
             const source = nodeMap[from];
             const destination = nodeMap[to];
+            const pathData = buildConnectedPath(source, destination, nodeMeasurements);
+            const isActive = from === activeNode || to === activeNode;
 
             return (
-              <Motion.path
-                key={`${from}-${to}`}
-                d={buildCurvedPath(source, destination)}
-                stroke="url(#network-link-gradient)"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                fill="none"
-                vectorEffect="non-scaling-stroke"
-                filter="url(#network-link-glow)"
-                initial={
-                  prefersReducedMotion
-                    ? { pathLength: 1, opacity: 0.84 }
-                    : { pathLength: 0, opacity: 0.56 }
-                }
-                animate={
-                  prefersReducedMotion
-                    ? { pathLength: 1, opacity: 0.84 }
-                    : {
-                        pathLength: 1,
-                        opacity: [0.62, 0.98, 0.62],
-                      }
-                }
-                transition={{
-                  duration: 2.6,
-                  delay: 0.08 + index * 0.07,
-                  ease: 'easeInOut',
-                  repeat: prefersReducedMotion ? 0 : Number.POSITIVE_INFINITY,
-                }}
-              />
+              <g key={`${from}-${to}`}>
+                {/* background shadow line */}
+                <path
+                  d={pathData}
+                  stroke="var(--text-primary)"
+                  strokeWidth="1.55"
+                  strokeLinecap="round"
+                  fill="none"
+                  vectorEffect="non-scaling-stroke"
+                  opacity={0.04}
+                />
+                {/* animated main line */}
+                <Motion.path
+                  d={pathData}
+                  stroke="url(#network-link-gradient)"
+                  strokeWidth={isActive ? '2' : '1.5'}
+                  strokeDasharray={isActive ? '6 2.5' : '4.2 3'}
+                  strokeLinecap="round"
+                  fill="none"
+                  markerEnd="url(#network-link-arrow)"
+                  vectorEffect="non-scaling-stroke"
+                  filter="url(#network-link-glow)"
+                  initial={
+                    prefersReducedMotion
+                      ? { opacity: 0.84 }
+                      : { pathLength: 0, opacity: 0.4 }
+                  }
+                  animate={
+                    prefersReducedMotion
+                      ? { opacity: isActive ? 0.95 : 0.6 }
+                      : {
+                          pathLength: 1,
+                          opacity: isActive ? [0.7, 1, 0.7] : [0.4, 0.65, 0.4],
+                        }
+                  }
+                  transition={{
+                    pathLength: { duration: 1.4, delay: index * 0.1, ease: 'easeOut' },
+                    opacity: {
+                      duration: 2.6,
+                      delay: 0.08 + index * 0.07,
+                      ease: 'easeInOut',
+                      repeat: prefersReducedMotion ? 0 : Number.POSITIVE_INFINITY,
+                    },
+                  }}
+                />
+              </g>
             );
           })}
         </svg>
 
+        {/* DOM nodes — keeps the beautiful frosted pill styling from your CSS */}
         {collaborationNodes.map((node, index) => {
           const Icon = node.icon;
           const isActive = node.id === activeNode;
@@ -275,6 +471,10 @@ function NetworkVisual() {
           return (
             <Motion.button
               key={node.id}
+              ref={(element) => {
+                if (element) { nodeRefs.current[node.id] = element; }
+                else { delete nodeRefs.current[node.id]; }
+              }}
               type="button"
               className={`landing-network__node ${isActive ? 'landing-network__node--active' : ''}`}
               style={{
@@ -293,10 +493,7 @@ function NetworkVisual() {
               animate={
                 prefersReducedMotion
                   ? { opacity: 1, y: 0 }
-                  : {
-                      opacity: 1,
-                      y: [0, -2, 0],
-                    }
+                  : { opacity: 1, y: [0, -2, 0] }
               }
               transition={{
                 duration: 2.4,
@@ -314,8 +511,10 @@ function NetworkVisual() {
         })}
       </div>
 
+      {/* info panel */}
       <Motion.div
         className="landing-network__panel"
+        key={activeNode}
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, ease: 'easeOut' }}
@@ -328,23 +527,7 @@ function NetworkVisual() {
   );
 }
 
-const dashboardPreviewCards = [
-  {
-    title: 'Student Command Center',
-    icon: SquaresFour,
-    detail: 'One timeline for group tasks, due dates, and submission readiness.',
-  },
-  {
-    title: 'Professor Intelligence',
-    icon: ChartBar,
-    detail: 'Completion signals spotlight risk early so interventions happen before misses.',
-  },
-  {
-    title: 'Submission Evidence',
-    icon: CalendarDots,
-    detail: 'Each delivery captures owner, timestamp, and proof for confident reviews.',
-  },
-];
+/* ──────────────────────────── landing page ──────────────────────────── */
 
 export default function LandingPage() {
   const theme = useThemeStore((state) => state.theme);
@@ -421,7 +604,6 @@ export default function LandingPage() {
           <div className="landing-feature-grid">
             {featureCards.map((feature) => {
               const Icon = feature.icon;
-
               return (
                 <FadeUp key={feature.title}>
                   <Card interactive className="landing-feature-card">
@@ -466,9 +648,7 @@ export default function LandingPage() {
                       animate={
                         prefersReducedMotion
                           ? { y: 0 }
-                          : {
-                              y: [0, index % 2 === 0 ? -4 : -2, 0],
-                            }
+                          : { y: [0, index % 2 === 0 ? -4 : -2, 0] }
                       }
                       transition={{
                         duration: 2.8 + index * 0.3,
