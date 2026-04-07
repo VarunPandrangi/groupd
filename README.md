@@ -2,6 +2,10 @@
 
 Groupd is a full-stack group assignment platform for colleges and training programs. It gives students a clean workflow for creating teams and confirming submissions, while giving admins one place to publish assignments and track completion without spreadsheet overhead.
 
+## WALKTRHOUGH VIDEO
+
+LOOM VIDEO: [Watch the walkthrough](https://www.loom.com/share/e842348597ef48b088427ca2a15443fa)
+
 ## Why This Exists
 
 Group assignment management usually breaks down at the handoff points:
