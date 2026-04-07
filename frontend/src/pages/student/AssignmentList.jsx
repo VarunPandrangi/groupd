@@ -12,6 +12,7 @@ import FormattedText from '../../components/common/FormattedText';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import StatusBadge from '../../components/common/StatusBadge';
 import Card from '../../components/common/Card';
+import Button from '../../components/common/Button';
 import { Page, PageHeader } from '../../components/common/Page';
 import { useAuthStore } from '../../stores/authStore';
 import { useAssignmentStore } from '../../stores/assignmentStore';
@@ -39,17 +40,20 @@ export default function AssignmentList() {
   const mySubmissions = useSubmissionStore((state) => state.mySubmissions);
   const fetchMySubmissions = useSubmissionStore((state) => state.fetchMySubmissions);
   const [activeFilter, setActiveFilter] = useState('all');
+  const hasGroup = Boolean(user?.group_id);
 
   useEffect(() => {
-    if (!user?.group_id) {
-      return;
-    }
-
     let isMounted = true;
 
     async function loadAssignments() {
       try {
-        await Promise.all([fetchAssignments(), fetchMySubmissions()]);
+        const requests = [fetchAssignments()];
+
+        if (user?.group_id) {
+          requests.push(fetchMySubmissions());
+        }
+
+        await Promise.all(requests);
       } catch (error) {
         if (isMounted) {
           toast.error(getErrorMessage(error, 'Unable to load assignments right now.'));
@@ -82,27 +86,33 @@ export default function AssignmentList() {
     return sortedAssignments.filter((assignment) => assignment.status === activeFilter);
   }, [activeFilter, sortedAssignments]);
 
-  if (!user?.group_id) {
-    return (
-      <EmptyState
-        icon={UsersThree}
-        title="Join a group to see assignments"
-        message="Assignments unlock once you are part of a student group, so you can track only the work that belongs to your team."
-        actionLabel="Go to My Group"
-        onAction={() => navigate('/student/group')}
-      />
-    );
-  }
-
   return (
     <Page>
       <PageHeader
         eyebrow="Assignments"
         eyebrowAccent
         title="Keep every deadline in sharp focus"
-        description="Browse the assignments for your group, filter by urgency, and jump into the full brief whenever you are ready to submit."
+        description={
+          hasGroup
+            ? 'Browse assignments for your group, filter by urgency, and jump into the full brief whenever you are ready to submit.'
+            : 'Browse all assignments posted to everyone. Join a group to unlock group-specific assignments and submission confirmation.'
+        }
         actions={<span className="inline-flex items-center gap-2 rounded-full text-sm font-medium pill">{sortedAssignments.length} assignments</span>}
       />
+
+      {!hasGroup ? (
+        <Card>
+          <div className="flex items-center justify-between gap-4 toolbar">
+            <p className="text-sm leading-relaxed toolbar__meta">
+              You can view assignments posted to all students now. Create or join a group to access group-targeted work and submit confirmations.
+            </p>
+            <Button type="button" variant="secondary" onClick={() => navigate('/student/group')}>
+              <UsersThree size={16} />
+              Go to My Group
+            </Button>
+          </div>
+        </Card>
+      ) : null}
 
       <div className="flex gap-2 filter-pills">
         {FILTERS.map((filter) => (
@@ -128,8 +138,12 @@ export default function AssignmentList() {
           title="No assignments here yet"
           message={
             activeFilter === 'all'
-              ? 'Once your instructor assigns work to your group, it will show up here with due dates and status badges.'
-              : `There are no ${activeFilter} assignments for your group right now.`
+              ? hasGroup
+                ? 'Once your instructor assigns work to your group, it will show up here with due dates and status badges.'
+                : 'No assignments posted to all students are available yet. Join a group to unlock group-specific assignments.'
+              : hasGroup
+                ? `There are no ${activeFilter} assignments for your group right now.`
+                : `There are no ${activeFilter} assignments posted to all students right now.`
           }
         />
       ) : (
