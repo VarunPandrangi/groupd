@@ -68,15 +68,7 @@ function isAssignedToGroup(assignment, groupId) {
     .includes(groupId.toString());
 }
 
-async function isStudentEnrolled(courseId, userId) {
-  const course = await Course.findOne({
-    _id: courseId,
-    enrolledStudents: userId,
-    isDeleted: false,
-  }).select('_id');
 
-  return Boolean(course);
-}
 
 async function assertGroupSubmissionEligibility({ user, assignment }) {
   const group = await findActiveGroupForUser(user._id);
@@ -85,7 +77,8 @@ async function assertGroupSubmissionEligibility({ user, assignment }) {
     throw httpError(400, 'NO_GROUP', 'You must be in a group to submit');
   }
 
-  if (group.createdBy.toString() !== user._id.toString()) {
+  const isLeader = await Group.isLeader(group._id, user._id);
+  if (!isLeader) {
     throw httpError(
       403,
       'NOT_GROUP_LEADER',
@@ -118,7 +111,7 @@ async function assertGroupSubmissionEligibility({ user, assignment }) {
 }
 
 async function assertIndividualSubmissionEligibility({ user, assignment }) {
-  const enrolled = await isStudentEnrolled(assignment.course, user._id);
+  const enrolled = await Course.isStudentEnrolled(assignment.course, user._id);
   if (!enrolled) {
     throw httpError(403, 'NOT_ENROLLED', 'You are not enrolled in this course');
   }

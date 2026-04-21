@@ -94,4 +94,26 @@ submissionSchema.index(
   }
 );
 
+// ---------------------------------------------------------------------------
+// Static query helpers (Sprint 3)
+// ---------------------------------------------------------------------------
+
+/**
+ * Find an individual submission (group: null) by assignment and student.
+ * Returns null if no such submission exists.
+ * @param {string|ObjectId} assignmentId
+ * @param {string|ObjectId} studentId
+ * @returns {Promise<Document|null>}
+ */
+submissionSchema.statics.findByAssignmentAndStudent = function findByAssignmentAndStudent(
+  assignmentId,
+  studentId
+) {
+  return this.findOne({
+    assignment: assignmentId,
+    submittedBy: studentId,
+    group: null,
+  });
+};
+
 export const Submission = mongoose.model('Submission', submissionSchema);

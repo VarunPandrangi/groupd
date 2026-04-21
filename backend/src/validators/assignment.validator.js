@@ -19,6 +19,8 @@ const futureIsoDateSchema = z
     message: 'Due date must be in the future',
   });
 
+// Base shape — all fields are kept as-is so .partial() works cleanly for update.
+// course_id and submission_type are optional here; createAssignmentSchema overrides both.
 const assignmentSchema = z.object({
   title: z
     .string()
@@ -43,18 +45,26 @@ const assignmentSchema = z.object({
     .array(objectIdSchema)
     .min(1, 'At least one group must be selected')
     .optional(),
+  // Kept optional in base — update callers may omit these
   course_id: objectIdSchema.optional(),
   submission_type: z.enum(['individual', 'group']).optional(),
 });
 
-export const createAssignmentSchema = assignmentSchema.refine(
-  (data) => data.assign_to !== 'specific' || Boolean(data.group_ids?.length),
-  {
-    message: 'At least one group must be selected',
-    path: ['group_ids'],
-  }
-);
+// Create: course_id required; submission_type defaults to 'group'
+export const createAssignmentSchema = assignmentSchema
+  .extend({
+    course_id: objectIdSchema,
+    submission_type: z.enum(['individual', 'group']).default('group'),
+  })
+  .refine(
+    (data) => data.assign_to !== 'specific' || Boolean(data.group_ids?.length),
+    {
+      message: 'At least one group must be selected',
+      path: ['group_ids'],
+    }
+  );
 
+// Update: all fields optional
 export const updateAssignmentSchema = assignmentSchema
   .partial()
   .refine(
