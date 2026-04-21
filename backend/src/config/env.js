@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const REQUIRED_ENV_VARS = [
-  'DATABASE_URL',
+  'MONGODB_URI',
   'JWT_SECRET',
   'JWT_REFRESH_SECRET',
   'PORT',
@@ -23,7 +23,7 @@ if (missing.length > 0) {
 }
 
 export const env = {
-  DATABASE_URL: process.env.DATABASE_URL,
+  MONGODB_URI: process.env.MONGODB_URI,
   JWT_SECRET: process.env.JWT_SECRET,
   JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET,
   PORT: parseInt(process.env.PORT, 10),

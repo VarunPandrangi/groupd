@@ -1,25 +1,36 @@
-import { pool } from '../config/database.js';
-import { findById as findAssignment } from '../models/assignment.model.js';
-import {
-  create as createSubmission,
-  findByAssignmentAndGroup,
-  getAssignmentGroupTrackerRows,
-  getByAssignment,
-  getByGroup,
-  getGroupProgress as getGroupProgressModel,
-  getStudentMembersByGroupIds,
-} from '../models/submission.model.js';
-import { findById as findUserById } from '../models/user.model.js';
+import { Assignment } from '../models/assignment.model.js';
+import { Course } from '../models/course.model.js';
+import { Group } from '../models/group.model.js';
+import { Submission } from '../models/submission.model.js';
+import { User } from '../models/user.model.js';
 import {
   generateSubmissionConfirmationToken,
   verifySubmissionConfirmationToken,
 } from '../utils/jwt.js';
 
+const UNKNOWN_GROUP_NAME = 'Unknown Group';
+
 const httpError = (statusCode, code, message) =>
   Object.assign(new Error(message), { statusCode, code });
 
+function computeStatus(dueDate) {
+  const due = new Date(dueDate).getTime();
+  const now = Date.now();
+  const threeDays = 3 * 24 * 60 * 60 * 1000;
+
+  if (due <= now) {
+    return 'overdue';
+  }
+
+  if (due <= now + threeDays) {
+    return 'active';
+  }
+
+  return 'upcoming';
+}
+
 async function requireUser(userId) {
-  const user = await findUserById(userId);
+  const user = await User.findOne({ _id: userId, isDeleted: false });
   if (!user) {
     throw httpError(404, 'USER_NOT_FOUND', 'User not found');
   }
@@ -28,7 +39,11 @@ async function requireUser(userId) {
 }
 
 async function requireAssignment(assignmentId) {
-  const assignment = await findAssignment(assignmentId);
+  const assignment = await Assignment.findOne({
+    _id: assignmentId,
+    isDeleted: false,
+  });
+
   if (!assignment) {
     throw httpError(404, 'ASSIGNMENT_NOT_FOUND', 'Assignment not found');
   }
@@ -36,25 +51,49 @@ async function requireAssignment(assignmentId) {
   return assignment;
 }
 
-async function isAssignmentAssignedToGroup(assignmentId, groupId) {
-  const { rowCount } = await pool.query(
-    `SELECT 1
-     FROM assignment_groups
-     WHERE assignment_id = $1
-       AND group_id = $2`,
-    [assignmentId, groupId]
-  );
-
-  return rowCount > 0;
+async function findActiveGroupForUser(userId) {
+  return Group.findOne({
+    members: userId,
+    isDeleted: false,
+  });
 }
 
-async function assertSubmissionEligibility({ user, assignmentId }) {
-  const assignment = await requireAssignment(assignmentId);
+function isAssignedToGroup(assignment, groupId) {
+  if (assignment.assignTo === 'all') {
+    return true;
+  }
 
-  if (
-    assignment.assign_to === 'specific' &&
-    !(await isAssignmentAssignedToGroup(assignmentId, user.group_id))
-  ) {
+  return assignment.groupTargets
+    .map((id) => id.toString())
+    .includes(groupId.toString());
+}
+
+async function isStudentEnrolled(courseId, userId) {
+  const course = await Course.findOne({
+    _id: courseId,
+    enrolledStudents: userId,
+    isDeleted: false,
+  }).select('_id');
+
+  return Boolean(course);
+}
+
+async function assertGroupSubmissionEligibility({ user, assignment }) {
+  const group = await findActiveGroupForUser(user._id);
+
+  if (!group) {
+    throw httpError(400, 'NO_GROUP', 'You must be in a group to submit');
+  }
+
+  if (group.createdBy.toString() !== user._id.toString()) {
+    throw httpError(
+      403,
+      'NOT_GROUP_LEADER',
+      'Only the group leader can submit this assignment'
+    );
+  }
+
+  if (!isAssignedToGroup(assignment, group._id)) {
     throw httpError(
       403,
       'NOT_ASSIGNED',
@@ -62,10 +101,11 @@ async function assertSubmissionEligibility({ user, assignmentId }) {
     );
   }
 
-  const existingSubmission = await findByAssignmentAndGroup(
-    assignmentId,
-    user.group_id
-  );
+  const existingSubmission = await Submission.findOne({
+    assignment: assignment._id,
+    group: group._id,
+  }).select('_id');
+
   if (existingSubmission) {
     throw httpError(
       409,
@@ -74,10 +114,31 @@ async function assertSubmissionEligibility({ user, assignmentId }) {
     );
   }
 
-  return assignment;
+  return group;
 }
 
-function validateConfirmationToken({ token, user, assignmentId }) {
+async function assertIndividualSubmissionEligibility({ user, assignment }) {
+  const enrolled = await isStudentEnrolled(assignment.course, user._id);
+  if (!enrolled) {
+    throw httpError(403, 'NOT_ENROLLED', 'You are not enrolled in this course');
+  }
+
+  const existingSubmission = await Submission.findOne({
+    assignment: assignment._id,
+    submittedBy: user._id,
+    group: null,
+  }).select('_id');
+
+  if (existingSubmission) {
+    throw httpError(
+      409,
+      'ALREADY_SUBMITTED',
+      'You have already submitted this assignment'
+    );
+  }
+}
+
+function validateConfirmationToken({ token, user, assignmentId, groupId = null }) {
   let payload;
 
   try {
@@ -99,11 +160,11 @@ function validateConfirmationToken({ token, user, assignmentId }) {
   }
 
   const isValidAction = payload?.action === 'submission_confirmation';
-  const isSameUser = payload?.userId === user.id;
-  const isSameGroup = payload?.groupId === user.group_id;
+  const isSameUser = payload?.userId === user._id.toString();
   const isSameAssignment = payload?.assignmentId === assignmentId;
+  const isSameGroup = (payload?.groupId ?? null) === (groupId ?? null);
 
-  if (!isValidAction || !isSameUser || !isSameGroup || !isSameAssignment) {
+  if (!isValidAction || !isSameUser || !isSameAssignment || !isSameGroup) {
     throw httpError(
       400,
       'INVALID_CONFIRMATION_TOKEN',
@@ -112,34 +173,65 @@ function validateConfirmationToken({ token, user, assignmentId }) {
   }
 }
 
+function mapSubmission(submission) {
+  const groupDeleted = !submission.group || Boolean(submission.group?.isDeleted);
+
+  return {
+    id: submission._id.toString(),
+    assignment_id:
+      submission.assignment?._id?.toString?.() ??
+      submission.assignment?.toString?.() ??
+      null,
+    group_id: groupDeleted
+      ? null
+      : submission.group?._id?.toString?.() ?? submission.group?.toString?.() ?? null,
+    group_name:
+      submission.group?.name || submission.groupNameSnapshot || UNKNOWN_GROUP_NAME,
+    group_deleted: groupDeleted,
+    submitted_by:
+      submission.submittedBy?._id?.toString?.() ??
+      submission.submittedBy?.toString?.() ??
+      null,
+    submitted_by_name: submission.submittedBy?.fullName ?? null,
+    submitted_by_email: submission.submittedBy?.email ?? null,
+    confirmed_at: submission.confirmedAt ?? null,
+  };
+}
+
 export async function prepareSubmissionConfirmation(userId, assignmentId) {
   const user = await requireUser(userId);
+  const assignment = await requireAssignment(assignmentId);
 
-  if (!user.group_id) {
-    throw httpError(400, 'NO_GROUP', 'You must be in a group to submit');
+  if (assignment.submissionType === 'group') {
+    const group = await assertGroupSubmissionEligibility({ user, assignment });
+
+    return {
+      assignment_id: assignmentId,
+      confirmation_token: generateSubmissionConfirmationToken({
+        userId: user._id.toString(),
+        groupId: group._id.toString(),
+        assignmentId,
+      }),
+      expires_in_seconds: 300,
+    };
   }
 
-  await assertSubmissionEligibility({ user, assignmentId });
-
-  const confirmation_token = generateSubmissionConfirmationToken({
-    userId: user.id,
-    groupId: user.group_id,
-    assignmentId,
-  });
+  await assertIndividualSubmissionEligibility({ user, assignment });
 
   return {
     assignment_id: assignmentId,
-    confirmation_token,
+    confirmation_token: generateSubmissionConfirmationToken({
+      userId: user._id.toString(),
+      groupId: null,
+      assignmentId,
+    }),
     expires_in_seconds: 300,
   };
 }
 
 export async function confirmSubmission(userId, assignmentId, confirmationToken) {
   const user = await requireUser(userId);
-
-  if (!user.group_id) {
-    throw httpError(400, 'NO_GROUP', 'You must be in a group to submit');
-  }
+  const assignment = await requireAssignment(assignmentId);
 
   if (!confirmationToken) {
     throw httpError(
@@ -149,32 +241,64 @@ export async function confirmSubmission(userId, assignmentId, confirmationToken)
     );
   }
 
-  validateConfirmationToken({
-    token: confirmationToken,
-    user,
-    assignmentId,
-  });
-
-  await assertSubmissionEligibility({ user, assignmentId });
-
   try {
-    const submission = await createSubmission({
-      assignment_id: assignmentId,
-      group_id: user.group_id,
-      submitted_by: userId,
-    });
+    let submission;
 
-    if (!submission) {
-      throw httpError(400, 'NO_GROUP', 'You must be in a group to submit');
+    if (assignment.submissionType === 'group') {
+      const group = await assertGroupSubmissionEligibility({ user, assignment });
+
+      validateConfirmationToken({
+        token: confirmationToken,
+        user,
+        assignmentId,
+        groupId: group._id.toString(),
+      });
+
+      submission = await Submission.create({
+        assignment: assignment._id,
+        submittedBy: user._id,
+        group: group._id,
+        groupNameSnapshot: group.name,
+        submittedAt: new Date(),
+        confirmedAt: new Date(),
+        status: 'submitted',
+      });
+    } else {
+      await assertIndividualSubmissionEligibility({ user, assignment });
+
+      validateConfirmationToken({
+        token: confirmationToken,
+        user,
+        assignmentId,
+        groupId: null,
+      });
+
+      submission = await Submission.create({
+        assignment: assignment._id,
+        submittedBy: user._id,
+        group: null,
+        groupNameSnapshot: null,
+        submittedAt: new Date(),
+        confirmedAt: new Date(),
+        status: 'submitted',
+      });
     }
 
-    return submission;
+    const populated = await Submission.findById(submission._id)
+      .populate('submittedBy', 'fullName email')
+      .populate('group', 'name isDeleted')
+      .populate('assignment', '_id')
+      .lean();
+
+    return mapSubmission(populated);
   } catch (err) {
-    if (err?.code === '23505') {
+    if (err?.code === 11000) {
       throw httpError(
         409,
         'ALREADY_SUBMITTED',
-        'Your group has already submitted this assignment'
+        assignment.submissionType === 'group'
+          ? 'Your group has already submitted this assignment'
+          : 'You have already submitted this assignment'
       );
     }
 
@@ -184,80 +308,237 @@ export async function confirmSubmission(userId, assignmentId, confirmationToken)
 
 export async function getMyGroupSubmissions(userId) {
   const user = await requireUser(userId);
+  const group = await findActiveGroupForUser(user._id);
 
-  if (!user.group_id) {
-    throw httpError(
-      400,
-      'NO_GROUP',
-      'You must be in a group to view submissions'
-    );
+  if (!group) {
+    throw httpError(400, 'NO_GROUP', 'You must be in a group to view submissions');
   }
 
-  return getByGroup(user.group_id);
+  const submissions = await Submission.find({
+    group: group._id,
+  })
+    .populate('assignment', 'title dueDate isDeleted')
+    .populate('submittedBy', 'fullName')
+    .sort({ confirmedAt: -1 })
+    .lean();
+
+  return submissions
+    .filter((submission) => !submission.assignment?.isDeleted)
+    .map((submission) => ({
+      assignment_id: submission.assignment?._id?.toString?.() ?? null,
+      title: submission.assignment?.title ?? null,
+      due_date: submission.assignment?.dueDate ?? null,
+      submitted_by_name: submission.submittedBy?.fullName ?? null,
+      confirmed_at: submission.confirmedAt ?? null,
+    }))
+    .sort((a, b) => {
+      const aDue = a.due_date ? new Date(a.due_date).getTime() : 0;
+      const bDue = b.due_date ? new Date(b.due_date).getTime() : 0;
+      if (aDue !== bDue) {
+        return aDue - bDue;
+      }
+
+      const aConfirm = a.confirmed_at ? new Date(a.confirmed_at).getTime() : 0;
+      const bConfirm = b.confirmed_at ? new Date(b.confirmed_at).getTime() : 0;
+      return bConfirm - aConfirm;
+    });
 }
 
 export async function getGroupProgress(userId) {
   const user = await requireUser(userId);
+  const group = await findActiveGroupForUser(user._id);
 
-  if (!user.group_id) {
+  if (!group) {
     return [];
   }
 
-  return getGroupProgressModel(user.group_id);
+  const assignments = await Assignment.find({
+    isDeleted: false,
+    $or: [{ assignTo: 'all' }, { assignTo: 'group', groupTargets: group._id }],
+  })
+    .sort({ dueDate: 1, createdAt: -1 })
+    .lean();
+
+  const assignmentIds = assignments.map((assignment) => assignment._id);
+
+  const submissions = await Submission.find({
+    assignment: { $in: assignmentIds },
+    group: group._id,
+  })
+    .populate('submittedBy', 'fullName')
+    .lean();
+
+  const submissionsByAssignmentId = new Map(
+    submissions.map((submission) => [
+      submission.assignment.toString(),
+      submission,
+    ])
+  );
+
+  return assignments.map((assignment) => {
+    const submission = submissionsByAssignmentId.get(assignment._id.toString());
+
+    return {
+      assignment_id: assignment._id.toString(),
+      title: assignment.title,
+      due_date: assignment.dueDate,
+      status: computeStatus(assignment.dueDate),
+      is_submitted: Boolean(submission),
+      submitted_by_name: submission?.submittedBy?.fullName ?? null,
+      confirmed_at: submission?.confirmedAt ?? null,
+    };
+  });
 }
 
 export async function getSubmissionsByAssignment(assignmentId) {
   await requireAssignment(assignmentId);
-  return getByAssignment(assignmentId);
+
+  const submissions = await Submission.find({ assignment: assignmentId })
+    .populate('group', 'name isDeleted')
+    .populate('submittedBy', 'fullName email')
+    .sort({ confirmedAt: 1 })
+    .lean();
+
+  return submissions
+    .map((submission) => ({
+      id: submission._id.toString(),
+      group_id:
+        submission.group && !submission.group.isDeleted
+          ? submission.group._id.toString()
+          : null,
+      group_name:
+        submission.group?.name || submission.groupNameSnapshot || UNKNOWN_GROUP_NAME,
+      group_deleted:
+        !submission.group || Boolean(submission.group?.isDeleted),
+      submitted_by_name: submission.submittedBy?.fullName ?? null,
+      submitted_by_email: submission.submittedBy?.email ?? null,
+      confirmed_at: submission.confirmedAt ?? null,
+    }))
+    .sort((a, b) => {
+      const aTime = a.confirmed_at ? new Date(a.confirmed_at).getTime() : 0;
+      const bTime = b.confirmed_at ? new Date(b.confirmed_at).getTime() : 0;
+      if (aTime !== bTime) {
+        return aTime - bTime;
+      }
+
+      if (a.group_name !== b.group_name) {
+        return a.group_name.localeCompare(b.group_name);
+      }
+
+      return (a.submitted_by_name ?? '').localeCompare(b.submitted_by_name ?? '');
+    });
 }
 
 export async function getAssignmentGroupStudentStatus(assignmentId) {
   const assignment = await requireAssignment(assignmentId);
-  const trackerRows = await getAssignmentGroupTrackerRows(assignmentId);
 
-  const activeGroupIds = [
-    ...new Set(
-      trackerRows
-        .filter((row) => !row.group_deleted && row.group_id)
-        .map((row) => row.group_id)
-    ),
-  ];
+  let expectedGroups = [];
+  if (assignment.assignTo === 'all') {
+    expectedGroups = await Group.find({ isDeleted: false })
+      .sort({ name: 1 })
+      .lean();
+  } else {
+    expectedGroups = await Group.find({
+      _id: { $in: assignment.groupTargets },
+      isDeleted: false,
+    })
+      .sort({ name: 1 })
+      .lean();
+  }
 
-  const memberRows = await getStudentMembersByGroupIds(activeGroupIds);
-  const membersByGroupId = memberRows.reduce((map, member) => {
-    const list = map.get(member.group_id) ?? [];
+  const expectedGroupIds = expectedGroups.map((group) => group._id);
 
-    list.push({
-      id: member.id,
-      full_name: member.full_name,
-      email: member.email,
-      student_id: member.student_id,
-    });
+  const [allSubmissions, members] = await Promise.all([
+    Submission.find({
+      assignment: assignment._id,
+    })
+      .populate('submittedBy', 'fullName email')
+      .populate('group', 'name isDeleted')
+      .lean(),
+    User.find({
+      isDeleted: false,
+      _id: {
+        $in: expectedGroups.flatMap((group) => group.members),
+      },
+    }).lean(),
+  ]);
 
-    map.set(member.group_id, list);
-    return map;
-  }, new Map());
+  const expectedGroupIdSet = new Set(
+    expectedGroupIds.map((groupId) => groupId.toString())
+  );
 
-  const groups = trackerRows.map((row) => {
-    const members = row.group_deleted
-      ? []
-      : membersByGroupId.get(row.group_id) ?? [];
+  const expectedSubmissions = allSubmissions.filter(
+    (submission) =>
+      submission.group &&
+      !submission.group.isDeleted &&
+      expectedGroupIdSet.has(submission.group._id.toString())
+  );
+
+  const deletedSubmissions = allSubmissions.filter(
+    (submission) => !submission.group || submission.group.isDeleted
+  );
+
+  const memberMap = new Map(members.map((member) => [member._id.toString(), member]));
+  const submissionsByGroupId = new Map(
+    expectedSubmissions.map((submission) => [
+      submission.group._id.toString(),
+      submission,
+    ])
+  );
+
+  const rows = expectedGroups.map((group) => {
+    const submission = submissionsByGroupId.get(group._id.toString());
+    const groupMembers = group.members
+      .map((memberId) => memberMap.get(memberId.toString()))
+      .filter(Boolean)
+      .map((member) => ({
+        id: member._id.toString(),
+        full_name: member.fullName,
+        email: member.email,
+        student_id: member.studentId ?? null,
+      }));
 
     return {
-      row_id: row.group_deleted
-        ? `deleted:${row.submission_id}`
-        : `group:${row.group_id}`,
-      group_id: row.group_id,
-      group_name: row.group_name,
-      group_deleted: Boolean(row.group_deleted),
-      group_note: row.group_deleted ? row.group_note : null,
-      is_submitted: Boolean(row.is_submitted),
-      submitted_by_name: row.submitted_by_name ?? null,
-      submitted_by_email: row.submitted_by_email ?? null,
-      confirmed_at: row.confirmed_at ?? null,
-      member_count: members.length,
-      members,
+      row_id: `group:${group._id.toString()}`,
+      group_id: group._id.toString(),
+      group_name: group.name,
+      group_deleted: false,
+      group_note: null,
+      is_submitted: Boolean(submission),
+      submitted_by_name: submission?.submittedBy?.fullName ?? null,
+      submitted_by_email: submission?.submittedBy?.email ?? null,
+      confirmed_at: submission?.confirmedAt ?? null,
+      member_count: groupMembers.length,
+      members: groupMembers,
     };
+  });
+
+  const deletedRows = deletedSubmissions.map((submission) => ({
+    row_id: `deleted:${submission._id.toString()}`,
+    group_id: null,
+    group_name: submission.groupNameSnapshot || UNKNOWN_GROUP_NAME,
+    group_deleted: true,
+    group_note: 'Group no longer exists - members were released.',
+    is_submitted: true,
+    submitted_by_name: submission.submittedBy?.fullName ?? null,
+    submitted_by_email: submission.submittedBy?.email ?? null,
+    confirmed_at: submission.confirmedAt ?? null,
+    member_count: 0,
+    members: [],
+  }));
+
+  const groups = [...rows, ...deletedRows].sort((a, b) => {
+    if (a.group_name !== b.group_name) {
+      return a.group_name.localeCompare(b.group_name);
+    }
+
+    if (a.group_deleted !== b.group_deleted) {
+      return Number(a.group_deleted) - Number(b.group_deleted);
+    }
+
+    const aTime = a.confirmed_at ? new Date(a.confirmed_at).getTime() : Number.MAX_SAFE_INTEGER;
+    const bTime = b.confirmed_at ? new Date(b.confirmed_at).getTime() : Number.MAX_SAFE_INTEGER;
+    return aTime - bTime;
   });
 
   const submittedGroups = groups.filter((group) => group.is_submitted).length;
@@ -265,10 +546,10 @@ export async function getAssignmentGroupStudentStatus(assignmentId) {
 
   return {
     assignment: {
-      id: assignment.id,
+      id: assignment._id.toString(),
       title: assignment.title,
-      assign_to: assignment.assign_to,
-      due_date: assignment.due_date,
+      assign_to: assignment.assignTo === 'all' ? 'all' : 'specific',
+      due_date: assignment.dueDate,
     },
     summary: {
       submitted_groups: submittedGroups,

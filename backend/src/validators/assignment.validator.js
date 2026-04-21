@@ -1,5 +1,10 @@
 import { z } from 'zod';
 
+const objectIdSchema = z
+  .string()
+  .trim()
+  .regex(/^[a-f\d]{24}$/i, 'Must be a valid ObjectId');
+
 const futureIsoDateSchema = z
   .string()
   .trim()
@@ -35,9 +40,11 @@ const assignmentSchema = z.object({
     }),
   assign_to: z.enum(['all', 'specific']),
   group_ids: z
-    .array(z.string().uuid('Each group ID must be a valid UUID'))
+    .array(objectIdSchema)
     .min(1, 'At least one group must be selected')
     .optional(),
+  course_id: objectIdSchema.optional(),
+  submission_type: z.enum(['individual', 'group']).optional(),
 });
 
 export const createAssignmentSchema = assignmentSchema.refine(

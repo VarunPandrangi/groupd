@@ -1,49 +1,61 @@
-import {
-  createUser,
-  emailExists,
-  findByEmail,
-  findById,
-  studentIdExists,
-} from '../models/user.model.js';
-import { hashPassword, comparePassword } from '../utils/password.js';
+import { Group } from '../models/group.model.js';
+import { User } from '../models/user.model.js';
 import {
   generateAccessToken,
   generateRefreshToken,
   verifyRefreshToken,
 } from '../utils/jwt.js';
 
-/**
- * Build an Error object tagged with an HTTP status code and error code
- * so the global error handler can format it as a standardized response.
- */
 const httpError = (statusCode, code, message) =>
   Object.assign(new Error(message), { statusCode, code });
 
-/**
- * Issue both access and refresh tokens for a given user row.
- */
+async function findActiveGroupIdForUser(userId) {
+  const group = await Group.findOne({
+    members: userId,
+    isDeleted: false,
+  })
+    .select('_id')
+    .lean();
+
+  return group?._id?.toString() ?? null;
+}
+
+async function toSafeUser(user) {
+  const groupId = await findActiveGroupIdForUser(user._id);
+
+  return {
+    id: user._id.toString(),
+    full_name: user.fullName,
+    email: user.email,
+    student_id: user.studentId ?? null,
+    role: user.role,
+    group_id: groupId,
+    created_at: user.createdAt,
+    updated_at: user.updatedAt,
+  };
+}
+
 function issueTokens(user) {
   const payload = {
-    userId: user.id,
+    userId: user._id.toString(),
     email: user.email,
     role: user.role,
   };
+
   return {
     accessToken: generateAccessToken(payload),
     refreshToken: generateRefreshToken(payload),
   };
 }
 
-/**
- * Register a new student account.
- * Admins are NOT creatable via this endpoint (plan.md Rule 10) — role is
- * hardcoded to 'student' regardless of any input.
- */
 export async function register({ full_name, email, student_id, password }) {
-  if (await emailExists(email)) {
+  const normalizedEmail = email.toLowerCase();
+
+  if (await User.findByEmail(normalizedEmail)) {
     throw httpError(409, 'EMAIL_EXISTS', 'This email is already registered');
   }
-  if (await studentIdExists(student_id)) {
+
+  if (await User.findByStudentId(student_id)) {
     throw httpError(
       409,
       'STUDENT_ID_EXISTS',
@@ -51,75 +63,100 @@ export async function register({ full_name, email, student_id, password }) {
     );
   }
 
-  const password_hash = await hashPassword(password);
-  const user = await createUser({
-    full_name,
-    email,
-    student_id,
-    password_hash,
+  const user = await User.create({
+    fullName: full_name,
+    email: normalizedEmail,
+    studentId: student_id,
+    password,
     role: 'student',
   });
 
   const tokens = issueTokens(user);
-  return { user, ...tokens };
+  user.refreshToken = tokens.refreshToken;
+  await user.save();
+
+  return {
+    user: await toSafeUser(user),
+    ...tokens,
+  };
 }
 
-/**
- * Authenticate a user by email + password.
- * Uses a single generic error message for both "email not found" and
- * "wrong password" to avoid user enumeration.
- */
 export async function login({ email, password }) {
-  const record = await findByEmail(email);
-  if (!record) {
+  const normalizedEmail = email.toLowerCase();
+  const user = await User.findByEmail(normalizedEmail);
+
+  if (!user) {
     throw httpError(401, 'INVALID_CREDENTIALS', 'Invalid email or password');
   }
 
-  const ok = await comparePassword(password, record.password_hash);
+  const ok = await user.comparePassword(password);
   if (!ok) {
     throw httpError(401, 'INVALID_CREDENTIALS', 'Invalid email or password');
   }
 
-  // Strip the hash before returning.
-  const { password_hash: _ignored, ...user } = record;
   const tokens = issueTokens(user);
-  return { user, ...tokens };
+  user.refreshToken = tokens.refreshToken;
+  await user.save();
+
+  return {
+    user: await toSafeUser(user),
+    ...tokens,
+  };
 }
 
-/**
- * Exchange a valid refresh token for a new access token.
- * Re-reads the user from the DB so role changes (e.g. future promotions)
- * are reflected immediately rather than trusting stale token claims.
- */
 export async function refreshToken(token) {
   let payload;
+
   try {
     payload = verifyRefreshToken(token);
   } catch (err) {
-    // Let the error handler map JwtError/TokenExpiredError -> 401.
     throw err;
   }
 
-  const user = await findById(payload.userId);
+  const user = await User.findOne({
+    _id: payload.userId,
+    refreshToken: token,
+    isDeleted: false,
+  });
+
   if (!user) {
     throw httpError(401, 'INVALID_TOKEN', 'Invalid refresh token');
   }
 
-  const accessToken = generateAccessToken({
-    userId: user.id,
-    email: user.email,
-    role: user.role,
-  });
-  return { accessToken };
+  return {
+    accessToken: generateAccessToken({
+      userId: user._id.toString(),
+      email: user.email,
+      role: user.role,
+    }),
+  };
 }
 
-/**
- * Return the authenticated user's profile.
- */
-export async function getMe(userId) {
-  const user = await findById(userId);
+export async function logout(userId) {
+  const user = await User.findOne({
+    _id: userId,
+    isDeleted: false,
+  });
+
   if (!user) {
     throw httpError(404, 'USER_NOT_FOUND', 'User not found');
   }
-  return user;
+
+  user.refreshToken = null;
+  await user.save();
+
+  return null;
+}
+
+export async function getMe(userId) {
+  const user = await User.findOne({
+    _id: userId,
+    isDeleted: false,
+  });
+
+  if (!user) {
+    throw httpError(404, 'USER_NOT_FOUND', 'User not found');
+  }
+
+  return toSafeUser(user);
 }

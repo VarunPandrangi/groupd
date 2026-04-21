@@ -1,12 +1,16 @@
-import pg from 'pg';
+import mongoose from 'mongoose';
 
-const { Pool } = pg;
+import { env } from './env.js';
+import { logger } from '../utils/logger.js';
 
-export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
-
-pool.on('error', (err) => {
-  // eslint-disable-next-line no-console
-  console.error('[database] Unexpected error on idle client', err);
-});
+export const connectDB = async () => {
+  try {
+    await mongoose.connect(env.MONGODB_URI, {
+      dbName: 'groupd',
+    });
+    logger.info('MongoDB connected');
+  } catch (err) {
+    logger.error('MongoDB connection failed', err);
+    process.exit(1);
+  }
+};
