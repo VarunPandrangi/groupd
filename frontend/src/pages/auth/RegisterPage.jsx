@@ -6,8 +6,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { SpinnerGap } from '@phosphor-icons/react';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../../stores/authStore';
-import Card from '../../components/common/Card';
-import Button from '../../components/common/Button';
 
 const registerSchema = z
   .object({
@@ -88,47 +86,58 @@ export default function RegisterPage() {
   ];
 
   return (
-    <div className="min-h-screen flex items-center justify-center auth-page">
-      <Card className="rounded-xl border w-full max-w-md auth-card">
-        <p className="text-xs font-medium uppercase tracking-wide eyebrow eyebrow--accent">Create account</p>
-        <h1 className="text-3xl font-bold tracking-tight page-title" style={{ marginTop: 10 }}>
-          Join your class workspace
-        </h1>
-        <p className="text-base leading-relaxed page-description">
-          Create a student account to join a group, track assignments, and confirm submissions with your team.
-        </p>
+    <div className="stitch-auth-signup">
+      <main className="stitch-auth-signup__main">
+        <section className="stitch-auth-signup__card" aria-label="Create account form">
+          <span className="stitch-auth-signup__corner stitch-auth-signup__corner--top" aria-hidden="true" />
+          <span className="stitch-auth-signup__corner stitch-auth-signup__corner--bottom" aria-hidden="true" />
 
-        <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 surface-grid" style={{ marginTop: 24 }}>
-          {fields.map((field) => (
-            <div key={field.name} className="grid gap-2 field">
-              <label htmlFor={`register-${field.name}`} className="text-sm font-medium field__label">
-                {field.label}
-              </label>
-              <input
-                id={`register-${field.name}`}
-                type={field.type}
-                className="w-full rounded-md input"
-                placeholder={field.placeholder}
-                autoComplete={field.type === 'email' ? 'email' : 'off'}
-                {...register(field.name)}
-              />
-              <span className="text-xs field__error">{errors[field.name]?.message}</span>
-            </div>
-          ))}
+          <div className="stitch-auth-signup__header">
+            <h1 className="stitch-auth-signup__brand">GROUPD</h1>
+            <h2 className="stitch-auth-signup__title">Join your class workspace</h2>
+            <p className="stitch-auth-signup__subtitle">
+              Create a student account to join a group, track assignments, and confirm submissions with your team.
+            </p>
+          </div>
 
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? <SpinnerGap size={16} className="inline-flex items-center justify-center spinner" /> : null}
-            {isSubmitting ? 'Creating account...' : 'Create Account'}
-          </Button>
-        </form>
+          <form onSubmit={handleSubmit(onSubmit)} className="stitch-auth-signup__form" noValidate>
+            {fields.map((field) => (
+              <div key={field.name} className="stitch-auth-signup__field">
+                <label htmlFor={`register-${field.name}`} className="stitch-auth-signup__label">
+                  {field.label.toUpperCase()}
+                </label>
+                <input
+                  id={`register-${field.name}`}
+                  type={field.type}
+                  className="stitch-auth-signup__input"
+                  placeholder={field.placeholder}
+                  autoComplete={field.type === 'email' ? 'email' : 'off'}
+                  {...register(field.name)}
+                />
+                <span className="stitch-auth-signup__error">{errors[field.name]?.message || ' '}</span>
+              </div>
+            ))}
 
-        <p className="text-sm toolbar__meta" style={{ marginTop: 20 }}>
-          Already have an account?{' '}
-          <Link to="/login" style={{ color: 'var(--accent-blue)', fontWeight: 600 }}>
-            Sign in
-          </Link>
-        </p>
-      </Card>
+            <button type="submit" disabled={isSubmitting} className="stitch-auth-signup__submit">
+              {isSubmitting ? <SpinnerGap size={16} className="spinner" /> : null}
+              <span>{isSubmitting ? 'CREATING ACCOUNT' : 'CREATE ACCOUNT'}</span>
+              <span aria-hidden="true" className="stitch-auth-signup__submit-arrow">
+                -&gt;
+              </span>
+              <span aria-hidden="true" className="stitch-auth-signup__submit-depth" />
+            </button>
+          </form>
+
+          <div className="stitch-auth-signup__switch">
+            <p>
+              Already have an account?
+              <Link to="/login" className="stitch-auth-signup__switch-link">
+                SIGN IN
+              </Link>
+            </p>
+          </div>
+        </section>
+      </main>
     </div>
   );
 }

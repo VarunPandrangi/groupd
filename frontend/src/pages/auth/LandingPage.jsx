@@ -249,7 +249,6 @@ function buildConnectedPath(sourceNode, destinationNode, nodeMeasurements) {
 
   /* Diagonal connections: smooth S-curve through a midpoint */
   const midX = start.x + dx * 0.5;
-  const midY = start.y + dy * 0.5;
   return `M ${start.x} ${start.y} C ${midX} ${start.y}, ${midX} ${end.y}, ${end.x} ${end.y}`;
 }
 

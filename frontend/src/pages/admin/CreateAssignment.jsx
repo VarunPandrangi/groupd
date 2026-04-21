@@ -30,13 +30,14 @@ export default function CreateAssignment() {
   return (
     <div className="w-full">
       <AssignmentForm
-        heading="Create a new assignment"
+        heading="Create new assignment"
         description="Capture the brief, set a clear due date, and decide whether it should reach every group or only a hand-picked set."
         submitLabel="Create Assignment"
         submitLabelPending="Creating..."
         onSubmit={handleSubmit}
         onBack={() => navigate('/admin/assignments')}
         backLabel="Back to Assignments"
+        visualVariant="architectural-create"
         initialValues={{
           title: '',
           description: '',

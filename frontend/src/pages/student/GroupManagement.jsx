@@ -2,42 +2,26 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
-  Crown,
-  EnvelopeSimple,
+  MagnifyingGlass,
   Plus,
+  PlusCircle,
+  SpinnerGap,
   TrashSimple,
+  User,
   UserMinus,
   UserPlus,
   UsersThree,
 } from '@phosphor-icons/react';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
-import EmptyState from '../../components/common/EmptyState';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
-import Card from '../../components/common/Card';
-import Button from '../../components/common/Button';
-import { Page, PageHeader, SectionHeading } from '../../components/common/Page';
 import { useAuthStore } from '../../stores/authStore';
 import { useGroupStore } from '../../stores/groupStore';
-
-function formatDate(dateValue) {
-  if (!dateValue) {
-    return 'Unknown';
-  }
-
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  }).format(new Date(dateValue));
-}
-
-function getInitial(name) {
-  return name?.trim()?.charAt(0)?.toUpperCase() ?? '?';
-}
 
 function getErrorMessage(error, fallbackMessage) {
   return error?.response?.data?.error?.message || fallbackMessage;
 }
+
+const MAX_GROUP_MEMBERS = 6;
 
 export default function GroupManagement() {
   const navigate = useNavigate();
@@ -97,6 +81,10 @@ export default function GroupManagement() {
       }),
     [group?.created_by, members]
   );
+
+  const openSlotCount = isLeader
+    ? Math.max(0, MAX_GROUP_MEMBERS - sortedMembers.length)
+    : 0;
 
   const confirmDialogConfig = useMemo(() => {
     if (confirmState.type === 'remove' && confirmState.member) {
@@ -205,126 +193,142 @@ export default function GroupManagement() {
     }
   };
 
+  const handleJoinExisting = () => {
+    toast('Ask a group leader to invite you using your email or student ID.');
+  };
+
   if (!isReady) {
     return <LoadingSpinner />;
   }
 
   if (!group) {
     return (
-      <EmptyState
-        icon={UsersThree}
-        title="You're not in a group yet"
-        message="Create a group to invite classmates, track your team, and keep collaboration organized in one place."
-        actionLabel="Create a Group"
-        onAction={() => navigate('/student/group/create')}
-      />
+      <div className="stitch-dashboard__module-wrap" aria-label="Stitch no-group workspace">
+        <section className="stitch-group-empty" aria-labelledby="stitch-group-empty-title">
+          <div className="stitch-group-empty__grid" aria-hidden="true" />
+
+          <div className="stitch-group-empty__panel">
+            <div className="stitch-group-empty__visual" aria-hidden="true">
+              <div className="stitch-group-empty__silhouette" />
+              <div className="stitch-group-empty__status-card">
+                <UsersThree size={30} weight="fill" />
+                <span className="stitch-group-empty__status-rule" />
+                <p>STATUS: UNASSIGNED</p>
+              </div>
+            </div>
+
+            <div className="stitch-group-empty__copy">
+              <div className="stitch-group-empty__copy-corners" aria-hidden="true" />
+
+              <p className="stitch-group-empty__eyebrow">
+                <span className="stitch-group-empty__eyebrow-dot" />
+                ACTION REQUIRED
+              </p>
+
+              <h2 id="stitch-group-empty-title" className="stitch-group-empty__title">
+                YOU&apos;RE NOT IN A GROUP YET
+              </h2>
+
+              <p className="stitch-group-empty__message">
+                Create a group to invite classmates, track your team&apos;s progress, and keep
+                collaboration organized in one place.
+              </p>
+
+              <div className="stitch-group-empty__actions">
+                <button
+                  type="button"
+                  className="stitch-group-empty__button stitch-group-empty__button--primary"
+                  onClick={() => navigate('/student/group/create')}
+                >
+                  <PlusCircle size={17} weight="fill" />
+                  CREATE GROUP
+                </button>
+
+                <button
+                  type="button"
+                  className="stitch-group-empty__button stitch-group-empty__button--secondary"
+                  onClick={handleJoinExisting}
+                >
+                  <MagnifyingGlass size={17} />
+                  JOIN EXISTING
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
     );
   }
 
   return (
-    <Page>
-      <PageHeader
-        eyebrow="Group Workspace"
-        eyebrowAccent
-        title={group.name}
-        description={
-          group.description ||
-          'No group description yet. Add one when you want to give your team a shared identity.'
-        }
-        actions={
-          isLeader ? (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setIsAddFormOpen((currentValue) => !currentValue)}
-            >
-              <UserPlus size={16} />
-              {isAddFormOpen ? 'Close Invite' : 'Add Member'}
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() =>
-                setConfirmState({
-                  type: 'leave',
-                  member: null,
-                  isSubmitting: false,
-                })
-              }
-            >
-              <UserMinus size={16} />
-              Leave Group
-            </Button>
-          )
-        }
-      />
-
-      <Card>
-        <div className="grid gap-4 surface-grid">
-          <div className="flex items-center gap-3 cluster">
-            <span className="inline-flex items-center gap-2 rounded-full text-sm font-medium pill">
-              Created on {formatDate(group.created_at)}
-            </span>
-            <span className="inline-flex items-center gap-2 rounded-full text-sm font-medium pill pill--green">
-              {members.length} {members.length === 1 ? 'member' : 'members'}
-            </span>
+    <div aria-label="Stitch active-group workspace">
+      <section className="stitch-group-uniform__panel" aria-labelledby="stitch-group-uniform-title">
+        <header className="stitch-group-uniform__hero">
+          <div>
+            <p className="stitch-group-uniform__hero-kicker">PROJECT ALPHA - FALL SEMESTER</p>
+            <h2 id="stitch-group-uniform-title" className="stitch-group-uniform__hero-title">
+              {group.name}
+            </h2>
+            {group.description ? (
+              <p className="stitch-group-uniform__hero-meta">{group.description}</p>
+            ) : null}
           </div>
 
-          {isLeader && isAddFormOpen ? (
-            <Card as="section" className="grid gap-4 surface-grid" style={{ background: 'var(--bg-page)' }}>
-              <div>
-                <div className="text-sm font-semibold table__title">Invite a classmate</div>
-                <span className="text-sm leading-relaxed table__description">
-                  Enter their registered email address or student ID.
-                </span>
-              </div>
+          <div className="stitch-group-uniform__hero-status">
+            <span className="stitch-group-uniform__hero-status-label">STATUS</span>
+            <span className="stitch-group-uniform__hero-status-value">ACTIVE</span>
+          </div>
+        </header>
 
-              <form onSubmit={handleAddMember} className="flex items-center justify-between gap-4 toolbar">
-                <div style={{ flex: '1 1 280px' }}>
-                  <input
-                    type="text"
-                    className="w-full rounded-md input"
-                    value={memberIdentifier}
-                    onChange={(event) => setMemberIdentifier(event.target.value)}
-                    placeholder="student@college.edu or 22CS101"
-                  />
-                </div>
-                <Button type="submit" disabled={isAddingMember}>
-                  {isAddingMember ? <LoadingSpinner fullPage={false} size={18} /> : <Plus size={16} />}
-                  Add
-                </Button>
-              </form>
-            </Card>
-          ) : null}
-        </div>
-      </Card>
+        {isLeader && isAddFormOpen ? (
+          <section className="stitch-group-uniform__invite" aria-labelledby="stitch-group-uniform-invite">
+            <p id="stitch-group-uniform-invite" className="stitch-group-uniform__invite-title">
+              INVITE A CLASSMATE
+            </p>
 
-      <SectionHeading
-        eyebrow="Member Roster"
-        title="Everyone in the room"
-      />
+            <form onSubmit={handleAddMember} className="stitch-group-uniform__invite-form">
+              <input
+                type="text"
+                className="stitch-group-uniform__input"
+                value={memberIdentifier}
+                onChange={(event) => setMemberIdentifier(event.target.value)}
+                placeholder="student@college.edu or 22CS101"
+              />
 
-      <div
-        className="grid gap-4 surface-grid"
-        style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}
-      >
-        {sortedMembers.map((member) => {
-          const memberIsLeader = member.id === group.created_by;
-          const memberIsSelf = member.id === user?.id;
+              <button type="submit" className="stitch-group-uniform__invite-submit" disabled={isAddingMember}>
+                {isAddingMember ? <SpinnerGap size={14} className="spinner" /> : <UserPlus size={13} />}
+                {isAddingMember ? 'ADDING...' : 'ADD MEMBER'}
+              </button>
 
-          return (
-            <Card key={member.id} interactive className="grid gap-4 surface-grid">
-              <div className="flex items-start justify-between gap-3 card__header">
-                <span className="inline-flex items-center justify-center rounded-full member-avatar" style={{ width: 52, height: 52, fontSize: 18 }}>
-                  {getInitial(member.full_name)}
-                </span>
+              <button
+                type="button"
+                className="stitch-group-uniform__invite-close"
+                onClick={() => setIsAddFormOpen(false)}
+              >
+                CLOSE
+              </button>
+            </form>
+          </section>
+        ) : null}
+
+        <div className="stitch-group-uniform__roster-grid">
+          {sortedMembers.map((member) => {
+            const memberIsSelf = member.id === user?.id;
+            const isLeadCard = member.id === group?.created_by;
+
+            return (
+              <article
+                key={member.id}
+                className={`stitch-group-uniform__member-card${
+                  isLeadCard ? ' stitch-group-uniform__member-card--lead' : ''
+                }`}
+              >
+                {isLeadCard ? <span className="stitch-group-uniform__member-accent" aria-hidden="true" /> : null}
 
                 {isLeader && !memberIsSelf ? (
-                  <Button
+                  <button
                     type="button"
-                    variant="icon"
-                    iconOnly
+                    className="stitch-group-uniform__member-remove"
                     onClick={() =>
                       setConfirmState({
                         type: 'remove',
@@ -334,56 +338,71 @@ export default function GroupManagement() {
                     }
                     aria-label={`Remove ${member.full_name}`}
                   >
-                    <TrashSimple size={16} />
-                  </Button>
+                    <TrashSimple size={13} />
+                  </button>
                 ) : null}
-              </div>
 
-              <div>
-                <div className="flex items-center gap-3 cluster">
-                  <h2 className="text-lg font-semibold tracking-tight card__title">{member.full_name}</h2>
-                  {memberIsLeader ? (
-                    <span className="inline-flex items-center gap-2 rounded-full text-sm font-medium pill pill--amber">
-                      <Crown size={14} />
-                      Leader
+                <div className="stitch-group-uniform__member-body">
+                  <div className="stitch-group-uniform__member-head">
+                    <span className="stitch-group-uniform__member-avatar">
+                      <User size={50} />
                     </span>
-                  ) : null}
-                  {memberIsSelf ? <span className="inline-flex items-center gap-2 rounded-full text-sm font-medium pill pill--blue">You</span> : null}
-                </div>
-              </div>
 
-              <div className="grid gap-4 surface-grid">
-                <div className="flex items-center gap-3 text-sm cluster mono muted" style={{ fontSize: '13px' }}>
-                  <EnvelopeSimple size={14} />
-                  <span>{member.email}</span>
-                </div>
-                <div className="flex items-center justify-between gap-4 toolbar">
-                  <span className="text-xs font-medium uppercase tracking-wide eyebrow">Student ID</span>
-                  <span className="text-sm mono">{member.student_id}</span>
-                </div>
-              </div>
-            </Card>
-          );
-        })}
-      </div>
+                    <span
+                      className={`stitch-group-uniform__member-label${
+                        isLeadCard ? ' stitch-group-uniform__member-label--lead' : ''
+                      }`}
+                    >
+                      {member.student_id}
+                    </span>
+                  </div>
 
-      {isLeader ? (
-        <Card variant="accent" accent="var(--accent-red)">
-          <div className="flex items-center justify-between gap-4 toolbar">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide eyebrow" style={{ color: 'var(--accent-red)' }}>
-                Danger Zone
-              </p>
-              <h2 className="text-2xl font-bold tracking-tight section-heading__title" style={{ marginTop: 8 }}>
-                Delete this group
-              </h2>
-              <p className="text-base leading-relaxed page-description">
-                This removes every member from the group and resets your team workspace.
-              </p>
-            </div>
-            <Button
+                  <p className="stitch-group-uniform__member-role">
+                    {isLeadCard ? 'Team Leader' : 'Member'}
+                  </p>
+                  <h3 className="stitch-group-uniform__member-name">{member.full_name}</h3>
+                </div>
+
+                <a href={`mailto:${member.email}`} className="stitch-group-uniform__member-action">
+                  {member.email}
+                </a>
+              </article>
+            );
+          })}
+
+          {Array.from({ length: openSlotCount }).map((_, index) => (
+            <button
+              key={`open-slot-${index}`}
               type="button"
-              variant="danger"
+              className="stitch-group-uniform__open-slot"
+              onClick={() => setIsAddFormOpen(true)}
+            >
+              <span className="stitch-group-uniform__open-slot-icon">
+                <Plus size={18} />
+              </span>
+              <span className="stitch-group-uniform__open-slot-title">OPEN SLOT</span>
+              <span className="stitch-group-uniform__open-slot-invite">INVITE MEMBER</span>
+            </button>
+          ))}
+        </div>
+
+        <section className="stitch-group-uniform__danger" aria-labelledby="stitch-group-uniform-danger-title">
+          <div className="stitch-group-uniform__danger-copy">
+            <p className="stitch-group-uniform__danger-kicker">DANGER ZONE</p>
+            <h3 id="stitch-group-uniform-danger-title" className="stitch-group-uniform__danger-title">
+              {isLeader ? 'DELETE THIS GROUP' : 'LEAVE THIS GROUP'}
+            </h3>
+            <p className="stitch-group-uniform__danger-text">
+              {isLeader
+                ? 'This removes every member from the group and resets your team workspace.'
+                : 'Leave this group to return to an unassigned workspace state.'}
+            </p>
+          </div>
+
+          {isLeader ? (
+            <button
+              type="button"
+              className="stitch-group-uniform__danger-action"
               onClick={() =>
                 setConfirmState({
                   type: 'delete',
@@ -393,10 +412,25 @@ export default function GroupManagement() {
               }
             >
               Delete Group
-            </Button>
-          </div>
-        </Card>
-      ) : null}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="stitch-group-uniform__danger-action stitch-group-uniform__danger-action--secondary"
+              onClick={() =>
+                setConfirmState({
+                  type: 'leave',
+                  member: null,
+                  isSubmitting: false,
+                })
+              }
+            >
+              <UserMinus size={13} />
+              Leave Group
+            </button>
+          )}
+        </section>
+      </section>
 
       <ConfirmDialog
         isOpen={Boolean(confirmState.type && confirmDialogConfig)}
@@ -408,6 +442,6 @@ export default function GroupManagement() {
         onConfirm={handleConfirmAction}
         variant="danger"
       />
-    </Page>
+    </div>
   );
 }

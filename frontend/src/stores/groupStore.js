@@ -1,10 +1,26 @@
 import { create } from 'zustand';
 import groupService from '../services/groupService';
+import { useAuthStore } from './authStore';
 
 const buildGroupState = (group) => ({
   group,
   members: group?.members ?? [],
 });
+
+function syncCurrentUserGroup(groupId) {
+  const user = useAuthStore.getState().user;
+
+  if (!user || user.group_id === groupId) {
+    return;
+  }
+
+  useAuthStore.setState({
+    user: {
+      ...user,
+      group_id: groupId,
+    },
+  });
+}
 
 export const useGroupStore = create((set) => ({
   group: null,
@@ -15,6 +31,7 @@ export const useGroupStore = create((set) => ({
     set({ isLoading: true });
     try {
       const group = await groupService.getMyGroup();
+      syncCurrentUserGroup(group?.id ?? null);
       set({
         ...buildGroupState(group),
         isLoading: false,
@@ -30,6 +47,7 @@ export const useGroupStore = create((set) => ({
     set({ isLoading: true });
     try {
       const group = await groupService.createGroup(payload);
+      syncCurrentUserGroup(group?.id ?? null);
       set({
         ...buildGroupState(group),
         isLoading: false,
@@ -75,6 +93,7 @@ export const useGroupStore = create((set) => ({
     set({ isLoading: true });
     try {
       await groupService.leaveGroup();
+      syncCurrentUserGroup(null);
       set({
         group: null,
         members: [],
@@ -91,6 +110,7 @@ export const useGroupStore = create((set) => ({
     set({ isLoading: true });
     try {
       await groupService.deleteGroup();
+      syncCurrentUserGroup(null);
       set({
         group: null,
         members: [],

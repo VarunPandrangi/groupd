@@ -3,7 +3,6 @@ import { Routes, Route } from 'react-router-dom';
 import { MagnifyingGlass } from '@phosphor-icons/react';
 import { useAuthStore } from './stores/authStore';
 
-import PublicLayout from './layouts/PublicLayout';
 import StudentLayout from './layouts/StudentLayout';
 import AdminLayout from './layouts/AdminLayout';
 import ProtectedRoute from './components/common/ProtectedRoute';
@@ -49,10 +48,8 @@ export default function App() {
     <Routes>
       <Route path="/" element={<LandingPage />} />
 
-      <Route element={<PublicLayout />}>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-      </Route>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
 
       <Route element={<ProtectedRoute allowedRoles={['student']} />}>
         <Route path="/student" element={<StudentLayout />}>

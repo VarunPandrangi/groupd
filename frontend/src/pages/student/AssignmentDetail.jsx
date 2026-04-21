@@ -9,12 +9,8 @@ import {
   FileText,
 } from '@phosphor-icons/react';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
-import StatusBadge from '../../components/common/StatusBadge';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
-import Card from '../../components/common/Card';
-import Button from '../../components/common/Button';
 import FormattedText from '../../components/common/FormattedText';
-import { Page } from '../../components/common/Page';
 import { useAssignmentStore } from '../../stores/assignmentStore';
 import { useSubmissionStore } from '../../stores/submissionStore';
 import { useAuthStore } from '../../stores/authStore';
@@ -40,6 +36,28 @@ function formatTimestamp(dateString) {
   }).format(date);
 }
 
+function getStatusTone(status, hasSubmitted) {
+  if (hasSubmitted) {
+    return { label: 'Submitted', tone: 'submitted' };
+  }
+
+  const normalizedStatus = String(status || 'pending').trim().toLowerCase();
+
+  if (normalizedStatus === 'overdue') {
+    return { label: 'Overdue', tone: 'overdue' };
+  }
+
+  if (normalizedStatus === 'active') {
+    return { label: 'Active', tone: 'active' };
+  }
+
+  if (normalizedStatus === 'upcoming') {
+    return { label: 'Upcoming', tone: 'upcoming' };
+  }
+
+  return { label: 'Pending', tone: 'pending' };
+}
+
 export default function AssignmentDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -61,6 +79,7 @@ export default function AssignmentDetail() {
 
   const mySubmission = mySubmissions.find((submission) => submission.assignment_id === id);
   const hasSubmitted = Boolean(mySubmission);
+  const statusMeta = getStatusTone(currentAssignment?.status, hasSubmitted);
 
   useEffect(() => {
     let isMounted = true;
@@ -129,109 +148,120 @@ export default function AssignmentDetail() {
   }
 
   return (
-    <Page>
-      <Button type="button" variant="secondary" onClick={() => navigate('/student/assignments')}>
-        <ArrowLeft size={16} />
-        Back to Assignments
-      </Button>
+    <>
+      <div className="stitch-assignment-detail__content" aria-label="Assignment submission workspace">
+        <div className="stitch-assignment-detail__back-wrap">
+          <button
+            type="button"
+            className="stitch-assignment-detail__back"
+            onClick={() => navigate('/student/assignments')}
+          >
+            <ArrowLeft size={14} weight="bold" />
+            Back to Assignments
+          </button>
+        </div>
 
-      <Card>
-        <div className="flex items-start justify-between gap-4 page-header">
-          <div className="w-full max-w-4xl page-header__body">
-            <p className="text-xs font-medium uppercase tracking-wide eyebrow eyebrow--accent">Assignment Detail</p>
-            <h1 className="text-3xl font-bold tracking-tight page-title">{currentAssignment.title}</h1>
-            <div className="flex items-center gap-3 cluster" style={{ marginTop: 14 }}>
-              <StatusBadge status={currentAssignment.status} />
-              <span className="text-sm inline-flex items-center gap-2 rounded-full font-medium pill mono">
-                <CalendarBlank size={14} />
-                {formatAssignmentDate(currentAssignment.due_date)}
+        <section className="stitch-assignment-detail__hero" aria-label="Assignment header">
+          <div className="stitch-assignment-detail__hero-copy">
+            <div className="stitch-assignment-detail__meta-row">
+              <span
+                className={`stitch-assignment-detail__status stitch-assignment-detail__status--${statusMeta.tone}`}
+              >
+                {statusMeta.label}
               </span>
-              <span className="text-sm toolbar__meta">
+
+              <span className="stitch-assignment-detail__due">
+                <CalendarBlank size={13} />
+                Due: {formatAssignmentDate(currentAssignment.due_date) || 'No due date'}
+              </span>
+
+              <span className="stitch-assignment-detail__delta">
                 {formatRelativeDueDate(currentAssignment.due_date)}
               </span>
             </div>
+
+            <h1 className="stitch-assignment-detail__title">{currentAssignment.title}</h1>
           </div>
 
-          <Button
+          <button
             type="button"
-            variant="secondary"
+            className="stitch-assignment-detail__link-btn"
+            disabled={!currentAssignment.onedrive_link}
             onClick={() =>
               window.open(currentAssignment.onedrive_link, '_blank', 'noopener,noreferrer')
             }
           >
+            <ArrowSquareOut size={14} weight="bold" />
             Open Submission Link
-            <ArrowSquareOut size={16} />
-          </Button>
-        </div>
-      </Card>
+          </button>
+        </section>
 
-      <div className="grid gap-4 sm:grid-cols-2 surface-grid surface-grid--two">
-        <Card>
-          <div className="grid gap-2 section-heading">
-            <p className="text-xs font-medium uppercase tracking-wide eyebrow">Assignment Brief</p>
-            <h2 className="text-2xl font-bold tracking-tight section-heading__title">What your group needs to deliver</h2>
-          </div>
-          <FormattedText
-            as="div"
-            className="text-base leading-relaxed text-sm page-description formatted-text"
-            text={currentAssignment.description}
-            fallback="No description provided for this assignment."
-          />
-        </Card>
+        <div className="stitch-assignment-detail__grid">
+          <section className="stitch-assignment-detail__brief" aria-labelledby="assignment-brief-title">
+            <h2 id="assignment-brief-title" className="stitch-assignment-detail__panel-title">
+              Assignment Brief
+            </h2>
+            <p className="stitch-assignment-detail__panel-kicker">What your group needs to deliver</p>
 
-        <Card
-          variant="accent"
-          accent={hasSubmitted ? 'var(--accent-green)' : 'var(--accent-blue)'}
-        >
-          <div className="grid gap-4 surface-grid">
-            <div className="flex items-center gap-3 cluster">
-              <div
-                className="inline-flex items-center justify-center rounded-xl metric__icon"
-                style={{
-                  background: hasSubmitted
-                    ? 'var(--accent-green-soft)'
-                    : 'var(--accent-blue-soft)',
-                  color: hasSubmitted ? 'var(--accent-green)' : 'var(--accent-blue)',
-                }}
-              >
-                {hasSubmitted ? <CheckCircle size={20} weight="fill" /> : <FileText size={20} />}
-              </div>
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide eyebrow">{hasSubmitted ? 'Submission Confirmed' : 'Group Submission'}</p>
-                <h2 className="text-2xl font-bold tracking-tight section-heading__title" style={{ marginTop: 8 }}>
-                  {hasSubmitted ? 'Submitted successfully' : 'Submit for your group'}
-                </h2>
-              </div>
+            <FormattedText
+              as="div"
+              className="stitch-assignment-detail__brief-copy formatted-text"
+              text={currentAssignment.description}
+              fallback="No description provided for this assignment."
+            />
+          </section>
+
+          <section className="stitch-assignment-detail__submission" aria-labelledby="assignment-submit-title">
+            <div className="stitch-assignment-detail__submission-corner" aria-hidden="true">
+              <FileText size={18} weight="fill" />
             </div>
 
-            {hasSubmitted ? (
-              <p className="text-base leading-relaxed page-description">
-                Confirmed by {mySubmission?.submitted_by_name || 'a group member'} on{' '}
-                {formatTimestamp(mySubmission?.confirmed_at)}.
-              </p>
-            ) : (
-              <>
-                <p className="text-base leading-relaxed page-description">
-                  Ready to confirm your submission? Make sure the work has been uploaded using the assignment link before you continue.
+            <h2 id="assignment-submit-title" className="stitch-assignment-detail__submission-title">
+              Group Submission
+            </h2>
+            <p className="stitch-assignment-detail__submission-kicker">
+              {hasSubmitted ? 'Submission confirmed for your group' : 'Submit for your group'}
+            </p>
+
+            <div className="stitch-assignment-detail__submission-callout">
+              {hasSubmitted ? (
+                <p>
+                  Confirmed by {mySubmission?.submitted_by_name || 'a group member'} on{' '}
+                  {formatTimestamp(mySubmission?.confirmed_at)}.
                 </p>
-                <div className="flex items-center gap-3 cluster">
-                  <Button
-                    type="button"
-                    disabled={isSubmitting || !user?.group_id}
-                    onClick={handlePrepareSubmission}
-                  >
-                    {isSubmitting ? 'Preparing...' : 'Mark as Submitted'}
-                  </Button>
-                </div>
-                {!user?.group_id ? (
-                  <span className="text-xs field__error">
-                    You must join a group before you can confirm submissions.
-                  </span>
-                ) : null}
-              </>
-            )}
-          </div>
-        </Card>
+              ) : (
+                <p>
+                  Please use the &quot;Open Submission Link&quot; button above to complete your assignment externally, then return here to mark it as submitted.
+                </p>
+              )}
+            </div>
+
+            <div className="stitch-assignment-detail__submission-actions">
+              {hasSubmitted ? (
+                <span className="stitch-assignment-detail__confirmed-pill">
+                  <CheckCircle size={14} weight="fill" />
+                  Submission Confirmed
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  className="stitch-assignment-detail__submit-btn"
+                  disabled={isSubmitting || !user?.group_id}
+                  onClick={handlePrepareSubmission}
+                >
+                  <CheckCircle size={13} weight="bold" />
+                  {isSubmitting ? 'Preparing...' : 'Mark as Submitted'}
+                </button>
+              )}
+            </div>
+
+            {!user?.group_id && !hasSubmitted ? (
+              <p className="stitch-assignment-detail__error">
+                You must join a group before you can confirm submissions.
+              </p>
+            ) : null}
+          </section>
+        </div>
       </div>
 
       <ConfirmDialog
@@ -246,6 +276,6 @@ export default function AssignmentDetail() {
           setConfirmationToken('');
         }}
       />
-    </Page>
+    </>
   );
 }

@@ -2,7 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowLeft, SpinnerGap } from '@phosphor-icons/react';
+import {
+  ArrowLeft,
+  Check,
+  SpinnerGap,
+  UserList,
+  UsersThree,
+} from '@phosphor-icons/react';
 import LoadingSpinner from '../common/LoadingSpinner';
 import Card from '../common/Card';
 import Button from '../common/Button';
@@ -100,6 +106,30 @@ function FieldError({ message }) {
   return <span className="text-xs field__error">{message}</span>;
 }
 
+function AudienceOption({
+  value,
+  label,
+  hint,
+  isActive,
+  icon: Icon,
+  onSelect,
+}) {
+  return (
+    <button
+      type="button"
+      className={`assignment-create-screen__audience-card${
+        isActive ? ' assignment-create-screen__audience-card--active' : ''
+      }`}
+      onClick={() => onSelect(value)}
+      aria-pressed={isActive}
+    >
+      <Icon size={24} weight={isActive ? 'fill' : 'regular'} />
+      <strong>{label}</strong>
+      <span>{hint}</span>
+    </button>
+  );
+}
+
 export default function AssignmentForm({
   heading,
   description,
@@ -111,6 +141,7 @@ export default function AssignmentForm({
   initialValues,
   isSubmitting,
   isLoadingInitial = false,
+  visualVariant = 'default',
 }) {
   const [groups, setGroups] = useState([]);
   const [groupsError, setGroupsError] = useState('');
@@ -144,7 +175,7 @@ export default function AssignmentForm({
 
   const assignTo = watch('assign_to');
   const descriptionValue = watch('description') ?? '';
-  const selectedGroupIds = watch('group_ids');
+  const selectedGroupIds = watch('group_ids') ?? [];
   const descriptionRegistration = register('description');
 
   useEffect(() => {
@@ -219,6 +250,490 @@ export default function AssignmentForm({
       group_ids: values.assign_to === 'specific' ? values.group_ids : undefined,
     });
   });
+
+  const selectedGroupOptions = useMemo(() => {
+    return selectedGroupIds.map((groupId) => {
+      const matchedGroup = groups.find((group) => group.id === groupId);
+      return {
+        id: groupId,
+        name: matchedGroup?.name || 'Selected Group',
+      };
+    });
+  }, [groups, selectedGroupIds]);
+
+  if (visualVariant === 'architectural-edit') {
+    return (
+      <Page className="assignment-edit-architectural">
+        <header className="assignment-edit-architectural__header">
+          <h1 className="assignment-edit-architectural__title">{heading}</h1>
+          {description ? (
+            <p className="assignment-edit-architectural__description">{description}</p>
+          ) : null}
+        </header>
+
+        <form onSubmit={handleFormSubmit} className="assignment-edit-architectural__form">
+          {isLoadingInitial ? (
+            <div className="assignment-edit-architectural__loading">
+              <LoadingSpinner fullPage={false} size={32} />
+            </div>
+          ) : (
+            <>
+              <section className="assignment-edit-architectural__section">
+                <div className="assignment-edit-architectural__section-tag">Core Details</div>
+
+                <div className="assignment-edit-architectural__field">
+                  <label htmlFor="assignment-title" className="assignment-edit-architectural__label">
+                    Assignment Title
+                  </label>
+                  <input
+                    id="assignment-title"
+                    className="assignment-edit-architectural__input"
+                    type="text"
+                    {...register('title')}
+                  />
+                  <FieldError message={errors.title?.message} />
+                </div>
+
+                <div className="assignment-edit-architectural__field">
+                  <label
+                    htmlFor="assignment-description"
+                    className="assignment-edit-architectural__label"
+                  >
+                    Detailed Brief
+                  </label>
+                  <div className="assignment-edit-architectural__editor">
+                    <RichTextEditor
+                      value={descriptionValue}
+                      placeholder="Provide assignment details and instructions..."
+                      ariaLabel="Assignment description"
+                      toolbarVariant="letters"
+                      onChange={(nextValue) =>
+                        setValue('description', nextValue, {
+                          shouldDirty: true,
+                          shouldTouch: true,
+                          shouldValidate: true,
+                        })
+                      }
+                    />
+                  </div>
+                  <input
+                    id="assignment-description"
+                    type="hidden"
+                    {...descriptionRegistration}
+                    value={descriptionValue}
+                    readOnly
+                  />
+                  <FieldError message={errors.description?.message} />
+                </div>
+              </section>
+
+              <section className="assignment-edit-architectural__section">
+                <div className="assignment-edit-architectural__section-tag">
+                  Logistics &amp; Timeline
+                </div>
+
+                <div className="assignment-edit-architectural__grid-2">
+                  <div className="assignment-edit-architectural__field">
+                    <label htmlFor="assignment-due-date" className="assignment-edit-architectural__label">
+                      Due Date
+                    </label>
+                    <input
+                      id="assignment-due-date"
+                      className="assignment-edit-architectural__input"
+                      type="date"
+                      min={getTomorrowDateInputValue()}
+                      {...register('due_date')}
+                    />
+                    <FieldError message={errors.due_date?.message} />
+                  </div>
+
+                  <div className="assignment-edit-architectural__field">
+                    <label htmlFor="assignment-due-time" className="assignment-edit-architectural__label">
+                      Due Time
+                    </label>
+                    <input
+                      id="assignment-due-time"
+                      className="assignment-edit-architectural__input"
+                      type="time"
+                      {...register('due_time')}
+                    />
+                    <FieldError message={errors.due_time?.message} />
+                  </div>
+
+                  <div className="assignment-edit-architectural__field assignment-edit-architectural__field--full">
+                    <label htmlFor="assignment-link" className="assignment-edit-architectural__label">
+                      External Resource Link
+                    </label>
+                    <input
+                      id="assignment-link"
+                      className="assignment-edit-architectural__input"
+                      type="url"
+                      placeholder="https://"
+                      {...register('onedrive_link')}
+                    />
+                    <FieldError message={errors.onedrive_link?.message} />
+                  </div>
+                </div>
+              </section>
+
+              <section className="assignment-edit-architectural__section">
+                <div className="assignment-edit-architectural__section-tag">Audience Selection</div>
+
+                <label className="assignment-edit-architectural__label">Choose The Audience</label>
+                <div className="assignment-edit-architectural__audience-grid">
+                  {[
+                    {
+                      value: 'all',
+                      label: 'All Groups',
+                      hint: 'Broadcast this assignment to every active cohort.',
+                    },
+                    {
+                      value: 'specific',
+                      label: 'Specific Groups',
+                      hint: 'Target specific engineering cohorts for this task.',
+                    },
+                  ].map((option) => {
+                    const isActive = assignTo === option.value;
+
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        className={`assignment-edit-architectural__audience-option${
+                          isActive ? ' assignment-edit-architectural__audience-option--active' : ''
+                        }`}
+                        onClick={() => handleAssignToChange(option.value)}
+                      >
+                        <span
+                          className={`assignment-edit-architectural__audience-check${
+                            isActive ? ' assignment-edit-architectural__audience-check--active' : ''
+                          }`}
+                          aria-hidden="true"
+                        >
+                          {isActive ? <Check size={11} weight="bold" /> : null}
+                        </span>
+                        <span className="assignment-edit-architectural__audience-copy">
+                          <strong>{option.label}</strong>
+                          <small>{option.hint}</small>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {assignTo === 'specific' ? (
+                  <div className="assignment-edit-architectural__groups-panel">
+                    <div className="assignment-edit-architectural__chip-list">
+                      {selectedGroupOptions.map((group) => (
+                        <button
+                          key={group.id}
+                          type="button"
+                          className="assignment-edit-architectural__group-chip"
+                          onClick={() => handleGroupToggle(group.id)}
+                        >
+                          {group.name}
+                          <span aria-hidden="true">×</span>
+                        </button>
+                      ))}
+                      {!isLoadingGroups ? (
+                        <span className="assignment-edit-architectural__group-count">
+                          {selectedGroupOptions.length} selected
+                        </span>
+                      ) : (
+                        <LoadingSpinner fullPage={false} size={16} />
+                      )}
+                    </div>
+
+                    <div className="assignment-edit-architectural__group-pool">
+                      {groups.map((group) => {
+                        const isChecked = selectedGroupIds.includes(group.id);
+
+                        return (
+                          <button
+                            key={group.id}
+                            type="button"
+                            className={`assignment-edit-architectural__group-pool-item${
+                              isChecked
+                                ? ' assignment-edit-architectural__group-pool-item--active'
+                                : ''
+                            }`}
+                            onClick={() => handleGroupToggle(group.id)}
+                          >
+                            {group.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <FieldError message={groupsError || errors.group_ids?.message} />
+                  </div>
+                ) : null}
+              </section>
+
+              <footer className="assignment-edit-architectural__footer">
+                <button
+                  type="button"
+                  className="assignment-edit-architectural__cancel"
+                  onClick={onBack}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="assignment-edit-architectural__save"
+                  disabled={isSubmitting || isLoadingInitial}
+                >
+                  {isSubmitting ? (
+                    <SpinnerGap size={16} className="inline-flex items-center justify-center spinner" />
+                  ) : null}
+                  {isSubmitting ? submitLabelPending : submitLabel}
+                </button>
+              </footer>
+            </>
+          )}
+        </form>
+      </Page>
+    );
+  }
+
+  if (visualVariant === 'architectural-create') {
+    return (
+      <Page className="assignment-create-screen">
+        <div className="assignment-create-screen__frame">
+          <div className="assignment-create-screen__crumbs" aria-label="Page breadcrumb">
+            <span>Assignment Workspace</span>
+            <span>//</span>
+            <span>Create</span>
+          </div>
+
+          <div className="assignment-create-screen__heading">
+            <h1 className="assignment-create-screen__title">{heading}</h1>
+            {description ? (
+              <p className="assignment-create-screen__description">{description}</p>
+            ) : null}
+          </div>
+
+          <section className="assignment-create-screen__panel">
+            {isLoadingInitial ? (
+              <div className="assignment-create-screen__loading">
+                <LoadingSpinner fullPage={false} size={32} />
+              </div>
+            ) : (
+              <form onSubmit={handleFormSubmit} className="assignment-create-screen__form">
+                <div className="assignment-create-screen__field">
+                  <label htmlFor="assignment-title" className="assignment-create-screen__label">
+                    Title
+                  </label>
+                  <input
+                    id="assignment-title"
+                    className="assignment-create-screen__input"
+                    type="text"
+                    placeholder="Enter assignment title"
+                    {...register('title')}
+                  />
+                  <FieldError message={errors.title?.message} />
+                </div>
+
+                <div className="assignment-create-screen__field">
+                  <label
+                    htmlFor="assignment-description"
+                    className="assignment-create-screen__label"
+                  >
+                    Description
+                  </label>
+                  <div className="assignment-create-screen__editor">
+                    <RichTextEditor
+                      value={descriptionValue}
+                      placeholder="Provide assignment details and instructions..."
+                      ariaLabel="Assignment description"
+                      toolbarVariant="letters"
+                      onChange={(nextValue) =>
+                        setValue('description', nextValue, {
+                          shouldDirty: true,
+                          shouldTouch: true,
+                          shouldValidate: true,
+                        })
+                      }
+                    />
+                  </div>
+                  <input
+                    id="assignment-description"
+                    type="hidden"
+                    {...descriptionRegistration}
+                    value={descriptionValue}
+                    readOnly
+                  />
+                  <FieldError message={errors.description?.message} />
+                </div>
+
+                <div className="assignment-create-screen__row">
+                  <div className="assignment-create-screen__field">
+                    <label
+                      htmlFor="assignment-due-date"
+                      className="assignment-create-screen__label"
+                    >
+                      Due Date
+                    </label>
+                    <input
+                      id="assignment-due-date"
+                      className="assignment-create-screen__input"
+                      type="date"
+                      min={getTomorrowDateInputValue()}
+                      {...register('due_date')}
+                    />
+                    <FieldError message={errors.due_date?.message} />
+                  </div>
+
+                  <div className="assignment-create-screen__field">
+                    <label
+                      htmlFor="assignment-due-time"
+                      className="assignment-create-screen__label"
+                    >
+                      Due Time
+                    </label>
+                    <input
+                      id="assignment-due-time"
+                      className="assignment-create-screen__input"
+                      type="time"
+                      {...register('due_time')}
+                    />
+                    <FieldError message={errors.due_time?.message} />
+                  </div>
+                </div>
+
+                <div className="assignment-create-screen__field">
+                  <label htmlFor="assignment-link" className="assignment-create-screen__label">
+                    Link
+                  </label>
+                  <input
+                    id="assignment-link"
+                    className="assignment-create-screen__input"
+                    type="url"
+                    placeholder="https://example.com/submission"
+                    {...register('onedrive_link')}
+                  />
+                  <FieldError message={errors.onedrive_link?.message} />
+                </div>
+
+                <div className="assignment-create-screen__divider" aria-hidden="true" />
+
+                <section className="assignment-create-screen__audience">
+                  <div className="assignment-create-screen__section-copy">
+                    <h2>Choose the audience</h2>
+                    <p>
+                      Decide whether this assignment goes to every group or only a selected
+                      set.
+                    </p>
+                  </div>
+
+                  <div className="assignment-create-screen__audience-grid">
+                    <AudienceOption
+                      value="all"
+                      label="All Groups"
+                      hint="Every student group will see this assignment immediately."
+                      isActive={assignTo === 'all'}
+                      icon={UsersThree}
+                      onSelect={handleAssignToChange}
+                    />
+                    <AudienceOption
+                      value="specific"
+                      label="Specific Groups"
+                      hint="Limit visibility to the groups you choose below."
+                      isActive={assignTo === 'specific'}
+                      icon={UserList}
+                      onSelect={handleAssignToChange}
+                    />
+                  </div>
+
+                  {assignTo === 'specific' ? (
+                    <div className="assignment-create-screen__group-box">
+                      <div className="assignment-create-screen__group-meta">
+                        <p>
+                          {selectedGroupIds.length} group
+                          {selectedGroupIds.length === 1 ? '' : 's'} selected
+                        </p>
+                        {isLoadingGroups ? <LoadingSpinner fullPage={false} size={18} /> : null}
+                      </div>
+
+                      <div className="assignment-create-screen__group-list">
+                        {groups.map((group) => {
+                          const isChecked = selectedGroupIds.includes(group.id);
+
+                          return (
+                            <button
+                              key={group.id}
+                              type="button"
+                              className={`assignment-create-screen__group-item${
+                                isChecked ? ' assignment-create-screen__group-item--active' : ''
+                              }`}
+                              onClick={() => handleGroupToggle(group.id)}
+                              aria-pressed={isChecked}
+                            >
+                              <span
+                                className={`assignment-create-screen__group-check${
+                                  isChecked
+                                    ? ' assignment-create-screen__group-check--active'
+                                    : ''
+                                }`}
+                                aria-hidden="true"
+                              >
+                                {isChecked ? <Check size={12} weight="bold" /> : null}
+                              </span>
+                              <span className="assignment-create-screen__group-copy">
+                                <strong>{group.name}</strong>
+                                <small>
+                                  {group.description || 'No description provided for this group.'}
+                                </small>
+                              </span>
+                            </button>
+                          );
+                        })}
+
+                        {!isLoadingGroups && groups.length === 0 ? (
+                          <p className="assignment-create-screen__group-empty">
+                            No groups are available yet. Create student groups first or switch this
+                            assignment to all groups.
+                          </p>
+                        ) : null}
+                      </div>
+
+                      <FieldError message={groupsError || errors.group_ids?.message} />
+                    </div>
+                  ) : null}
+                </section>
+
+                <div className="assignment-create-screen__footer">
+                  <p className="assignment-create-screen__footer-note">
+                    Students will see the assignment immediately after this change is saved.
+                  </p>
+
+                  <div className="assignment-create-screen__footer-actions">
+                    <button
+                      type="button"
+                      className="assignment-create-screen__ghost-btn"
+                      onClick={onBack}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="assignment-create-screen__submit-btn"
+                      disabled={isSubmitting || isLoadingInitial}
+                    >
+                      {isSubmitting ? (
+                        <SpinnerGap size={16} className="inline-flex items-center justify-center spinner" />
+                      ) : null}
+                      {isSubmitting ? submitLabelPending : submitLabel}
+                    </button>
+                  </div>
+                </div>
+              </form>
+            )}
+          </section>
+        </div>
+      </Page>
+    );
+  }
 
   return (
     <Page>

@@ -1,19 +1,14 @@
 import { Fragment, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
-  CalendarDots,
   CaretDown,
+  CaretLeft,
   CaretRight,
-  ClipboardText,
   FolderSimple,
-  UsersThree,
 } from '@phosphor-icons/react';
 import EmptyState from '../../components/common/EmptyState';
-import Pagination from '../../components/common/Pagination';
 import Skeleton from '../../components/common/Skeleton';
-import StatusBadge from '../../components/common/StatusBadge';
-import Card from '../../components/common/Card';
-import { Page, PageHeader, SectionHeading } from '../../components/common/Page';
+import { Page } from '../../components/common/Page';
 import assignmentService from '../../services/assignmentService';
 import submissionService from '../../services/submissionService';
 import { formatAssignmentDate } from '../../utils/assignmentDates';
@@ -188,6 +183,11 @@ export default function SubmissionTracker() {
     assignments.find((assignment) => assignment.id === selectedAssignmentId) ?? null;
   const rows = tracker.groups;
   const summary = tracker.summary;
+  const submittedRatio =
+    summary.total_groups > 0 ? Math.min(100, Math.round((summary.submitted_groups / summary.total_groups) * 100)) : 0;
+  const assignmentStatus = String(selectedAssignment?.status || '')
+    .trim()
+    .toUpperCase() || 'ACTIVE';
 
   const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   const paginatedRows = rows.slice(
@@ -210,23 +210,27 @@ export default function SubmissionTracker() {
   }
 
   return (
-    <Page>
-      <PageHeader
-        eyebrow="Submission Tracker"
-        eyebrowAccent
-        title="Verify every group against every assignment"
-        description="Choose an assignment to see the exact groups expected to submit, who confirmed on their behalf, and who is still pending."
-      />
+    <Page className="submission-tracker-architectural">
+      <header className="submission-tracker-architectural__header">
+        <h1 className="submission-tracker-architectural__title">Submission Tracker</h1>
+        <p className="submission-tracker-architectural__subtitle">
+          Verify every group against every assignment.
+        </p>
+      </header>
 
-      <Card>
-        <div className="grid gap-4 sm:grid-cols-2 surface-grid surface-grid--two">
-          <div className="grid gap-2 field">
-            <label htmlFor="submission-assignment-select" className="text-sm font-medium field__label">
-              Assignment
-            </label>
+      <section className="submission-tracker-architectural__config-grid">
+        <article className="submission-tracker-architectural__config-card">
+          <span className="submission-tracker-architectural__config-chip">Config</span>
+          <label
+            htmlFor="submission-assignment-select"
+            className="submission-tracker-architectural__label"
+          >
+            Target Assignment
+          </label>
+          <div className="submission-tracker-architectural__select-wrap">
             <select
               id="submission-assignment-select"
-              className="w-full rounded-md select"
+              className="submission-tracker-architectural__select"
               value={selectedAssignmentId}
               onChange={(event) => setSelectedAssignmentId(event.target.value)}
             >
@@ -236,81 +240,95 @@ export default function SubmissionTracker() {
                 </option>
               ))}
             </select>
+            <span className="submission-tracker-architectural__caret" aria-hidden="true">
+              <CaretDown size={16} weight="bold" />
+            </span>
           </div>
+        </article>
 
-          {selectedAssignment ? (
-            <Card className="rounded-xl border p-4 card--compact" style={{ background: 'var(--bg-page)' }}>
-              <div className="grid gap-4 surface-grid">
-                <div className="flex items-center gap-3 text-sm cluster muted" style={{ fontSize: '14px' }}>
-                  <CalendarDots size={16} />
-                  <span>Due {formatAssignmentDate(selectedAssignment.due_date)}</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm cluster muted" style={{ fontSize: '14px' }}>
-                  <UsersThree size={16} />
-                  <span>
-                    {rows.length} {rows.length === 1 ? 'group' : 'groups'} in tracker
-                  </span>
-                </div>
-                <div className="flex items-center gap-3 text-sm cluster muted" style={{ fontSize: '14px' }}>
-                  <ClipboardText size={16} />
-                  <span>{summary.submitted_groups} of {summary.total_groups} groups submitted</span>
-                </div>
-              </div>
-            </Card>
-          ) : null}
+        <article className="submission-tracker-architectural__snapshot-card">
+          <p className="submission-tracker-architectural__snapshot-label">Snapshot</p>
+          <div className="submission-tracker-architectural__snapshot-grid">
+            <div>
+              <span>Due Date</span>
+              <strong className="submission-tracker-architectural__snapshot-red">
+                {selectedAssignment?.due_date
+                  ? formatAssignmentDate(selectedAssignment.due_date).toUpperCase()
+                  : '--'}
+              </strong>
+            </div>
+            <div>
+              <span>Status</span>
+              <strong>{assignmentStatus}</strong>
+            </div>
+            <div>
+              <span>Total Groups</span>
+              <strong>{summary.total_groups}</strong>
+            </div>
+            <div>
+              <span>Submitted</span>
+              <strong>{summary.submitted_groups}</strong>
+            </div>
+          </div>
+          <div className="submission-tracker-architectural__progress" aria-hidden="true">
+            <span style={{ width: `${submittedRatio}%` }} />
+          </div>
+        </article>
+      </section>
+
+      <section className="submission-tracker-architectural__ledger">
+        <div className="submission-tracker-architectural__ledger-head">
+          <h2>Group Verification Ledger</h2>
+          <span>Live</span>
         </div>
-      </Card>
-
-      <Card className="rounded-xl border overflow-hidden w-full table-card">
-        <SectionHeading
-          eyebrow="Expected Group Status"
-          title="Submission confirmations by group"
-        />
 
         {isTableLoading ? (
-          <div className="grid gap-4 surface-grid" style={{ marginTop: 20 }}>
+          <div className="submission-tracker-architectural__loading">
             <Skeleton variant="text" height="44px" />
             <Skeleton variant="card" height="72px" />
             <Skeleton variant="card" height="72px" />
             <Skeleton variant="card" height="72px" />
           </div>
         ) : rows.length === 0 ? (
-          <Card className="rounded-xl border p-4 card--compact" style={{ marginTop: 20 }}>
-            <p className="text-sm leading-relaxed card__copy" style={{ margin: 0 }}>
-              No groups are expected for this assignment yet.
-            </p>
-          </Card>
+          <div className="submission-tracker-architectural__empty">
+            No groups are expected for this assignment yet.
+          </div>
         ) : (
           <>
-            <div className="overflow-x-auto w-full table-wrap" style={{ marginTop: 20 }}>
-              <table className="w-full table tracker-table">
+            <div className="submission-tracker-architectural__table-wrap">
+              <table className="submission-tracker-architectural__table">
                 <thead>
                   <tr>
+                    <th>ID</th>
                     <th>Group Name</th>
-                    <th>Member Count</th>
-                    <th className="justify-center table__column--center">Status</th>
+                    <th>Members</th>
+                    <th>Status</th>
                     <th>Submitted By</th>
                     <th>Timestamp</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedRows.map((row) => {
+                  {paginatedRows.map((row, index) => {
                     const isExpanded = expandedRows.has(row.row_id);
                     const memberCount =
                       Number(row.member_count) ||
                       (Array.isArray(row.members) ? row.members.length : 0);
+                    const rowNumber = (currentPage - 1) * PAGE_SIZE + index + 1;
 
                     return (
                       <Fragment key={row.row_id}>
                         <tr
-                          className={cx('tracker-row', isExpanded && 'tracker-row--expanded')}
+                          className={cx('submission-tracker-architectural__row', isExpanded && 'submission-tracker-architectural__row--expanded')}
                           onClick={() => toggleRowExpansion(row.row_id)}
                         >
+                          <td className="submission-tracker-architectural__id">
+                            {String(rowNumber).padStart(2, '0')}
+                          </td>
                           <td>
-                            <div className="inline-flex items-center gap-2 tracker-group-cell">
+                            <div className="submission-tracker-architectural__group">
                               <button
                                 type="button"
-                                className="inline-flex items-center justify-center rounded-md tracker-toggle"
+                                className="submission-tracker-architectural__toggle"
                                 onClick={(event) => {
                                   event.stopPropagation();
                                   toggleRowExpansion(row.row_id);
@@ -318,94 +336,60 @@ export default function SubmissionTracker() {
                                 aria-expanded={isExpanded}
                                 aria-label={isExpanded ? 'Collapse group row' : 'Expand group row'}
                               >
-                                {isExpanded ? (
-                                  <CaretDown size={14} weight="bold" />
-                                ) : (
-                                  <CaretRight size={14} weight="bold" />
-                                )}
+                                <CaretRight size={13} weight="bold" />
                               </button>
-
-                              <div className="inline-flex items-center gap-2 tracker-group-meta">
-                                <span
-                                  className={cx(
-                                    'tracker-group-name',
-                                    row.group_deleted && 'tracker-group-name--deleted'
-                                  )}
-                                >
-                                  {row.group_name}
+                              <span>{row.group_name}</span>
+                              {row.group_deleted ? (
+                                <span className="submission-tracker-architectural__deleted">
+                                  Deleted
                                 </span>
-
-                                {row.group_deleted ? (
-                                  <span className="inline-flex items-center justify-center rounded-md text-xs font-medium status-badge tracker-deleted-badge">
-                                    Deleted
-                                  </span>
-                                ) : null}
-                              </div>
+                              ) : null}
                             </div>
                           </td>
-
-                          <td className="font-semibold tracker-member-count">{memberCount}</td>
-
-                          <td className="justify-center table__cell--center">
-                            <StatusBadge
-                              status={row.is_submitted ? 'submitted' : 'pending'}
-                            />
+                          <td>{memberCount}</td>
+                          <td>
+                            <span
+                              className={cx(
+                                'submission-tracker-architectural__status',
+                                row.is_submitted
+                                  ? 'submission-tracker-architectural__status--submitted'
+                                  : 'submission-tracker-architectural__status--pending'
+                              )}
+                            >
+                              {row.is_submitted ? 'Submitted' : 'Pending'}
+                            </span>
                           </td>
-
                           <td>
                             {row.is_submitted
                               ? row.submitted_by_name ?? row.submitted_by_email ?? 'Unknown student'
-                              : 'Not submitted'}
+                              : '--'}
                           </td>
-
-                          <td className="text-sm mono tracker-timestamp">
-                            {row.confirmed_at
-                              ? formatTimestamp(row.confirmed_at)
-                              : 'Not submitted'}
+                          <td className="mono">
+                            {row.confirmed_at ? formatTimestamp(row.confirmed_at) : '--'}
                           </td>
                         </tr>
 
                         {isExpanded ? (
-                          <tr className="transition duration-200 tracker-expanded-row">
-                            <td colSpan={5} className="w-full tracker-expanded-cell">
-                              <div className="overflow-x-auto tracker-expanded-content">
-                                {row.group_deleted ? (
-                                  <p className="text-sm leading-relaxed tracker-note">
-                                    {row.group_note ??
-                                      'Group no longer exists - members were released.'}
-                                  </p>
-                                ) : Array.isArray(row.members) && row.members.length > 0 ? (
-                                  <div className="overflow-x-auto w-full rounded-lg border tracker-members-wrap">
-                                    <div className="w-full rounded-lg border tracker-members">
-                                      <div className="grid gap-4 tracker-members__head">
-                                        <span>Full Name</span>
-                                        <span>Email</span>
-                                        <span>Student ID</span>
-                                      </div>
-                                      <div>
-                                        {row.members.map((member) => (
-                                          <div
-                                            key={member.id}
-                                            className="grid gap-4 tracker-members__row"
-                                          >
-                                            <span className="text-sm font-medium tracker-members__name">
-                                              {member.full_name}
-                                            </span>
-                                            <span className="text-sm tracker-members__email">
-                                              {member.email}
-                                            </span>
-                                            <span className="text-sm tracker-members__student-id">
-                                              {member.student_id}
-                                            </span>
-                                          </div>
-                                        ))}
-                                      </div>
+                          <tr className="submission-tracker-architectural__expanded">
+                            <td colSpan={6}>
+                              {row.group_deleted ? (
+                                <p>
+                                  {row.group_note ??
+                                    'Group no longer exists - members were released.'}
+                                </p>
+                              ) : Array.isArray(row.members) && row.members.length > 0 ? (
+                                <div className="submission-tracker-architectural__members">
+                                  {row.members.map((member) => (
+                                    <div key={member.id}>
+                                      <span>{member.full_name}</span>
+                                      <span>{member.email}</span>
+                                      <span className="mono">{member.student_id}</span>
                                     </div>
-                                  </div>
-                                ) : (
-                                  <p className="text-sm leading-relaxed tracker-note">No active student members in this group.</p>
-                                )}
-                              </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p>No active student members in this group.</p>
+                              )}
                             </td>
                           </tr>
                         ) : null}
@@ -416,19 +400,34 @@ export default function SubmissionTracker() {
               </table>
             </div>
 
-            <div className="flex items-center justify-between gap-4 toolbar" style={{ marginTop: 20 }}>
-              <p className="text-sm toolbar__meta">
+            <footer className="submission-tracker-architectural__footer">
+              <p>
                 Page {currentPage} of {totalPages}
               </p>
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={setCurrentPage}
-              />
-            </div>
+              {totalPages > 1 ? (
+                <div className="submission-tracker-architectural__pager">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                    disabled={currentPage <= 1}
+                  >
+                    <CaretLeft size={14} />
+                    Prev
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                    disabled={currentPage >= totalPages}
+                  >
+                    Next
+                    <CaretRight size={14} />
+                  </button>
+                </div>
+              ) : null}
+            </footer>
           </>
         )}
-      </Card>
+      </section>
     </Page>
   );
 }

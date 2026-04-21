@@ -1,14 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { ArrowLeft, Crown, UsersThree } from '@phosphor-icons/react';
+import { ArrowLeft, Crown, User, UsersThree } from '@phosphor-icons/react';
 import EmptyState from '../../components/common/EmptyState';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
-import Card from '../../components/common/Card';
-import Button from '../../components/common/Button';
-import { Page, PageHeader } from '../../components/common/Page';
+import { Page } from '../../components/common/Page';
 import groupService from '../../services/groupService';
-import { cx } from '../../utils/cx';
 
 function formatDate(dateValue) {
   return new Intl.DateTimeFormat('en-US', {
@@ -81,57 +78,84 @@ export default function GroupDetail() {
   }
 
   return (
-    <Page>
-      <PageHeader
-        eyebrow="Group Detail"
-        eyebrowAccent
-        title={group.name}
-        description={group.description || 'No group description provided.'}
-        actions={
-          <Button type="button" variant="secondary" onClick={() => navigate('/admin/groups')}>
-            <ArrowLeft size={16} />
-            Back to Groups
-          </Button>
-        }
-      />
-
-      <div className="grid gap-4 sm:grid-cols-2 surface-grid surface-grid--two">
-        <Card>
-          <p className="text-xs font-medium uppercase tracking-wide eyebrow">Leader</p>
-          <div className="flex items-center gap-3 cluster" style={{ marginTop: 10 }}>
-            <div className="inline-flex items-center justify-center rounded-xl metric__icon" style={{ background: 'var(--accent-amber-soft)', color: 'var(--accent-amber)' }}>
-              <Crown size={18} />
-            </div>
-            <div>
-              <div className="text-sm font-semibold table__title">{leader?.full_name || 'Unavailable'}</div>
-              <span className="text-sm leading-relaxed table__description">Group lead</span>
-            </div>
-          </div>
-        </Card>
-
-        <Card>
-          <p className="text-xs font-medium uppercase tracking-wide eyebrow">Snapshot</p>
-          <div className="grid gap-4 surface-grid" style={{ marginTop: 10 }}>
-            <div className="text-sm font-semibold table__title">{members.length} members</div>
-            <span className="text-sm leading-relaxed table__description">Created on {formatDate(group.created_at)}</span>
-          </div>
-        </Card>
-      </div>
-
-      <Card className="rounded-xl border overflow-hidden w-full table-card">
-        <div className="grid gap-2 section-heading" style={{ marginBottom: 12 }}>
-          <p className="text-xs font-medium uppercase tracking-wide eyebrow">Members</p>
-          <h2 className="text-2xl font-bold tracking-tight section-heading__title">Current roster</h2>
+    <Page className="group-detail-architectural">
+      <header className="group-detail-architectural__header">
+        <div>
+          <h1 className="group-detail-architectural__title">{group.name}</h1>
+          <p className="group-detail-architectural__subtitle">
+            {group.description || 'No group description provided.'}
+          </p>
         </div>
 
-        <div className="overflow-x-auto w-full table-wrap">
-          <table className="w-full table" style={{ minWidth: 780 }}>
+        <div className="group-detail-architectural__header-actions">
+          <button
+            type="button"
+            className="group-detail-architectural__action-btn"
+            onClick={() => toast('Edit flow is not available yet.')}
+          >
+            Edit Group
+          </button>
+          <button
+            type="button"
+            className="group-detail-architectural__action-btn group-detail-architectural__action-btn--secondary"
+            onClick={() => navigate('/admin/groups')}
+          >
+            <ArrowLeft size={16} />
+            Back
+          </button>
+        </div>
+      </header>
+
+      <section className="group-detail-architectural__summary-grid">
+        <article className="group-detail-architectural__card">
+          <div className="group-detail-architectural__card-head">
+            <span>Leader</span>
+            <Crown size={18} weight="fill" />
+          </div>
+          <div className="group-detail-architectural__leader-body">
+            <span className="group-detail-architectural__avatar-box" aria-hidden="true">
+              <User size={22} weight="fill" />
+            </span>
+            <div>
+              <p className="group-detail-architectural__leader-name">
+                {leader?.full_name || 'Unavailable'}
+              </p>
+              <p className="group-detail-architectural__leader-role">Group Lead</p>
+            </div>
+          </div>
+        </article>
+
+        <article className="group-detail-architectural__card">
+          <div className="group-detail-architectural__card-head">
+            <span>Snapshot</span>
+          </div>
+          <div className="group-detail-architectural__snapshot">
+            <div className="group-detail-architectural__snapshot-pane">
+              <strong>{members.length}</strong>
+              <span>Members</span>
+            </div>
+            <div className="group-detail-architectural__snapshot-pane">
+              <strong>{formatDate(group.created_at)}</strong>
+              <span>Created On</span>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section className="group-detail-architectural__table-card">
+        <div className="group-detail-architectural__table-head">
+          <span>Members</span>
+          <span className="group-detail-architectural__table-chip">Current Roster</span>
+        </div>
+
+        <div className="group-detail-architectural__table-wrap">
+          <table className="group-detail-architectural__table">
             <thead>
               <tr>
                 <th>Name</th>
                 <th>Email</th>
                 <th>Student ID</th>
-                <th className="justify-center table__column--center">Role</th>
+                <th>Role</th>
               </tr>
             </thead>
             <tbody>
@@ -140,15 +164,23 @@ export default function GroupDetail() {
 
                 return (
                   <tr key={member.id}>
-                    <td className="text-sm font-semibold table__title">{member.full_name}</td>
-                    <td className="text-sm mono">{member.email}</td>
-                    <td className="text-sm mono">{member.student_id}</td>
-                    <td className="justify-center table__cell--center">
+                    <td>
+                      <div className="group-detail-architectural__name-cell">
+                        <span className="group-detail-architectural__name-icon" aria-hidden="true">
+                          <User size={14} weight="fill" />
+                        </span>
+                        <span>{member.full_name}</span>
+                      </div>
+                    </td>
+                    <td>{member.email}</td>
+                    <td className="mono">{member.student_id}</td>
+                    <td>
                       <span
-                        className={cx(
-                          'inline-flex items-center gap-2 rounded-full text-sm font-medium pill',
-                          memberRole === 'Leader' ? 'pill--amber' : 'pill--blue'
-                        )}
+                        className={`group-detail-architectural__role ${
+                          memberRole === 'Leader'
+                            ? 'group-detail-architectural__role--leader'
+                            : ''
+                        }`}
                       >
                         {memberRole}
                       </span>
@@ -159,7 +191,7 @@ export default function GroupDetail() {
             </tbody>
           </table>
         </div>
-      </Card>
+      </section>
     </Page>
   );
 }

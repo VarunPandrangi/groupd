@@ -20,6 +20,7 @@ export default function RichTextEditor({
   onChange,
   placeholder = '',
   ariaLabel = 'Rich text editor',
+  toolbarVariant = 'icons',
 }) {
   const editorRef = useRef(null);
   const lastEmittedValueRef = useRef(normalizeRichTextHtml(value));
@@ -138,6 +139,7 @@ export default function RichTextEditor({
       <div className="flex items-center gap-2 rich-text-editor__toolbar" aria-label="Text formatting">
         {TOOLBAR_ACTIONS.map((action) => {
           const Icon = action.icon;
+          const isTextToolbar = toolbarVariant === 'letters';
 
           return (
             <button
@@ -153,7 +155,20 @@ export default function RichTextEditor({
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => handleToolbarAction(action.command)}
             >
-              <Icon size={18} />
+              {isTextToolbar ? (
+                <span
+                  style={{
+                    fontSize: action.command === 'underline' ? '15px' : '16px',
+                    fontStyle: action.command === 'italic' ? 'italic' : 'normal',
+                    fontWeight: 800,
+                    textDecoration: action.command === 'underline' ? 'underline' : 'none',
+                  }}
+                >
+                  {action.command === 'bold' ? 'B' : action.command === 'italic' ? 'I' : 'U'}
+                </span>
+              ) : (
+                <Icon size={18} />
+              )}
             </button>
           );
         })}

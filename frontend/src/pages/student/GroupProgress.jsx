@@ -1,14 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { CalendarDots, ChartBar, UsersThree } from '@phosphor-icons/react';
-import EmptyState from '../../components/common/EmptyState';
+import { UsersThree } from '@phosphor-icons/react';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
-import StatusBadge from '../../components/common/StatusBadge';
-import ProgressBar from '../../components/student/ProgressBar';
-import CompletionBadge from '../../components/student/CompletionBadge';
-import Card from '../../components/common/Card';
-import { Page, PageHeader } from '../../components/common/Page';
 import { useAuthStore } from '../../stores/authStore';
 import { useSubmissionStore } from '../../stores/submissionStore';
 import { formatAssignmentDate } from '../../utils/assignmentDates';
@@ -17,22 +11,113 @@ function getErrorMessage(error, fallbackMessage) {
   return error?.response?.data?.error?.message || fallbackMessage;
 }
 
-function formatTimestamp(dateString) {
-  if (!dateString) return '';
+const STATUS_META = {
+  overdue: {
+    category: 'Design',
+    label: 'Overdue',
+    tone: 'overdue',
+  },
+  active: {
+    category: 'Development',
+    label: 'Active',
+    tone: 'active',
+  },
+  upcoming: {
+    category: 'Research',
+    label: 'Upcoming',
+    tone: 'upcoming',
+  },
+};
 
-  const date = new Date(dateString);
-  if (Number.isNaN(date.getTime())) {
-    return '';
+function getStatusMeta(status, isSubmitted) {
+  if (isSubmitted) {
+    return {
+      category: 'Development',
+      label: 'Completed',
+      tone: 'completed',
+    };
   }
 
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true,
-  }).format(date);
+  return (
+    STATUS_META[String(status || '').toLowerCase()] || {
+      category: 'Testing',
+      label: 'Pending',
+      tone: 'pending',
+    }
+  );
+}
+
+function getCompletionPercent(completedAssignments, totalAssignments) {
+  if (!totalAssignments) {
+    return 0;
+  }
+
+  return Math.round((completedAssignments / totalAssignments) * 100);
+}
+
+function getDaysLabel(days) {
+  return `${days} day${days === 1 ? '' : 's'}`;
+}
+
+function getDueWindowLabel(assignments) {
+  if (!assignments.length) {
+    return 'No Tasks';
+  }
+
+  if (assignments.every((assignment) => assignment.is_submitted)) {
+    return 'All Completed';
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const nextDue = [...assignments]
+    .filter((assignment) => !assignment.is_submitted)
+    .map((assignment) => ({
+      ...assignment,
+      dueDateObject: new Date(assignment.due_date),
+    }))
+    .filter((assignment) => !Number.isNaN(assignment.dueDateObject.getTime()))
+    .sort((left, right) => left.dueDateObject.getTime() - right.dueDateObject.getTime())[0];
+
+  if (!nextDue) {
+    return 'No Due Date';
+  }
+
+  const days = Math.ceil(
+    (nextDue.dueDateObject.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+  );
+
+  if (days < 0) {
+    return `Overdue by ${getDaysLabel(Math.abs(days))}`;
+  }
+
+  if (days === 0) {
+    return 'Due Today';
+  }
+
+  return `Due in ${getDaysLabel(days)}`;
+}
+
+function getAssigneeName(assignment) {
+  if (!assignment.submitted_by_name) {
+    return 'Not Submitted';
+  }
+
+  return assignment.submitted_by_name;
+}
+
+function getInitials(name) {
+  if (!name || name === 'Not Submitted') {
+    return 'NS';
+  }
+
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0].toUpperCase())
+    .join('');
 }
 
 export default function GroupProgress() {
@@ -74,13 +159,36 @@ export default function GroupProgress() {
 
   if (!user?.group_id) {
     return (
-      <EmptyState
-        icon={UsersThree}
-        title="No group yet"
-        message="Join a student group to start tracking your team's progress across all assignments."
-        actionLabel="Go to My Group"
-        onAction={() => navigate('/student/group')}
-      />
+      <section className="progress-empty" aria-labelledby="progress-empty-title">
+        <div className="progress-empty__panel">
+          <span className="progress-empty__corner progress-empty__corner--tl" aria-hidden="true" />
+          <span className="progress-empty__corner progress-empty__corner--tr" aria-hidden="true" />
+          <span className="progress-empty__corner progress-empty__corner--bl" aria-hidden="true" />
+          <span className="progress-empty__corner progress-empty__corner--br" aria-hidden="true" />
+
+          <div className="progress-empty__icon" aria-hidden="true">
+            <UsersThree size={54} weight="duotone" />
+          </div>
+
+          <h1 id="progress-empty-title" className="progress-empty__title">
+            No Group Yet
+          </h1>
+
+          <p className="progress-empty__message">
+            Join a group to start tracking progress. Analytics, milestones, and peer comparisons
+            require active group affiliation.
+          </p>
+
+          <button
+            type="button"
+            className="progress-empty__action"
+            onClick={() => navigate('/student/group')}
+          >
+            <UsersThree size={16} weight="fill" />
+            <span>Find a Group</span>
+          </button>
+        </div>
+      </section>
     );
   }
 
@@ -96,6 +204,7 @@ export default function GroupProgress() {
   const completedAssignments = assignments.filter(
     (assignment) => assignment.is_submitted
   ).length;
+  const completionPercent = getCompletionPercent(completedAssignments, totalAssignments);
 
   const sortedAssignments = [...assignments].sort((left, right) => {
     if (left.is_submitted !== right.is_submitted) {
@@ -105,80 +214,143 @@ export default function GroupProgress() {
     return new Date(left.due_date).getTime() - new Date(right.due_date).getTime();
   });
 
-  return (
-    <Page>
-      <PageHeader
-        eyebrow="Group Progress"
-        eyebrowAccent
-        title="Track your team's journey"
-        description="Monitor how your group is progressing across every assignment and keep a clear sense of what has been confirmed."
-      />
+  const dueWindowLabel = getDueWindowLabel(sortedAssignments);
 
-      <Card>
-        <div className="grid gap-4 surface-grid">
-          <div className="flex items-center gap-3 cluster">
-            <div className="inline-flex items-center justify-center rounded-xl metric__icon">
-              <ChartBar size={20} />
-            </div>
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide eyebrow">Overall Completion</p>
-              <h2 className="text-2xl font-bold tracking-tight section-heading__title" style={{ marginTop: 8 }}>
-                {completedAssignments} of {totalAssignments} assignments completed
-              </h2>
-            </div>
+  function handleExportData() {
+    const payload = {
+      generated_at: new Date().toISOString(),
+      summary: {
+        total_assignments: totalAssignments,
+        completed_assignments: completedAssignments,
+        completion_percent: completionPercent,
+      },
+      assignments: sortedAssignments,
+    };
+
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: 'application/json;charset=utf-8',
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+
+    anchor.href = url;
+    anchor.download = 'group-progress.json';
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <section className="progress-tracker" aria-label="Group progress tracker">
+      <header className="progress-tracker__header">
+        <div>
+          <div className="progress-tracker__chips">
+            <span className="progress-tracker__chip">Active Project</span>
+            <span className="progress-tracker__chip progress-tracker__chip--alert">
+              {dueWindowLabel}
+            </span>
           </div>
-          <ProgressBar
-            current={completedAssignments}
-            total={Math.max(totalAssignments, 1)}
-            size="lg"
-            tone="success"
+          <h1 className="progress-tracker__title">Group Progress Tracker</h1>
+          <p className="progress-tracker__subtitle">Group structural progress and assignment tracking.</p>
+        </div>
+
+        <button
+          type="button"
+          className="progress-tracker__export"
+          onClick={handleExportData}
+        >
+          Export Data
+        </button>
+      </header>
+
+      <section className="progress-tracker__block" aria-label="Overall completion">
+        <div className="progress-tracker__block-head">
+          <h2 className="progress-tracker__block-title">Overall Completion</h2>
+          <strong className="progress-tracker__percent">{completionPercent}%</strong>
+        </div>
+
+        <div
+          className="progress-tracker__overall-bar"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={completionPercent}
+        >
+          <div
+            className="progress-tracker__overall-fill"
+            style={{ width: `${completionPercent}%` }}
           />
         </div>
-      </Card>
+      </section>
 
-      {sortedAssignments.length === 0 ? (
-        <EmptyState
-          icon={ChartBar}
-          title="No assignments to track"
-          message="Once your instructor assigns work to your group, progress tracking will appear here."
-        />
-      ) : (
-        <div className="grid gap-4 md:grid-cols-3 surface-grid surface-grid--three">
-          {sortedAssignments.map((assignment) => {
-            const submitted = assignment.is_submitted ? 1 : 0;
-            const status = assignment.is_submitted ? 'complete' : 'pending';
-
-            return (
-              <Card key={assignment.assignment_id ?? assignment.id} interactive className="grid gap-4 surface-grid">
-                <div className="flex items-start justify-between gap-3 card__header">
-                  <h2 className="text-lg font-semibold tracking-tight card__title">{assignment.title}</h2>
-                  <StatusBadge status={assignment.status} />
-                </div>
-
-                <div className="flex items-center gap-3 text-sm cluster mono muted" style={{ fontSize: '13px' }}>
-                  <CalendarDots size={16} />
-                  <span>{formatAssignmentDate(assignment.due_date)}</span>
-                </div>
-
-                <ProgressBar current={submitted} total={1} showLabel tone="success" />
-
-                {assignment.is_submitted && assignment.confirmed_at ? (
-                  <p className="text-sm leading-relaxed card__copy">
-                    Confirmed by {assignment.submitted_by_name || 'a group member'} on{' '}
-                    {formatTimestamp(assignment.confirmed_at)}.
-                  </p>
-                ) : (
-                  <p className="text-sm leading-relaxed card__copy">Pending group confirmation.</p>
-                )}
-
-                <div>
-                  <CompletionBadge status={status} />
-                </div>
-              </Card>
-            );
-          })}
+      <section className="progress-tracker__block" aria-label="Task ledger">
+        <div className="progress-tracker__ledger-head">
+          <h2 className="progress-tracker__ledger-title">Task Ledger</h2>
+          <span className="progress-tracker__ledger-tools" aria-hidden="true">
+            ≡  ↕
+          </span>
         </div>
-      )}
-    </Page>
+
+        {sortedAssignments.length === 0 ? (
+          <div className="progress-tracker__empty">
+            <p>No assignments are currently mapped to your group.</p>
+          </div>
+        ) : (
+          <div className="progress-tracker__grid">
+            {sortedAssignments.map((assignment) => {
+              const key = assignment.assignment_id ?? assignment.id;
+              const progressPercent = assignment.is_submitted ? 100 : 0;
+              const assigneeName = getAssigneeName(assignment);
+              const assigneeInitials = getInitials(assigneeName);
+              const meta = getStatusMeta(assignment.status, assignment.is_submitted);
+
+              return (
+                <article
+                  key={key}
+                  className={`progress-tracker__task ${meta.tone === 'overdue' ? 'progress-tracker__task--alert' : ''}`}
+                >
+                  <header className="progress-tracker__task-head">
+                    <span className="progress-tracker__task-type">{meta.category}</span>
+                    <span className="progress-tracker__task-icon" aria-hidden="true">
+                      {meta.tone === 'completed' ? '●' : meta.tone === 'overdue' ? '▲' : '◔'}
+                    </span>
+                  </header>
+
+                  <h3 className="progress-tracker__task-title">{assignment.title}</h3>
+
+                  <div className="progress-tracker__task-progress-head">
+                    <span>Progress</span>
+                    <strong>{progressPercent}%</strong>
+                  </div>
+
+                  <div className="progress-tracker__task-bar" aria-hidden="true">
+                    <div
+                      className="progress-tracker__task-fill"
+                      style={{ width: `${progressPercent}%` }}
+                    />
+                  </div>
+
+                  <p className="progress-tracker__task-date">{formatAssignmentDate(assignment.due_date)}</p>
+
+                  <footer className="progress-tracker__task-foot">
+                    <div className="progress-tracker__assignee">
+                      <span className="progress-tracker__avatar">{assigneeInitials}</span>
+                      <span>{assigneeName}</span>
+                    </div>
+
+                    <span
+                      className={`progress-tracker__pill progress-tracker__pill--${meta.tone}`}
+                    >
+                      {meta.label}
+                    </span>
+                  </footer>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
+    </section>
   );
 }

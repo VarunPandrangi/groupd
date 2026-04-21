@@ -1,43 +1,25 @@
-import { useEffect, useState } from 'react';
-import Navbar from '../components/common/Navbar';
-import Sidebar from '../components/common/Sidebar';
+import AppSidebar from '../components/common/AppSidebar';
+import AppTopbar from '../components/common/AppTopbar';
 import { cx } from '../utils/cx';
 
-const STORAGE_KEY = 'sidebar-collapsed';
-
-export default function AppShell({ navItems = [], children, shellClassName = '' }) {
-  const [collapsed, setCollapsed] = useState(() => {
-    try {
-      return localStorage.getItem(STORAGE_KEY) === 'true';
-    } catch {
-      return false;
-    }
-  });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, String(collapsed));
-    } catch {
-      // no-op when storage is unavailable
-    }
-  }, [collapsed]);
-
-  const sidebarWidth = collapsed ? 72 : 240;
-
+export default function AppShell({
+  navItems = [],
+  children,
+  shellClassName = '',
+  sidebarAction = null,
+}) {
   return (
-    <div className={cx('min-h-screen app-shell', shellClassName)}>
-      <Navbar />
-      <Sidebar
-        navItems={navItems}
-        collapsed={collapsed}
-        onToggleCollapse={() => setCollapsed((currentValue) => !currentValue)}
-      />
-      <main
-        className="min-h-screen w-full app-shell__content"
-        style={{ '--sidebar-offset': `${sidebarWidth}px` }}
-      >
-        <div className="w-full max-w-4xl app-shell__frame">{children}</div>
-      </main>
+    <div className={cx('min-h-screen app-shell stitch-dashboard', shellClassName)}>
+      <AppSidebar navItems={navItems} primaryAction={sidebarAction} />
+
+      <div className="stitch-dashboard__main">
+        <AppTopbar />
+
+        <main className="app-shell__content stitch-dashboard__canvas">
+          <div className="app-shell__canvas-grid" aria-hidden="true" />
+          <div className="app-shell__content-inner">{children}</div>
+        </main>
+      </div>
     </div>
   );
 }

@@ -81,6 +81,7 @@ export default function EditAssignment() {
         onSubmit={handleSubmit}
         onBack={() => navigate('/admin/assignments')}
         backLabel="Back to Assignments"
+        visualVariant="architectural-edit"
         initialValues={
           initialValues ?? {
             title: '',
