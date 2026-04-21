@@ -54,4 +54,22 @@ const groupSchema = new mongoose.Schema(
 groupSchema.index({ createdBy: 1 });
 groupSchema.index({ members: 1 });
 
+// ---------------------------------------------------------------------------
+// Static query helpers (Sprint 2)
+// ---------------------------------------------------------------------------
+
+/**
+ * Check whether the given user is the leader (createdBy) of the group.
+ * Returns false for deleted groups — callers should handle that separately
+ * if they need a distinct "group deleted" error.
+ * @param {string|ObjectId} groupId
+ * @param {string|ObjectId} userId
+ * @returns {Promise<boolean>}
+ */
+groupSchema.statics.isLeader = async function isLeader(groupId, userId) {
+  const group = await this.findById(groupId).lean();
+  if (!group) return false;
+  return group.createdBy.toString() === userId.toString();
+};
+
 export const Group = mongoose.model('Group', groupSchema);
