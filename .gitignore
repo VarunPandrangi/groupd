@@ -9,3 +9,7 @@ pgdata/
 backend/migrate_out.txt
 /*.md
 !/README.md
+
+# Stitch folders (frontend)
+frontend/src/stitch/
+frontend/stitch-downloads/
