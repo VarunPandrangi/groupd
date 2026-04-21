@@ -9,6 +9,7 @@ import { errorHandler } from './middleware/errorHandler.js';
 import authRoutes from './routes/auth.routes.js';
 import assignmentRoutes from './routes/assignment.routes.js';
 import dashboardRoutes from './routes/dashboard.routes.js';
+import courseRoutes from './routes/course.routes.js';
 import groupRoutes from './routes/group.routes.js';
 import submissionRoutes from './routes/submission.routes.js';
 
@@ -31,6 +32,7 @@ app.get('/api/v1/health', (_req, res) => {
 
 // Domain routes
 app.use('/api/v1/auth', authLimiter, authRoutes);
+app.use('/api/v1/courses', courseRoutes);
 app.use('/api/v1/groups', groupRoutes);
 app.use('/api/v1/assignments', assignmentRoutes);
 app.use('/api/v1/submissions', submissionRoutes);
