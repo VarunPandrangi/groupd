@@ -1,12 +1,13 @@
 {
   "name": "groupd-backend",
   "version": "0.1.0",
-  "description": "Groupd backend API - Express + PostgreSQL",
+  "description": "Groupd backend API - Express + MongoDB",
   "type": "module",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js"
+    "dev": "nodemon src/server.js",
+    "seed": "node src/db/seed.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -16,9 +17,8 @@
     "express-rate-limit": "^7.4.0",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
+    "mongoose": "^9.5.0",
     "morgan": "^1.10.0",
-    "pg": "^8.12.0",
-    "uuid": "^10.0.0",
     "winston": "^3.14.2",
     "zod": "^3.23.8"
   },

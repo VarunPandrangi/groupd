@@ -2,12 +2,11 @@ import { z } from 'zod';
 
 const assignmentIdSchema = z
   .string()
-  .uuid('assignment_id must be a valid UUID');
+  .trim()
+  .regex(/^[a-f\d]{24}$/i, 'assignment_id must be a valid ObjectId');
 
 export const prepareSubmissionSchema = z.object({
-  assignment_id: z
-    .string()
-    .uuid('assignment_id must be a valid UUID'),
+  assignment_id: assignmentIdSchema,
 });
 
 export const confirmSubmissionSchema = z.object({

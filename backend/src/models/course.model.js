@@ -1,51 +1,36 @@
 import mongoose from 'mongoose';
 
-const assignmentSchema = new mongoose.Schema(
+const courseSchema = new mongoose.Schema(
   {
-    title: {
+    name: {
       type: String,
       required: true,
       trim: true,
+      maxlength: 100,
+    },
+    code: {
+      type: String,
+      required: true,
+      unique: true,
+      uppercase: true,
+      trim: true,
+      maxlength: 20,
     },
     description: {
       type: String,
-      required: true,
-      default: '',
-    },
-    dueDate: {
-      type: Date,
-      required: true,
-    },
-    onedriveLink: {
-      type: String,
+      maxlength: 2000,
       default: null,
-      trim: true,
-    },
-    assignTo: {
-      type: String,
-      enum: ['all', 'group'],
-      default: 'all',
-    },
-    submissionType: {
-      type: String,
-      enum: ['individual', 'group'],
-      default: 'group',
-    },
-    course: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Course',
-      required: true,
     },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
     },
-    groupTargets: {
+    enrolledStudents: {
       type: [
         {
           type: mongoose.Schema.Types.ObjectId,
-          ref: 'Group',
+          ref: 'User',
         },
       ],
       default: [],
@@ -74,8 +59,7 @@ const assignmentSchema = new mongoose.Schema(
   }
 );
 
-assignmentSchema.index({ course: 1 });
-assignmentSchema.index({ createdBy: 1 });
-assignmentSchema.index({ dueDate: 1 });
+courseSchema.index({ createdBy: 1 });
+courseSchema.index({ enrolledStudents: 1 });
 
-export const Assignment = mongoose.model('Assignment', assignmentSchema);
+export const Course = mongoose.model('Course', courseSchema);

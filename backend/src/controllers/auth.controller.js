@@ -37,3 +37,12 @@ export async function getMe(req, res, next) {
     return next(err);
   }
 }
+
+export async function logout(req, res, next) {
+  try {
+    await authService.logout(req.user.userId);
+    return successResponse(res, null, 'Logout successful', 200);
+  } catch (err) {
+    return next(err);
+  }
+}

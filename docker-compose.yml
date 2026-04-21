@@ -1,21 +1,21 @@
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: groupd-db
+  mongo:
+    image: mongo:7
+    container_name: groupd-mongo
     restart: unless-stopped
-    environment:
-      POSTGRES_DB: groupd
-      POSTGRES_USER: groupd_user
-      POSTGRES_PASSWORD: groupd_pass
     ports:
-      - "5432:5432"
+      - "27017:27017"
     volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./backend/src/db/migrations:/docker-entrypoint-initdb.d
-      - ./backend/src/db/seeds/seed_admin.sql:/docker-entrypoint-initdb.d/zz_seed_admin.sql:ro
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: groupd
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U groupd_user -d groupd"]
-      interval: 5s
+      test:
+        [
+          "CMD-SHELL",
+          "echo 'db.runCommand(\"ping\").ok' | mongosh localhost:27017/groupd --quiet",
+        ]
+      interval: 10s
       timeout: 5s
       retries: 5
 
@@ -25,10 +25,10 @@ services:
     container_name: groupd-backend
     restart: unless-stopped
     depends_on:
-      postgres:
+      mongo:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://groupd_user:groupd_pass@postgres:5432/groupd
+      MONGODB_URI: mongodb://mongo:27017/groupd
       JWT_SECRET: change-this-to-a-random-secret-string
       JWT_REFRESH_SECRET: change-this-to-another-random-secret
       PORT: 5000
@@ -50,4 +50,4 @@ services:
       - "3000:3000"
 
 volumes:
-  pgdata:
+  mongo_data:

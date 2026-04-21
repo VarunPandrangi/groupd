@@ -1,15 +1,5 @@
-import { z } from 'zod';
-
 import * as groupService from '../services/group.service.js';
 import { successResponse } from '../utils/apiResponse.js';
-
-const userIdParamSchema = z.object({
-  userId: z.string().uuid('Invalid user ID'),
-});
-
-const groupIdParamSchema = z.object({
-  groupId: z.string().uuid('Invalid group ID'),
-});
 
 export async function createGroup(req, res, next) {
   try {
@@ -40,8 +30,7 @@ export async function addMember(req, res, next) {
 
 export async function removeMember(req, res, next) {
   try {
-    const { userId } = userIdParamSchema.parse(req.params);
-    const group = await groupService.removeMember(req.user.userId, userId);
+    const group = await groupService.removeMember(req.user.userId, req.params.userId);
     return successResponse(res, { group }, 'Member removed successfully', 200);
   } catch (err) {
     return next(err);
@@ -51,12 +40,7 @@ export async function removeMember(req, res, next) {
 export async function leaveGroup(req, res, next) {
   try {
     await groupService.leaveGroup(req.user.userId);
-    return successResponse(
-      res,
-      { group: null },
-      'Left group successfully',
-      200
-    );
+    return successResponse(res, { group: null }, 'Left group successfully', 200);
   } catch (err) {
     return next(err);
   }
@@ -73,10 +57,7 @@ export async function deleteGroup(req, res, next) {
 
 export async function getAllGroups(req, res, next) {
   try {
-    const result = await groupService.getAllGroups(
-      req.query.page,
-      req.query.limit
-    );
+    const result = await groupService.getAllGroups(req.query.page, req.query.limit);
 
     return res.status(200).json({
       success: true,
@@ -91,8 +72,7 @@ export async function getAllGroups(req, res, next) {
 
 export async function getGroupDetail(req, res, next) {
   try {
-    const { groupId } = groupIdParamSchema.parse(req.params);
-    const group = await groupService.getGroupDetail(groupId);
+    const group = await groupService.getGroupDetail(req.params.groupId);
     return successResponse(res, { group }, '', 200);
   } catch (err) {
     return next(err);
