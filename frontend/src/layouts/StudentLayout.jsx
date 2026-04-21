@@ -1,5 +1,5 @@
 import { Outlet, useNavigate } from 'react-router-dom';
-import { ChartBar, FileText, Plus, SquaresFour, UsersThree } from '@phosphor-icons/react';
+import { ChartBar, FileText, Plus, SquaresFour, UsersThree, Books } from '@phosphor-icons/react';
 import AppShell from './AppShell';
 import { useAuthStore } from '../stores/authStore';
 import { useGroupStore } from '../stores/groupStore';
@@ -7,6 +7,7 @@ import { useGroupStore } from '../stores/groupStore';
 const studentNavItems = [
   { label: 'Dashboard', path: '/student/dashboard', icon: SquaresFour, exact: true },
   { label: 'Assignments', path: '/student/assignments', icon: FileText },
+  { label: 'Courses', path: '/student/courses', icon: Books },
   { label: 'My Group', path: '/student/group', icon: UsersThree },
   { label: 'Progress', path: '/student/progress', icon: ChartBar },
 ];

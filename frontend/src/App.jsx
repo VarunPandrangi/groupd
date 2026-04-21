@@ -18,6 +18,8 @@ import AssignmentDetail from './pages/student/AssignmentDetail';
 import GroupManagement from './pages/student/GroupManagement';
 import CreateGroup from './pages/student/CreateGroup';
 import GroupProgress from './pages/student/GroupProgress';
+import StudentCoursesList from './pages/student/CoursesList';
+import StudentCourseDetail from './pages/student/CourseDetail';
 
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AssignmentManager from './pages/admin/AssignmentManager';
@@ -26,6 +28,10 @@ import EditAssignment from './pages/admin/EditAssignment';
 import GroupViewer from './pages/admin/GroupViewer';
 import GroupDetail from './pages/admin/GroupDetail';
 import SubmissionTracker from './pages/admin/SubmissionTracker';
+import AdminCoursesList from './pages/admin/CoursesList';
+import AdminCreateCourse from './pages/admin/CreateCourse';
+import AdminCourseDetail from './pages/admin/CourseDetail';
+import AdminEnrollmentManager from './pages/admin/EnrollmentManager';
 
 function NotFound() {
   return (
@@ -59,6 +65,8 @@ export default function App() {
           <Route path="group" element={<GroupManagement />} />
           <Route path="group/create" element={<CreateGroup />} />
           <Route path="progress" element={<GroupProgress />} />
+          <Route path="courses" element={<StudentCoursesList />} />
+          <Route path="courses/:courseId" element={<StudentCourseDetail />} />
         </Route>
       </Route>
 
@@ -71,6 +79,10 @@ export default function App() {
           <Route path="groups" element={<GroupViewer />} />
           <Route path="groups/:id" element={<GroupDetail />} />
           <Route path="submissions" element={<SubmissionTracker />} />
+          <Route path="courses" element={<AdminCoursesList />} />
+          <Route path="courses/new" element={<AdminCreateCourse />} />
+          <Route path="courses/:courseId" element={<AdminCourseDetail />} />
+          <Route path="courses/:courseId/enroll" element={<AdminEnrollmentManager />} />
         </Route>
       </Route>
 
