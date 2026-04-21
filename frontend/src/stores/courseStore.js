@@ -17,8 +17,9 @@ export const useCourseStore = create((set) => ({
   fetchCourses: async () => {
     set({ isLoading: true, error: null });
     try {
-      const courses = await courseService.listCourses();
-      set({ courses, isLoading: false });
+      const data = await courseService.listCourses();
+      const courses = data.courses ?? data;
+      set({ courses: Array.isArray(courses) ? courses : [], isLoading: false });
       return courses;
     } catch (error) {
       set({ isLoading: false, error: error?.response?.data?.message ?? error.message });
@@ -47,9 +48,10 @@ export const useCourseStore = create((set) => ({
   createCourse: async (payload) => {
     set({ isLoading: true, error: null });
     try {
-      const course = await courseService.createCourse(payload);
+      const data = await courseService.createCourse(payload);
+      const course = data.course ?? data;
       set((state) => ({
-        courses: [course, ...state.courses],
+        courses: [course, ...(Array.isArray(state.courses) ? state.courses : [])],
         currentCourse: course,
         isLoading: false,
       }));
@@ -64,9 +66,12 @@ export const useCourseStore = create((set) => ({
   updateCourse: async (id, fields) => {
     set({ isLoading: true, error: null });
     try {
-      const updated = await courseService.updateCourse(id, fields);
+      const data = await courseService.updateCourse(id, fields);
+      const updated = data.course ?? data;
       set((state) => ({
-        courses: state.courses.map((c) => (c._id === id ? updated : c)),
+        courses: Array.isArray(state.courses) 
+          ? state.courses.map((c) => (c._id === id ? updated : c))
+          : [],
         currentCourse: state.currentCourse?._id === id ? updated : state.currentCourse,
         isLoading: false,
       }));
@@ -83,7 +88,7 @@ export const useCourseStore = create((set) => ({
     try {
       await courseService.deleteCourse(id);
       set((state) => ({
-        courses: state.courses.filter((c) => c._id !== id),
+        courses: Array.isArray(state.courses) ? state.courses.filter((c) => c._id !== id) : [],
         currentCourse: state.currentCourse?._id === id ? null : state.currentCourse,
         isLoading: false,
       }));
@@ -129,8 +134,9 @@ export const useCourseStore = create((set) => ({
   fetchEnrolledStudents: async (id) => {
     set({ isLoading: true, error: null });
     try {
-      const students = await courseService.listEnrolledStudents(id);
-      set({ currentCourseStudents: students, isLoading: false });
+      const data = await courseService.listEnrolledStudents(id);
+      const students = data.students ?? data;
+      set({ currentCourseStudents: Array.isArray(students) ? students : [], isLoading: false });
       return students;
     } catch (error) {
       set({ isLoading: false, error: error?.response?.data?.message ?? error.message });
