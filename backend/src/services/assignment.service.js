@@ -64,6 +64,11 @@ function toGroupSummary(group) {
 }
 
 function mapAssignment(assign) {
+  // course may be a populated object or a raw ObjectId
+  const courseObj = assign.course && typeof assign.course === 'object' && assign.course._id
+    ? assign.course
+    : null;
+
   return {
     id: assign._id.toString(),
     title: assign.title,
@@ -72,7 +77,11 @@ function mapAssignment(assign) {
     onedrive_link: assign.onedriveLink,
     assign_to: assign.assignTo === 'all' ? 'all' : 'specific',
     submission_type: assign.submissionType,
-    course_id: assign.course?.toString?.() ?? assign.course?._id?.toString?.() ?? null,
+    course_id: courseObj
+      ? courseObj._id.toString()
+      : assign.course?.toString?.() ?? null,
+    course_name: courseObj?.name ?? null,
+    course_code: courseObj?.code ?? null,
     is_deleted: assign.isDeleted,
     created_by:
       assign.createdBy?.toString?.() ?? assign.createdBy?._id?.toString?.() ?? null,
@@ -327,20 +336,21 @@ async function mapAssignmentSubmissions(assignmentId) {
     });
 }
 
-async function isStudentEnrolled(userId, courseId) {
-  const course = await Course.findOne({
-    _id: courseId,
-    enrolledStudents: userId,
-    isDeleted: false,
-  }).select('_id');
-
-  return Boolean(course);
-}
 
 export async function create(userId, payload) {
   await requireUser(userId);
 
   const course = await resolveCourse(userId, payload);
+
+  // Enforce professor ownership — only the course owner may create assignments for it
+  const isOwner = await Course.isProfessorOwner(course._id, userId);
+  if (!isOwner) {
+    throw httpError(
+      403,
+      'NOT_COURSE_OWNER',
+      'You do not own this course'
+    );
+  }
 
   let normalizedGroupIds = [];
   let groups = [];
@@ -362,8 +372,13 @@ export async function create(userId, payload) {
     groupTargets: normalizedGroupIds,
   });
 
+  // Re-fetch with populated course so mapAssignment can include name/code
+  const populated = await Assignment.findById(assignment._id)
+    .populate('course', 'name code')
+    .lean();
+
   return {
-    ...mapAssignment(assignment),
+    ...mapAssignment(populated),
     status: computeStatus(assignment.dueDate),
     groups: groups.map(toGroupSummary),
   };
@@ -502,19 +517,14 @@ export async function getForStudent(userId) {
   const user = await requireUser(userId);
   const userGroup = await findActiveGroupForUser(user._id);
 
-  const enrolledCourses = await Course.find({
-    enrolledStudents: user._id,
-    isDeleted: false,
-  })
-    .select('_id')
-    .lean();
-
+  const enrolledCourses = await Course.findByStudent(user._id).select('_id').lean();
   const courseIds = enrolledCourses.map((course) => course._id);
 
   const assignments = await Assignment.find({
     isDeleted: false,
     course: { $in: courseIds },
   })
+    .populate('course', 'name code')
     .sort({ dueDate: 1, createdAt: -1 })
     .lean();
 
@@ -537,13 +547,6 @@ export async function getForStudent(userId) {
   for (const assignment of visibleAssignments) {
     const assignmentDoc = Assignment.hydrate(assignment);
 
-    if (
-      assignmentDoc.submissionType === 'individual' &&
-      !(await isStudentEnrolled(user._id, assignmentDoc.course))
-    ) {
-      continue;
-    }
-
     const submissionStatus = await getSubmissionForAssignment(
       assignmentDoc,
       user,
@@ -551,13 +554,37 @@ export async function getForStudent(userId) {
     );
 
     response.push({
-      ...mapAssignment(assignmentDoc),
-      status: computeStatus(assignmentDoc.dueDate),
+      ...mapAssignment(assignment),  // use lean object so course obj is intact
+      status: computeStatus(assignment.dueDate),
       submission_status: submissionStatus,
     });
   }
 
   return response;
+}
+
+/**
+ * List assignments scoped to courses owned by the given professor.
+ * Includes course.name and course.code in each row.
+ */
+export async function getForAdmin(userId) {
+  await requireUser(userId);
+
+  const ownedCourses = await Course.findByProfessor(userId).select('_id').lean();
+  const courseIds = ownedCourses.map((c) => c._id);
+
+  const assignments = await Assignment.find({
+    isDeleted: false,
+    course: { $in: courseIds },
+  })
+    .populate('course', 'name code')
+    .sort({ dueDate: 1, createdAt: -1 })
+    .lean();
+
+  return assignments.map((assignment) => ({
+    ...mapAssignment(assignment),
+    status: computeStatus(assignment.dueDate),
+  }));
 }
 
 export async function getDetail(id, user) {
