@@ -1,14 +1,98 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { CaretLeft, Users, UserMinus, Plus, SpinnerGap } from '@phosphor-icons/react';
+import { useNavigate, useParams } from 'react-router-dom';
+import {
+  CaretLeft,
+  FunnelSimple,
+  MagnifyingGlass,
+  SpinnerGap,
+  User,
+} from '@phosphor-icons/react';
 import toast from 'react-hot-toast';
-import { Page, PageHeader } from '../../components/common/Page';
-import Card from '../../components/common/Card';
-import Button from '../../components/common/Button';
+import { FadeUp, Page, StaggerGroup } from '../../components/common/Page';
 import Skeleton from '../../components/common/Skeleton';
 import EmptyState from '../../components/common/EmptyState';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import { useCourseStore } from '../../stores/courseStore';
+import './EnrollmentManager.css';
+
+const enrollmentDateFormatter = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+});
+
+function getStudentName(student) {
+  return (
+    student?.fullName ??
+    student?.full_name ??
+    student?.name ??
+    student?.displayName ??
+    'Student'
+  );
+}
+
+function getStudentIdentifier(student) {
+  return (
+    student?.studentId ??
+    student?.student_id ??
+    student?.email ??
+    student?.identifier ??
+    ''
+  );
+}
+
+function getEnrollmentDate(student) {
+  return (
+    student?.enrolledAt ??
+    student?.enrollmentDate ??
+    student?.createdAt ??
+    student?.created_at ??
+    null
+  );
+}
+
+function formatEnrollmentDate(value) {
+  if (!value) {
+    return 'N/A';
+  }
+
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return 'N/A';
+  }
+
+  return enrollmentDateFormatter.format(date);
+}
+
+function EnrollmentLoadingState() {
+  return (
+    <Page className="enrollment-architectural enrollment-architectural--loading" aria-label="Loading enrollment workspace">
+      <div className="enrollment-architectural__loading-stack">
+        <div className="enrollment-architectural__loading-hero">
+          <div className="enrollment-architectural__loading-copy">
+            <Skeleton variant="text" width="148px" height="12px" />
+            <Skeleton variant="text" width="340px" height="34px" />
+            <Skeleton variant="text" width="460px" height="14px" />
+          </div>
+          <Skeleton variant="text" width="140px" height="40px" />
+        </div>
+
+        <div className="enrollment-architectural__loading-section">
+          <Skeleton variant="text" width="160px" height="12px" />
+          <Skeleton variant="card" height="150px" />
+        </div>
+
+        <div className="enrollment-architectural__loading-section">
+          <div className="enrollment-architectural__loading-head">
+            <Skeleton variant="text" width="220px" height="12px" />
+            <Skeleton variant="text" width="64px" height="12px" />
+          </div>
+          <Skeleton variant="card" height="420px" />
+        </div>
+      </div>
+    </Page>
+  );
+}
 
 export default function EnrollmentManager() {
   const { courseId } = useParams();
@@ -17,7 +101,7 @@ export default function EnrollmentManager() {
   const fetchCourse = useCourseStore((state) => state.fetchCourse);
   const enrollStudent = useCourseStore((state) => state.enrollStudent);
   const unenrollStudent = useCourseStore((state) => state.unenrollStudent);
-  
+
   const currentCourse = useCourseStore((state) => state.currentCourse);
   const currentCourseStudents = useCourseStore((state) => state.currentCourseStudents);
   const isLoading = useCourseStore((state) => state.isLoading);
@@ -25,48 +109,62 @@ export default function EnrollmentManager() {
   const [identifier, setIdentifier] = useState('');
   const [isEnrolling, setIsEnrolling] = useState(false);
   const [enrollError, setEnrollError] = useState('');
-  
+
   const [studentToRemove, setStudentToRemove] = useState(null);
   const [isRemoving, setIsRemoving] = useState(false);
   const [fetchError, setFetchError] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
+
     const load = async () => {
       try {
         await fetchCourse(courseId);
-        if (isMounted) setFetchError(false);
+        if (isMounted) {
+          setFetchError(false);
+        }
       } catch {
-        if (isMounted) setFetchError(true);
+        if (isMounted) {
+          setFetchError(true);
+        }
       }
     };
+
     load();
+
     return () => {
       isMounted = false;
     };
   }, [courseId, fetchCourse]);
 
+  const enrolledStudents = Array.isArray(currentCourseStudents) ? currentCourseStudents : [];
+  const enrolledCount = enrolledStudents.length;
+  const courseCode = String(currentCourse?.code ?? '').trim().toUpperCase() || 'COURSE';
+  const courseName = String(currentCourse?.name ?? 'Untitled course').trim() || 'Untitled course';
+  const courseDescription = `Manage students enrolled in ${courseName}.`;
+
   const handleEnroll = async (e) => {
     e.preventDefault();
-    if (!identifier.trim()) return;
+    if (!identifier.trim()) {
+      return;
+    }
 
     setIsEnrolling(true);
     setEnrollError('');
 
-    const payload = identifier.includes('@') 
-      ? { email: identifier.trim() } 
+    const payload = identifier.includes('@')
+      ? { email: identifier.trim() }
       : { studentId: identifier.trim() };
 
     try {
       await enrollStudent(courseId, payload);
       toast.success('Student enrolled successfully.');
       setIdentifier('');
-      // Refresh course to get updated student list
       await fetchCourse(courseId);
     } catch (error) {
       const code = error?.response?.data?.error?.code;
       const message = error?.response?.data?.message || 'Unable to enroll student.';
-      
+
       if (code === 'ALREADY_ENROLLED') {
         setEnrollError('Student is already enrolled');
       } else if (code === 'CANNOT_ENROLL_NON_STUDENT') {
@@ -82,8 +180,12 @@ export default function EnrollmentManager() {
   };
 
   const handleRemove = async () => {
-    if (!studentToRemove) return;
+    if (!studentToRemove) {
+      return;
+    }
+
     setIsRemoving(true);
+
     try {
       await unenrollStudent(courseId, studentToRemove._id);
       toast.success('Student removed from course.');
@@ -97,7 +199,7 @@ export default function EnrollmentManager() {
 
   if (fetchError) {
     return (
-      <Page>
+      <Page className="enrollment-architectural" aria-label="Enrollment workspace error">
         <EmptyState
           title="Course Not Found"
           message="You do not own this course or it does not exist."
@@ -109,125 +211,174 @@ export default function EnrollmentManager() {
   }
 
   if (isLoading && !currentCourse) {
-    return (
-      <Page>
-        <div style={{ display: 'grid', gap: '32px' }}>
-          <div>
-            <Skeleton variant="text" width="100px" style={{ marginBottom: '8px' }} />
-            <Skeleton variant="text" width="60%" height="32px" style={{ marginBottom: '16px' }} />
-            <Skeleton variant="text" width="40%" />
-          </div>
-          <Skeleton variant="card" height="200px" />
-        </div>
-      </Page>
-    );
+    return <EnrollmentLoadingState />;
   }
 
   return (
-    <Page className="workspace-cool" aria-label="Enrollment Manager">
-      <PageHeader
-        eyebrow="Admin Workspace"
-        eyebrowAccent
-        title={`Enrollment: ${currentCourse?.code}`}
-        description={`Manage students enrolled in ${currentCourse?.name}.`}
-        actions={
-          <Button type="button" variant="secondary" onClick={() => navigate(`/admin/courses/${courseId}`)}>
-            <CaretLeft size={16} />
-            Back to Course
-          </Button>
-        }
-      />
+    <Page className="enrollment-architectural" aria-label="Enrollment Manager">
+      <header className="enrollment-architectural__header">
+        <div className="enrollment-architectural__header-cluster">
+          <button
+            type="button"
+            className="enrollment-architectural__back-link"
+            onClick={() => navigate(`/admin/courses/${courseId}`)}
+          >
+            <CaretLeft size={16} weight="bold" />
+            <span>Back to Course</span>
+          </button>
+          <span className="enrollment-architectural__header-divider" aria-hidden="true" />
 
-      <div className="grid gap-6">
-        <Card>
-          <div style={{ padding: '8px 0' }}>
-            <h2 className="text-lg font-bold mb-2">Enroll a Student</h2>
-            <p className="muted mb-4">Enter a student's email address or Student ID to add them to this course.</p>
-            
-            <form onSubmit={handleEnroll} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <div className="enrollment-architectural__header-copy">
+            <p className="enrollment-architectural__eyebrow">ADMIN WORKSPACE</p>
+            <h1 className="enrollment-architectural__title">Enrollment: {courseCode}</h1>
+            <p className="enrollment-architectural__subtitle">{courseDescription}</p>
+          </div>
+        </div>
+      </header>
+
+      <section className="enrollment-architectural__section" aria-label="Enroll a student">
+        <h2 className="enrollment-architectural__section-title">Enroll a Student</h2>
+
+        <div className="enrollment-architectural__enroll-card">
+          <form onSubmit={handleEnroll} className="enrollment-architectural__enroll-form">
+            <div className="enrollment-architectural__field">
+              <label htmlFor="enrollment-identifier" className="enrollment-architectural__field-label">
+                Student ID or Email
+              </label>
+              <div className="enrollment-architectural__input-shell">
+                <MagnifyingGlass
+                  size={18}
+                  weight="bold"
+                  className="enrollment-architectural__input-icon"
+                  aria-hidden="true"
+                />
                 <input
+                  id="enrollment-identifier"
                   type="text"
-                  className="w-full rounded-md input"
-                  placeholder="Email or Student ID..."
+                  className="enrollment-architectural__input"
+                  placeholder="e.g. STU-9921 or name@edu.com"
                   value={identifier}
                   onChange={(e) => {
                     setIdentifier(e.target.value);
                     setEnrollError('');
                   }}
                   disabled={isEnrolling}
+                  autoComplete="off"
                 />
-                {enrollError && <span className="text-xs text-red-500 mt-1">{enrollError}</span>}
               </div>
-              <Button type="submit" variant="primary" disabled={isEnrolling || !identifier.trim()}>
-                {isEnrolling ? <SpinnerGap className="spinner" size={16} /> : <Plus size={16} />}
-                {isEnrolling ? 'Enrolling...' : 'Enroll'}
-              </Button>
-            </form>
-          </div>
-        </Card>
-
-        <Card>
-          <div style={{ padding: '8px 0' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-              <h2 className="text-lg font-bold">Enrolled Students ({currentCourseStudents.length})</h2>
+              {enrollError ? <p className="enrollment-architectural__error">{enrollError}</p> : null}
             </div>
 
-            {currentCourseStudents.length === 0 ? (
-              <EmptyState
-                icon={Users}
-                title="No Students Enrolled"
-                message="Enroll a student using the form above."
-              />
-            ) : (
-              <div className="grid gap-3">
-                {currentCourseStudents.map(student => (
-                  <div 
-                    key={student._id} 
-                    style={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between', 
-                      alignItems: 'center',
-                      padding: '16px',
-                      background: 'var(--bg-surface)',
-                      border: '1px solid var(--border-default)',
-                      borderRadius: '8px'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div className="avatar" style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--bg-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Users size={20} className="muted" />
+            <button
+              type="submit"
+              className="enrollment-architectural__primary-btn"
+              disabled={isEnrolling || !identifier.trim()}
+            >
+              {isEnrolling ? <SpinnerGap className="spinner" size={16} /> : null}
+              <span>{isEnrolling ? 'Enrolling...' : 'Enroll'}</span>
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <section className="enrollment-architectural__section" aria-label="Enrolled students">
+        <div className="enrollment-architectural__ledger-headline">
+          <h2 className="enrollment-architectural__ledger-title">
+            Enrolled Students <span className="enrollment-architectural__ledger-count">({enrolledCount})</span>
+          </h2>
+          <button type="button" className="enrollment-architectural__filter-btn" aria-label="Filter enrolled students">
+            <FunnelSimple size={15} weight="bold" />
+            <span>Filter</span>
+          </button>
+        </div>
+
+        <div className="enrollment-architectural__section-rule" aria-hidden="true" />
+
+        <div className="enrollment-architectural__ledger-card">
+          <div className="enrollment-architectural__ledger-grid enrollment-architectural__ledger-grid--head">
+            <div>Student Name</div>
+            <div className="enrollment-architectural__col-id">Student ID</div>
+            <div className="enrollment-architectural__col-date">Enrollment Date</div>
+            <div className="enrollment-architectural__col-action enrollment-architectural__ledger-action-head">
+              Action
+            </div>
+          </div>
+
+          {enrolledCount === 0 ? (
+            <div className="enrollment-architectural__empty-card">
+              <p>No students are enrolled yet.</p>
+              <p>Use the form above to add the first student.</p>
+            </div>
+          ) : (
+            <StaggerGroup className="enrollment-architectural__ledger-list">
+              {enrolledStudents.map((student, index) => {
+                const studentName = getStudentName(student);
+                const studentIdentifier = getStudentIdentifier(student);
+                const enrollmentDate = formatEnrollmentDate(getEnrollmentDate(student));
+                const rowKey =
+                  student?._id ?? student?.id ?? `${studentName}-${studentIdentifier || index}`;
+                const isAltRow = index % 2 === 1;
+
+                return (
+                  <FadeUp key={rowKey}>
+                    <div
+                      className={`enrollment-architectural__ledger-row${
+                        isAltRow ? ' enrollment-architectural__ledger-row--alt' : ''
+                      }`}
+                    >
+                      <div className="enrollment-architectural__student-main">
+                        <div className="enrollment-architectural__student-avatar" aria-hidden="true">
+                          <User size={18} weight="fill" />
+                        </div>
+                        <div className="enrollment-architectural__student-copy">
+                          <p className="enrollment-architectural__student-name">{studentName}</p>
+                          <p className="enrollment-architectural__mobile-meta">
+                            <span>{studentIdentifier || 'No student ID'}</span>
+                            <span className="enrollment-architectural__mobile-meta-divider" aria-hidden="true">
+                              -
+                            </span>
+                            <span>{enrollmentDate}</span>
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p style={{ fontWeight: 600, fontSize: '14px' }}>{student.fullName}</p>
-                        <p className="muted" style={{ fontSize: '12px' }}>{student.studentId || student.email}</p>
+
+                      <div className="enrollment-architectural__ledger-id">
+                        {studentIdentifier || 'N/A'}
+                      </div>
+
+                      <div className="enrollment-architectural__ledger-date">{enrollmentDate}</div>
+
+                      <div className="enrollment-architectural__ledger-action">
+                        <button
+                          type="button"
+                          className="enrollment-architectural__remove-btn"
+                          onClick={() => setStudentToRemove(student)}
+                          disabled={isRemoving}
+                          title={`Remove ${studentName}`}
+                          aria-label={`Remove ${studentName}`}
+                        >
+                          Remove
+                        </button>
                       </div>
                     </div>
-                    <Button 
-                      variant="ghost" 
-                      onClick={() => setStudentToRemove(student)}
-                      style={{ color: 'var(--text-critical)' }}
-                      title="Remove student"
-                    >
-                      <UserMinus size={18} />
-                      Remove
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </Card>
-      </div>
+                  </FadeUp>
+                );
+              })}
+            </StaggerGroup>
+          )}
+        </div>
+      </section>
 
       <ConfirmDialog
         isOpen={Boolean(studentToRemove)}
         title="Remove student"
-        message={`Are you sure you want to remove ${studentToRemove?.fullName} from this course? They will lose access to course assignments.`}
+        message={`Are you sure you want to remove ${getStudentName(studentToRemove)} from this course? They will lose access to course assignments.`}
         confirmText={isRemoving ? 'Removing...' : 'Remove Student'}
         cancelText="Cancel"
         onCancel={() => {
-          if (!isRemoving) setStudentToRemove(null);
+          if (!isRemoving) {
+            setStudentToRemove(null);
+          }
         }}
         onConfirm={handleRemove}
         variant="danger"
