@@ -129,11 +129,6 @@ export default function GroupProgress() {
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    if (!user?.group_id) {
-      setIsReady(true);
-      return;
-    }
-
     let isMounted = true;
 
     async function loadProgress() {
@@ -141,7 +136,7 @@ export default function GroupProgress() {
         await fetchGroupProgress();
       } catch (error) {
         if (isMounted) {
-          toast.error(getErrorMessage(error, 'Unable to load group progress.'));
+          toast.error(getErrorMessage(error, 'Unable to load progress.'));
         }
       } finally {
         if (isMounted) {
@@ -157,7 +152,15 @@ export default function GroupProgress() {
     };
   }, [fetchGroupProgress, user?.group_id]);
 
-  if (!user?.group_id) {
+  if (!isReady || isLoading) {
+    return <LoadingSpinner />;
+  }
+
+  const assignments = Array.isArray(groupProgress)
+    ? groupProgress
+    : groupProgress?.progress ?? [];
+
+  if (!user?.group_id && assignments.length === 0) {
     return (
       <section className="progress-empty" aria-labelledby="progress-empty-title">
         <div className="progress-empty__panel">
@@ -171,12 +174,12 @@ export default function GroupProgress() {
           </div>
 
           <h1 id="progress-empty-title" className="progress-empty__title">
-            No Group Yet
+            No Progress Data Yet
           </h1>
 
           <p className="progress-empty__message">
-            Join a group to start tracking progress. Analytics, milestones, and peer comparisons
-            require active group affiliation.
+            Join a group to track group assignments here. Individual assignments will appear
+            automatically once they are assigned to your enrolled courses.
           </p>
 
           <button
@@ -191,14 +194,6 @@ export default function GroupProgress() {
       </section>
     );
   }
-
-  if (!isReady || isLoading) {
-    return <LoadingSpinner />;
-  }
-
-  const assignments = Array.isArray(groupProgress)
-    ? groupProgress
-    : groupProgress?.progress ?? [];
 
   const totalAssignments = assignments.length;
   const completedAssignments = assignments.filter(
@@ -234,7 +229,7 @@ export default function GroupProgress() {
     const anchor = document.createElement('a');
 
     anchor.href = url;
-    anchor.download = 'group-progress.json';
+    anchor.download = 'progress-tracker.json';
     document.body.appendChild(anchor);
     anchor.click();
     document.body.removeChild(anchor);
@@ -242,7 +237,7 @@ export default function GroupProgress() {
   }
 
   return (
-    <section className="progress-tracker" aria-label="Group progress tracker">
+    <section className="progress-tracker" aria-label="Progress tracker">
       <header className="progress-tracker__header">
         <div>
           <div className="progress-tracker__chips">
@@ -251,8 +246,10 @@ export default function GroupProgress() {
               {dueWindowLabel}
             </span>
           </div>
-          <h1 className="progress-tracker__title">Group Progress Tracker</h1>
-          <p className="progress-tracker__subtitle">Group structural progress and assignment tracking.</p>
+          <h1 className="progress-tracker__title">Progress Tracker</h1>
+          <p className="progress-tracker__subtitle">
+            Assignment tracking across your individual and group work.
+          </p>
         </div>
 
         <button
@@ -294,7 +291,7 @@ export default function GroupProgress() {
 
         {sortedAssignments.length === 0 ? (
           <div className="progress-tracker__empty">
-            <p>No assignments are currently mapped to your group.</p>
+            <p>No assignments are currently available to track.</p>
           </div>
         ) : (
           <div className="progress-tracker__grid">
