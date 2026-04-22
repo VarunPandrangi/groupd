@@ -6574,7 +6574,7 @@
     linear-gradient(rgba(20, 24, 36, 0.12) 1px, transparent 1px),
     linear-gradient(90deg, rgba(20, 24, 36, 0.12) 1px, transparent 1px);
   background-size: 24px 24px;
-  padding: clamp(18px, 2.2vw, 28px);
+  padding: clamp(14px, 1.8vw, 22px);
   overflow: auto;
 }
 
@@ -6591,7 +6591,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  padding: 12px 14px;
+  padding: 10px 12px;
   border-bottom: 2px solid #141824;
 }
 
@@ -6605,18 +6605,18 @@
 }
 
 .stitch-group-uniform__hero-title {
-  margin: 3px 0 0;
-  font-size: clamp(34px, 5vw, 48px);
-  line-height: 0.95;
+  margin: 2px 0 0;
+  font-size: clamp(30px, 4.4vw, 42px);
+  line-height: 0.94;
   letter-spacing: -0.03em;
   text-transform: uppercase;
   color: #10131d;
 }
 
 .stitch-group-uniform__hero-meta {
-  margin: 8px 0 0;
-  font-size: 13px;
-  line-height: 1.5;
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
   color: #616878;
 }
 
@@ -6624,7 +6624,7 @@
   display: grid;
   justify-items: end;
   gap: 2px;
-  min-width: 92px;
+  min-width: 86px;
 }
 
 .stitch-group-uniform__hero-status-label {
@@ -6648,10 +6648,10 @@
 .stitch-group-uniform__invite {
   display: grid;
   gap: 10px;
-  margin: 12px 14px 0;
+  margin: 10px 12px 0;
   border: 2px solid #141824;
   background: #ededee;
-  padding: 10px;
+  padding: 9px;
 }
 
 .stitch-group-uniform__invite-title {
@@ -6722,15 +6722,15 @@
 .stitch-group-uniform__roster-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  padding: 14px;
+  gap: 10px;
+  padding: 12px;
 }
 
 .stitch-group-uniform__member-card {
   position: relative;
   display: flex;
   flex-direction: column;
-  min-height: 226px;
+  min-height: 178px;
   border: 2px solid #141824;
   background: #e5e5e7;
   overflow: hidden;
@@ -6752,20 +6752,20 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 14px 16px 10px;
+  gap: 8px;
+  padding: 10px 12px 8px;
 }
 
 .stitch-group-uniform__member-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
 }
 
 .stitch-group-uniform__member-avatar {
-  width: 64px;
-  height: 64px;
+  width: 52px;
+  height: 52px;
   border: 2px solid #141824;
   background: #f2f2f3;
   display: inline-flex;
@@ -6773,22 +6773,22 @@
   justify-content: center;
   color: #141824;
   flex-shrink: 0;
-  box-shadow: 3px 3px 0 #141824;
+  box-shadow: 2px 2px 0 #141824;
 }
 
 .stitch-group-uniform__member-label {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 28px;
+  min-height: 24px;
   border: 1px solid #141824;
   background: #d1d2d6;
   color: #121622;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 900;
   letter-spacing: 0.02em;
   text-transform: none;
-  padding: 0 10px;
+  padding: 0 8px;
   line-height: 1;
   text-align: center;
   flex: 1;
@@ -6825,8 +6825,8 @@
 
 .stitch-group-uniform__member-name {
   margin: 0;
-  font-size: clamp(26px, 2.1vw, 38px);
-  line-height: 0.92;
+  font-size: clamp(22px, 1.9vw, 30px);
+  line-height: 0.9;
   letter-spacing: -0.03em;
   text-transform: uppercase;
   color: #111522;
@@ -6834,9 +6834,9 @@
 
 .stitch-group-uniform__member-role {
   margin: 0;
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 900;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: #646b7a;
 }
@@ -6845,17 +6845,17 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 42px;
+  min-height: 34px;
   border-top: 2px solid #141824;
   color: #121622;
   background: #f1f1f2;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 800;
   letter-spacing: 0;
   line-height: 1;
   text-transform: none;
   text-decoration: none;
-  padding: 0 14px;
+  padding: 0 10px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -6869,17 +6869,17 @@
 .stitch-group-uniform__open-slot {
   border: 1px dashed #141824;
   background: #f5f5f6;
-  min-height: 226px;
+  min-height: 178px;
   display: grid;
   align-content: center;
   justify-items: center;
-  gap: 10px;
+  gap: 8px;
   cursor: pointer;
 }
 
 .stitch-group-uniform__open-slot-icon {
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   border: 2px solid #141824;
   display: inline-flex;
   align-items: center;
@@ -6888,7 +6888,7 @@
 }
 
 .stitch-group-uniform__open-slot-title {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 900;
   letter-spacing: -0.01em;
   text-transform: uppercase;
@@ -6906,15 +6906,15 @@
 }
 
 .stitch-group-uniform__danger {
-  margin: 0 14px 14px;
+  margin: 0 12px 12px;
   border: 2px solid #141824;
   border-left: 4px solid #cc000f;
   background: #fbfbfc;
-  padding: 10px;
+  padding: 8px 10px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
 }
 
 .stitch-group-uniform__danger-copy {
@@ -6931,18 +6931,18 @@
 }
 
 .stitch-group-uniform__danger-title {
-  margin: 4px 0 0;
-  font-size: clamp(26px, 4vw, 42px);
-  line-height: 0.94;
+  margin: 2px 0 0;
+  font-size: clamp(22px, 3.6vw, 34px);
+  line-height: 0.92;
   letter-spacing: -0.02em;
   text-transform: uppercase;
   color: #131722;
 }
 
 .stitch-group-uniform__danger-text {
-  margin: 8px 0 0;
-  font-size: 13px;
-  line-height: 1.6;
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
   color: #636b7d;
 }
 
@@ -6950,11 +6950,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 34px;
+  min-height: 32px;
   border: 2px solid #141824;
   background: #cc000f;
   color: #fff;
-  padding: 8px 12px;
+  padding: 7px 10px;
   font-size: 10px;
   font-weight: 900;
   letter-spacing: 0.08em;
@@ -7011,12 +7011,13 @@
   }
 
   .stitch-group-uniform__canvas {
-    padding: 14px;
+    padding: 12px;
   }
 
   .stitch-group-uniform__hero {
     flex-direction: column;
     align-items: flex-start;
+    gap: 10px;
   }
 
   .stitch-group-uniform__hero-status {
@@ -7036,6 +7037,7 @@
   .stitch-group-uniform__danger {
     flex-direction: column;
     align-items: stretch;
+    padding: 8px;
   }
 
   .stitch-group-uniform__danger-action {
@@ -7063,12 +7065,12 @@
   }
 
   .stitch-group-uniform__member-card {
-    min-height: 214px;
+    min-height: 198px;
   }
 
   .stitch-group-uniform__member-body {
-    padding: 12px 12px 8px;
-    gap: 12px;
+    padding: 10px 10px 8px;
+    gap: 8px;
   }
 
   .stitch-group-uniform__member-head {
@@ -7076,25 +7078,96 @@
   }
 
   .stitch-group-uniform__member-avatar {
-    width: 56px;
-    height: 56px;
+    width: 50px;
+    height: 50px;
     border-width: 2px;
     box-shadow: 2px 2px 0 #141824;
   }
 
   .stitch-group-uniform__member-label {
-    min-height: 24px;
+    min-height: 22px;
     padding: 0 8px;
     font-size: 10px;
   }
 
   .stitch-group-uniform__member-name {
-    font-size: clamp(22px, 8vw, 30px);
+    font-size: clamp(20px, 7.5vw, 28px);
   }
 
   .stitch-group-uniform__member-action {
-    min-height: 38px;
+    min-height: 34px;
     font-size: 15px;
+  }
+}
+
+@media (max-height: 900px) {
+  .stitch-group-uniform__canvas {
+    padding: 12px;
+  }
+
+  .stitch-group-uniform__panel {
+    box-shadow: 5px 5px 0 #141824;
+  }
+
+  .stitch-group-uniform__hero {
+    padding: 8px 12px;
+    gap: 10px;
+  }
+
+  .stitch-group-uniform__hero-title {
+    font-size: clamp(28px, 4vw, 38px);
+  }
+
+  .stitch-group-uniform__hero-meta {
+    margin-top: 5px;
+  }
+
+  .stitch-group-uniform__roster-grid {
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .stitch-group-uniform__member-card,
+  .stitch-group-uniform__open-slot {
+    min-height: 170px;
+  }
+
+  .stitch-group-uniform__member-body {
+    padding: 9px 10px 7px;
+    gap: 7px;
+  }
+
+  .stitch-group-uniform__member-avatar {
+    width: 48px;
+    height: 48px;
+  }
+
+  .stitch-group-uniform__member-name {
+    font-size: clamp(20px, 1.8vw, 28px);
+  }
+
+  .stitch-group-uniform__member-action {
+    min-height: 32px;
+    font-size: 13px;
+  }
+
+  .stitch-group-uniform__danger {
+    margin: 0 12px 12px;
+    padding: 7px 9px;
+  }
+
+  .stitch-group-uniform__danger-title {
+    font-size: clamp(20px, 3.2vw, 30px);
+  }
+
+  .stitch-group-uniform__danger-text {
+    margin-top: 5px;
+    font-size: 11px;
+  }
+
+  .stitch-group-uniform__danger-action {
+    min-height: 30px;
+    padding: 6px 10px;
   }
 }
 
@@ -8201,13 +8274,16 @@
 .workspace-cool {
   position: relative;
   display: grid;
-  gap: 22px;
+  gap: 14px;
+  width: min(100%, 1280px);
+  margin: 0 auto;
+  padding-bottom: 4px;
   color: #171a23;
 }
 
 .workspace-cool__hero {
   border-bottom: 2px solid #171a23;
-  padding-bottom: 14px;
+  padding-bottom: 10px;
 }
 
 .workspace-cool__eyebrow {
@@ -8220,8 +8296,8 @@
 }
 
 .workspace-cool__title {
-  margin: 8px 0 0;
-  font-size: clamp(30px, 4vw, 50px);
+  margin: 6px 0 0;
+  font-size: clamp(28px, 3.4vw, 42px);
   font-weight: 900;
   line-height: 0.96;
   letter-spacing: -0.03em;
@@ -8234,18 +8310,19 @@
 }
 
 .workspace-cool__subtitle {
-  margin: 12px 0 0;
+  margin: 8px 0 0;
   max-width: 64ch;
   padding-left: 12px;
   border-left: 3px solid #bc000a;
-  font-size: 14px;
+  font-size: 13px;
+  line-height: 1.5;
   color: #525a6a;
 }
 
 .workspace-cool__cards {
   display: grid;
   grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.35fr);
-  gap: 16px;
+  gap: 12px;
 }
 
 .workspace-cool__card {
@@ -8259,13 +8336,13 @@
   justify-content: space-between;
   gap: 12px;
   border-bottom: 2px solid #171a23;
-  padding: 10px 12px;
+  padding: 8px 10px;
   background: #f8f8f8;
 }
 
 .workspace-cool__card-top h2 {
   margin: 0;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -8277,12 +8354,12 @@
 }
 
 .workspace-cool__card-body {
-  padding: 16px;
+  padding: 12px 13px;
 }
 
 .workspace-cool__label {
   margin: 0;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -8290,8 +8367,8 @@
 }
 
 .workspace-cool__unit-name {
-  margin: 6px 0 14px;
-  font-size: clamp(24px, 3.2vw, 36px);
+  margin: 4px 0 10px;
+  font-size: clamp(22px, 2.9vw, 30px);
   line-height: 1;
   letter-spacing: -0.02em;
   text-transform: uppercase;
@@ -8301,14 +8378,14 @@
 .workspace-cool__split {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
   border-top: 2px solid #171a23;
-  padding-top: 12px;
+  padding-top: 10px;
 }
 
 .workspace-cool__strong {
   margin: 2px 0 0;
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 900;
   line-height: 1;
 }
@@ -8318,8 +8395,8 @@
 }
 
 .workspace-cool__status-ok {
-  margin: 5px 0 0;
-  font-size: 13px;
+  margin: 4px 0 0;
+  font-size: 12px;
   font-weight: 800;
   text-transform: uppercase;
   color: #067647;
@@ -8329,13 +8406,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 48px;
-  min-height: 24px;
+  min-width: 46px;
+  min-height: 22px;
   border: 1px solid #171a23;
   background: #bc000a;
   color: #ffffff;
-  padding: 0 8px;
-  font-size: 11px;
+  padding: 0 7px;
+  font-size: 10px;
   font-weight: 800;
 }
 
@@ -8344,8 +8421,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 8px;
-  font-size: 10px;
+  margin-bottom: 6px;
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -8354,7 +8431,7 @@
 
 .workspace-cool__bar {
   position: relative;
-  height: 22px;
+  height: 18px;
   border: 2px solid #171a23;
   background: #fcfcfc;
   overflow: hidden;
@@ -8376,9 +8453,9 @@
 }
 
 .workspace-cool__stats-row {
-  margin-top: 14px;
+  margin-top: 10px;
   border-top: 2px solid #171a23;
-  padding-top: 10px;
+  padding-top: 8px;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -8394,15 +8471,15 @@
 .workspace-cool__stats-row strong {
   display: block;
   margin: 0;
-  font-size: 28px;
+  font-size: 24px;
   line-height: 1;
   color: #11131a;
 }
 
 .workspace-cool__stats-row span {
   display: block;
-  margin-top: 5px;
-  font-size: 10px;
+  margin-top: 4px;
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -8422,7 +8499,7 @@
   border-bottom: 2px solid #171a23;
   background: #0f131b;
   color: #ffffff;
-  padding: 10px 14px;
+  padding: 8px 12px;
 }
 
 .workspace-cool__deadlines-head h2 {
@@ -8430,15 +8507,15 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.07em;
   text-transform: uppercase;
 }
 
 .workspace-cool__deadline-empty {
-  padding: 16px;
-  font-size: 14px;
+  padding: 12px;
+  font-size: 13px;
   color: #5b6474;
 }
 
@@ -8452,7 +8529,7 @@
   border-top: 2px solid #171a23;
   background: #f8f8f9;
   display: grid;
-  grid-template-columns: 88px minmax(0, 1fr) auto;
+  grid-template-columns: 76px minmax(0, 1fr) auto;
   align-items: stretch;
   text-align: left;
   cursor: pointer;
@@ -8472,11 +8549,11 @@
   display: grid;
   align-content: center;
   justify-items: center;
-  padding: 12px 8px;
+  padding: 10px 8px;
 }
 
 .workspace-cool__stamp small {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -8484,7 +8561,7 @@
 }
 
 .workspace-cool__stamp strong {
-  font-size: 31px;
+  font-size: 26px;
   line-height: 1;
   color: #10131b;
 }
@@ -8508,12 +8585,12 @@
 
 .workspace-cool__deadline-main {
   display: grid;
-  gap: 5px;
-  padding: 12px 14px;
+  gap: 4px;
+  padding: 10px 12px;
 }
 
 .workspace-cool__deadline-main small {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -8522,7 +8599,7 @@
 
 .workspace-cool__deadline-main h3 {
   margin: 0;
-  font-size: clamp(22px, 2.9vw, 34px);
+  font-size: clamp(19px, 2.5vw, 28px);
   line-height: 0.98;
   letter-spacing: -0.02em;
   text-transform: uppercase;
@@ -8534,12 +8611,12 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  font-size: 12px;
+  font-size: 11px;
   color: #626b7a;
 }
 
 .workspace-cool__deadline-side {
-  padding: 10px 12px;
+  padding: 8px 10px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -8549,10 +8626,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 24px;
+  min-height: 22px;
   border: 1px solid #171a23;
-  padding: 0 8px;
-  font-size: 10px;
+  padding: 0 7px;
+  font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -8579,17 +8656,17 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border: 1px solid #171a23;
-  font-size: 14px;
+  font-size: 13px;
   color: #10131b;
 }
 
 .workspace-cool__floating {
   border: 2px solid #171a23;
   background: #f1f1f2;
-  padding: 8px 10px;
+  padding: 7px 9px;
   width: fit-content;
   justify-self: end;
   box-shadow: 4px 4px 0 #1d2230;
@@ -8597,7 +8674,7 @@
 
 .workspace-cool__floating p {
   margin: 0;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -8605,7 +8682,7 @@
 }
 
 .workspace-cool__floating p + p {
-  margin-top: 6px;
+  margin-top: 4px;
 }
 
 .workspace-cool__panel--empty {
@@ -8637,8 +8714,16 @@
 }
 
 @media (max-width: 680px) {
+  .workspace-cool {
+    gap: 12px;
+  }
+
   .workspace-cool__title {
-    font-size: clamp(28px, 9.2vw, 42px);
+    font-size: clamp(26px, 8vw, 38px);
+  }
+
+  .workspace-cool__subtitle {
+    font-size: 12px;
   }
 
   .workspace-cool__bar-meta {
@@ -8647,11 +8732,50 @@
   }
 
   .workspace-cool__stats-row strong {
-    font-size: 23px;
+    font-size: 21px;
   }
 
   .workspace-cool__deadline-main h3 {
-    font-size: clamp(19px, 7vw, 28px);
+    font-size: clamp(18px, 6.5vw, 24px);
+  }
+}
+
+@media (max-height: 900px) {
+  .workspace-cool {
+    gap: 12px;
+  }
+
+  .workspace-cool__hero {
+    padding-bottom: 8px;
+  }
+
+  .workspace-cool__title {
+    font-size: clamp(26px, 3.2vw, 38px);
+  }
+
+  .workspace-cool__subtitle {
+    margin-top: 6px;
+  }
+
+  .workspace-cool__card-body {
+    padding: 10px 12px;
+  }
+
+  .workspace-cool__deadline-main {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .workspace-cool__deadline-row:first-child .workspace-cool__deadline-main {
+    padding-top: 8px;
+  }
+
+  .workspace-cool__deadline-row {
+    min-height: 0;
+  }
+
+  .workspace-cool__deadline-main h3 {
+    font-size: clamp(18px, 2.4vw, 26px);
   }
 }
 
@@ -9903,6 +10027,443 @@
   }
 
   .student-courses-architectural__status-button {
+    width: 100%;
+  }
+}
+
+.student-course-detail-architectural {
+  width: 100%;
+  min-height: calc(100vh - var(--navbar-height) - 40px);
+  margin: 0;
+  display: grid;
+  gap: clamp(22px, 2.4vw, 32px);
+  padding-inline: clamp(12px, 1.5vw, 18px);
+  padding-block: 0 18px;
+  background: #ffffff;
+  color: #111111;
+}
+
+.student-course-detail-architectural__hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 14px;
+  border-bottom: 2px solid #111111;
+}
+
+.student-course-detail-architectural__hero-copy {
+  display: grid;
+  gap: 8px;
+  max-width: 760px;
+}
+
+.student-course-detail-architectural__code {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  min-height: 26px;
+  padding: 0 10px;
+  border: 1px solid #111111;
+  background: #f0f0f0;
+  color: #474747;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.student-course-detail-architectural__title {
+  margin: 0;
+  color: #111111;
+  font-size: clamp(34px, 4.4vw, 58px);
+  line-height: 0.9;
+  letter-spacing: -0.055em;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.student-course-detail-architectural__subtitle {
+  margin: 0;
+  max-width: 62ch;
+  color: #5d3f3b;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.student-course-detail-architectural__assignment-action:focus-visible,
+.student-course-detail-architectural__empty-button:focus-visible {
+  outline: 2px solid #2f66ff;
+  outline-offset: 2px;
+}
+
+.student-course-detail-architectural__section {
+  display: grid;
+  gap: 14px;
+}
+
+.student-course-detail-architectural__section-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #111111;
+}
+
+.student-course-detail-architectural__section-title {
+  margin: 0;
+  color: #111111;
+  font-size: clamp(18px, 2vw, 24px);
+  line-height: 1;
+  letter-spacing: -0.05em;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.student-course-detail-architectural__section-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border: 1px solid #111111;
+  background: #efefef;
+  color: #111111;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.student-course-detail-architectural__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.student-course-detail-architectural__assignment-card,
+.student-course-detail-architectural__empty-state {
+  border: 2px solid #111111;
+  background: #ffffff;
+  box-shadow: 4px 4px 0 #111111;
+}
+
+.student-course-detail-architectural__assignment-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 162px;
+  overflow: hidden;
+  transition: background-color var(--transition-fast), box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.student-course-detail-architectural__assignment-card:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0 #111111;
+  background: #fcfcfc;
+}
+
+.student-course-detail-architectural__assignment-card--submitted {
+  background: #f6f5f3;
+  box-shadow: 4px 4px 0 rgba(17, 17, 17, 0.8);
+}
+
+.student-course-detail-architectural__assignment-card--overdue {
+  background: #fffdfd;
+}
+
+.student-course-detail-architectural__assignment-card--draft {
+  background: #fafafa;
+}
+
+.student-course-detail-architectural__assignment-card--skeleton {
+  background: #ffffff;
+}
+
+.student-course-detail-architectural__assignment-body {
+  display: grid;
+  gap: 12px;
+  flex: 1;
+  padding: 14px 14px 12px;
+}
+
+.student-course-detail-architectural__assignment-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.student-course-detail-architectural__chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border: 1px solid #cf3a3a;
+  background: #fde8e6;
+  color: #bc000a;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.student-course-detail-architectural__chip--submitted {
+  border-color: #8f8f8f;
+  background: #ececec;
+  color: #525252;
+}
+
+.student-course-detail-architectural__chip--overdue {
+  border-color: #c0000a;
+  background: #fff0ef;
+  color: #c0000a;
+}
+
+.student-course-detail-architectural__chip--draft {
+  border-color: #a0a0a0;
+  background: #f1f1f1;
+  color: #6b6b6b;
+}
+
+.student-course-detail-architectural__due {
+  color: #1a1a1a;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.student-course-detail-architectural__due--submitted {
+  color: #767676;
+}
+
+.student-course-detail-architectural__due--overdue {
+  color: #bc000a;
+}
+
+.student-course-detail-architectural__due--draft {
+  color: #767676;
+}
+
+.student-course-detail-architectural__assignment-title {
+  margin: 0;
+  max-width: 18ch;
+  color: #111111;
+  font-size: clamp(16px, 1.5vw, 20px);
+  line-height: 1.04;
+  letter-spacing: -0.05em;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.student-course-detail-architectural__assignment-title--submitted {
+  color: #6a605d;
+}
+
+.student-course-detail-architectural__assignment-title--overdue {
+  color: #a41b17;
+}
+
+.student-course-detail-architectural__assignment-title--draft {
+  color: #6c6c6c;
+}
+
+.student-course-detail-architectural__assignment-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 46px;
+  padding: 10px 14px;
+  border-top: 2px solid #111111;
+  background: #efefef;
+}
+
+.student-course-detail-architectural__assignment-footer--submitted {
+  background: #f1f1ef;
+}
+
+.student-course-detail-architectural__assignment-footer--overdue {
+  background: #f6efee;
+}
+
+.student-course-detail-architectural__assignment-footer--draft {
+  background: #f4f4f4;
+}
+
+.student-course-detail-architectural__classification {
+  color: #6d514b;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.student-course-detail-architectural__assignment-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: #111111;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color var(--transition-fast), transform var(--transition-fast);
+}
+
+.student-course-detail-architectural__assignment-action:hover {
+  color: #bc000a;
+  transform: translateX(1px);
+}
+
+.student-course-detail-architectural__assignment-action--submitted:hover {
+  color: #111111;
+}
+
+.student-course-detail-architectural__assignment-action--overdue:hover {
+  color: #bc000a;
+}
+
+.student-course-detail-architectural__assignment-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.student-course-detail-architectural__assignment-action svg {
+  flex-shrink: 0;
+}
+
+.student-course-detail-architectural__empty-state {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+  width: min(100%, 720px);
+  padding: 20px;
+}
+
+.student-course-detail-architectural__empty-state--inline {
+  width: 100%;
+  max-width: 720px;
+}
+
+.student-course-detail-architectural__empty-kicker {
+  margin: 0;
+  color: #5e6575;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.student-course-detail-architectural__empty-title {
+  margin: 0;
+  color: #111111;
+  font-size: clamp(22px, 2.6vw, 30px);
+  line-height: 0.96;
+  letter-spacing: -0.05em;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.student-course-detail-architectural__empty-copy {
+  margin: 0;
+  max-width: 60ch;
+  color: #5d6575;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.student-course-detail-architectural__empty-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 16px;
+  border: 2px solid #111111;
+  background: #bc000a;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 #111111;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast),
+    background-color var(--transition-fast);
+}
+
+.student-course-detail-architectural__empty-button:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 #111111;
+  background: #a9000a;
+}
+
+.student-course-detail-architectural__hero--loading {
+  min-height: 120px;
+}
+
+.student-course-detail-architectural__hero--loading .skeleton,
+.student-course-detail-architectural__assignment-card--skeleton .skeleton {
+  border-radius: 0;
+}
+
+@media (max-width: 1120px) {
+  .student-course-detail-architectural__hero {
+    flex-direction: column;
+  }
+
+  .student-course-detail-architectural__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+.student-course-detail-architectural {
+    gap: 20px;
+    padding-inline: 12px;
+  }
+
+  .student-course-detail-architectural__title {
+    font-size: clamp(30px, 10vw, 42px);
+  }
+
+  .student-course-detail-architectural__assignment-body,
+  .student-course-detail-architectural__assignment-footer,
+  .student-course-detail-architectural__empty-state {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .student-course-detail-architectural__assignment-title {
+    max-width: none;
+    font-size: 16px;
+  }
+
+  .student-course-detail-architectural__assignment-footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .student-course-detail-architectural__assignment-action {
+    align-self: flex-end;
+  }
+
+  .student-course-detail-architectural__empty-state {
     width: 100%;
   }
 }
