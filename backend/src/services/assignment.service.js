@@ -489,6 +489,7 @@ export async function getAll(page, limit) {
 
   const [assignments, total] = await Promise.all([
     Assignment.find({ isDeleted: false })
+      .populate('course', 'name code')
       .sort({ dueDate: 1, createdAt: -1 })
       .skip(skip)
       .limit(pageSize)
@@ -498,8 +499,12 @@ export async function getAll(page, limit) {
 
   const result = [];
   for (const assignment of assignments) {
-    const assignmentDoc = Assignment.hydrate(assignment);
-    result.push(await mapAssignmentWithDetails(assignmentDoc));
+    const groups = await getAssignmentGroups(assignment);
+    result.push({
+      ...mapAssignment(assignment),
+      status: computeStatus(assignment.dueDate),
+      groups,
+    });
   }
 
   return {
