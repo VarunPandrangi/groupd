@@ -52,6 +52,8 @@ export default function EditAssignment() {
       description: currentAssignment.description ?? '',
       due_date: currentAssignment.due_date,
       onedrive_link: currentAssignment.onedrive_link,
+      course_id: currentAssignment.course_id ?? '',
+      submission_type: currentAssignment.submission_type ?? 'group',
       assign_to: currentAssignment.assign_to,
       group_ids: currentAssignment.groups?.map((group) => group.id) ?? [],
     };
@@ -88,6 +90,8 @@ export default function EditAssignment() {
             description: '',
             due_date: '',
             onedrive_link: '',
+            course_id: '',
+            submission_type: 'group',
             assign_to: 'all',
             group_ids: [],
           }
