@@ -10,23 +10,62 @@ import EmptyState from '../../components/common/EmptyState';
 import Skeleton from '../../components/common/Skeleton';
 import { Page } from '../../components/common/Page';
 import assignmentService from '../../services/assignmentService';
+import courseService from '../../services/courseService';
 import submissionService from '../../services/submissionService';
 import { formatAssignmentDate } from '../../utils/assignmentDates';
 import { cx } from '../../utils/cx';
 
 const PAGE_SIZE = 10;
 const EMPTY_TRACKER = {
+  mode: 'group',
   assignment: null,
   summary: {
-    submitted_groups: 0,
-    total_groups: 0,
-    pending_groups: 0,
+    submitted_count: 0,
+    total_count: 0,
+    pending_count: 0,
   },
-  groups: [],
+  rows: [],
 };
 
 function getErrorMessage(error, fallbackMessage) {
   return error?.response?.data?.error?.message || fallbackMessage;
+}
+
+function toSafeLower(value) {
+  return String(value ?? '').trim().toLowerCase();
+}
+
+function normalizeStudentName(value) {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+}
+
+function getCourseLabel(assignment) {
+  const code = String(assignment?.course_code ?? '').trim();
+  const name = String(assignment?.course_name ?? '').trim();
+
+  if (code && name) {
+    return `${code} - ${name}`;
+  }
+
+  if (code) {
+    return code;
+  }
+
+  if (name) {
+    return name;
+  }
+
+  return 'Unknown Course';
+}
+
+function getSubmissionTypeLabel(assignment) {
+  const normalized = String(assignment?.submission_type ?? 'group')
+    .trim()
+    .toLowerCase();
+  return normalized === 'individual' ? 'Individual' : 'Group';
 }
 
 function formatTimestamp(dateString) {
@@ -109,42 +148,141 @@ export default function SubmissionTracker() {
       return;
     }
 
+    const selectedAssignment = assignments.find(
+      (assignment) => assignment.id === selectedAssignmentId
+    );
+
+    if (!selectedAssignment) {
+      setTracker(EMPTY_TRACKER);
+      setExpandedRows(new Set());
+      return;
+    }
+
     let isMounted = true;
 
     async function loadTrackerRows() {
       setIsTableLoading(true);
 
       try {
-        const trackerResponse =
-          await submissionService.getAssignmentGroupStudentStatus(
-            selectedAssignmentId
-          );
+        const submissionType = String(selectedAssignment.submission_type ?? 'group')
+          .trim()
+          .toLowerCase();
 
-        if (!isMounted) {
-          return;
+        if (submissionType === 'individual') {
+          const courseId = selectedAssignment.course_id;
+          const [studentsResponse, submissions] = await Promise.all([
+            courseId ? courseService.listEnrolledStudents(courseId) : Promise.resolve([]),
+            submissionService.getSubmissionsByAssignment(selectedAssignmentId),
+          ]);
+
+          if (!isMounted) {
+            return;
+          }
+
+          const students = Array.isArray(studentsResponse?.students)
+            ? studentsResponse.students
+            : Array.isArray(studentsResponse)
+              ? studentsResponse
+              : [];
+
+          const normalizedStudents = students.map((student, index) => ({
+            row_id:
+              student?._id?.toString?.() ??
+              student?.id?.toString?.() ??
+              `student:${index}`,
+            student_name:
+              String(student?.fullName ?? student?.full_name ?? '').trim() ||
+              'Unknown Student',
+            student_email: String(student?.email ?? '').trim(),
+            student_identifier: String(student?.studentId ?? student?.student_id ?? '').trim(),
+          }));
+
+          const submissionByEmail = new Map();
+          const submissionByName = new Map();
+
+          (Array.isArray(submissions) ? submissions : []).forEach((submission) => {
+            const email = toSafeLower(submission?.submitted_by_email);
+            const name = normalizeStudentName(submission?.submitted_by_name);
+
+            if (email && !submissionByEmail.has(email)) {
+              submissionByEmail.set(email, submission);
+            }
+
+            if (name && !submissionByName.has(name)) {
+              submissionByName.set(name, submission);
+            }
+          });
+
+          const rows = normalizedStudents
+            .map((student) => {
+              const submission =
+                submissionByEmail.get(toSafeLower(student.student_email)) ??
+                submissionByName.get(normalizeStudentName(student.student_name)) ??
+                null;
+
+              return {
+                ...student,
+                is_submitted: Boolean(submission),
+                submitted_by_name: submission?.submitted_by_name ?? null,
+                submitted_by_email: submission?.submitted_by_email ?? null,
+                confirmed_at: submission?.confirmed_at ?? null,
+              };
+            })
+            .sort((left, right) =>
+              left.student_name.localeCompare(right.student_name)
+            );
+
+          const submittedCount = rows.filter((row) => row.is_submitted).length;
+          const totalCount = rows.length;
+
+          setTracker({
+            mode: 'individual',
+            assignment: {
+              id: selectedAssignment.id,
+              title: selectedAssignment.title,
+              due_date: selectedAssignment.due_date,
+            },
+            summary: {
+              submitted_count: submittedCount,
+              total_count: totalCount,
+              pending_count: Math.max(totalCount - submittedCount, 0),
+            },
+            rows,
+          });
+        } else {
+          const trackerResponse =
+            await submissionService.getAssignmentGroupStudentStatus(
+              selectedAssignmentId
+            );
+
+          if (!isMounted) {
+            return;
+          }
+
+          const normalizedGroups = Array.isArray(trackerResponse.groups)
+            ? trackerResponse.groups.map((group, index) => ({
+                ...group,
+                row_id:
+                  group.row_id ??
+                  (group.group_id ? `group:${group.group_id}` : `row:${index}`),
+                members: Array.isArray(group.members) ? group.members : [],
+              }))
+            : [];
+
+          const summary = trackerResponse.summary ?? EMPTY_TRACKER.summary;
+
+          setTracker({
+            mode: 'group',
+            assignment: trackerResponse.assignment ?? null,
+            summary: {
+              submitted_count: Number(summary.submitted_groups) || 0,
+              total_count: Number(summary.total_groups) || 0,
+              pending_count: Number(summary.pending_groups) || 0,
+            },
+            rows: normalizedGroups,
+          });
         }
 
-        const normalizedGroups = Array.isArray(trackerResponse.groups)
-          ? trackerResponse.groups.map((group, index) => ({
-              ...group,
-              row_id:
-                group.row_id ??
-                (group.group_id ? `group:${group.group_id}` : `row:${index}`),
-              members: Array.isArray(group.members) ? group.members : [],
-            }))
-          : [];
-
-        const summary = trackerResponse.summary ?? EMPTY_TRACKER.summary;
-
-        setTracker({
-          assignment: trackerResponse.assignment ?? null,
-          summary: {
-            submitted_groups: Number(summary.submitted_groups) || 0,
-            total_groups: Number(summary.total_groups) || 0,
-            pending_groups: Number(summary.pending_groups) || 0,
-          },
-          groups: normalizedGroups,
-        });
         setExpandedRows(new Set());
         setCurrentPage(1);
       } catch (error) {
@@ -163,7 +301,7 @@ export default function SubmissionTracker() {
     return () => {
       isMounted = false;
     };
-  }, [selectedAssignmentId]);
+  }, [assignments, selectedAssignmentId]);
 
   if (isAssignmentsLoading) {
     return <SubmissionTrackerSkeleton />;
@@ -174,20 +312,40 @@ export default function SubmissionTracker() {
       <EmptyState
         icon={FolderSimple}
         title="No assignments yet"
-        message="Create your first assignment to start tracking which groups have confirmed submission."
+        message="Create your first assignment to start tracking submissions."
       />
     );
   }
 
   const selectedAssignment =
     assignments.find((assignment) => assignment.id === selectedAssignmentId) ?? null;
-  const rows = tracker.groups;
+  const rows = tracker.rows;
   const summary = tracker.summary;
+  const selectedSubmissionType = String(
+    selectedAssignment?.submission_type ?? 'group'
+  )
+    .trim()
+    .toLowerCase();
+  const isIndividualLedger = selectedSubmissionType === 'individual';
+  const ledgerTitle = isIndividualLedger
+    ? 'Individual Submission Verification Ledger'
+    : 'Group Verification Ledger';
+  const entityLabel = isIndividualLedger ? 'Total Students' : 'Total Groups';
+  const emptyLedgerMessage = isIndividualLedger
+    ? 'No students are enrolled in this assignment course yet.'
+    : 'No groups are expected for this assignment yet.';
   const submittedRatio =
-    summary.total_groups > 0 ? Math.min(100, Math.round((summary.submitted_groups / summary.total_groups) * 100)) : 0;
+    summary.total_count > 0
+      ? Math.min(
+          100,
+          Math.round((summary.submitted_count / summary.total_count) * 100)
+        )
+      : 0;
   const assignmentStatus = String(selectedAssignment?.status || '')
     .trim()
     .toUpperCase() || 'ACTIVE';
+  const courseLabel = getCourseLabel(selectedAssignment);
+  const submissionTypeLabel = getSubmissionTypeLabel(selectedAssignment);
 
   const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   const paginatedRows = rows.slice(
@@ -214,7 +372,9 @@ export default function SubmissionTracker() {
       <header className="submission-tracker-architectural__header">
         <h1 className="submission-tracker-architectural__title">Submission Tracker</h1>
         <p className="submission-tracker-architectural__subtitle">
-          Verify every group against every assignment.
+          {isIndividualLedger
+            ? 'Verify every individual submission against the selected assignment.'
+            : 'Verify every group against the selected assignment.'}
         </p>
       </header>
 
@@ -244,6 +404,16 @@ export default function SubmissionTracker() {
               <CaretDown size={16} weight="bold" />
             </span>
           </div>
+          <div className="submission-tracker-architectural__assignment-context">
+            <div>
+              <span>Course</span>
+              <strong>{courseLabel}</strong>
+            </div>
+            <div>
+              <span>Submission Type</span>
+              <strong>{submissionTypeLabel}</strong>
+            </div>
+          </div>
         </article>
 
         <article className="submission-tracker-architectural__snapshot-card">
@@ -262,12 +432,12 @@ export default function SubmissionTracker() {
               <strong>{assignmentStatus}</strong>
             </div>
             <div>
-              <span>Total Groups</span>
-              <strong>{summary.total_groups}</strong>
+              <span>{entityLabel}</span>
+              <strong>{summary.total_count}</strong>
             </div>
             <div>
               <span>Submitted</span>
-              <strong>{summary.submitted_groups}</strong>
+              <strong>{summary.submitted_count}</strong>
             </div>
           </div>
           <div className="submission-tracker-architectural__progress" aria-hidden="true">
@@ -278,7 +448,7 @@ export default function SubmissionTracker() {
 
       <section className="submission-tracker-architectural__ledger">
         <div className="submission-tracker-architectural__ledger-head">
-          <h2>Group Verification Ledger</h2>
+          <h2>{ledgerTitle}</h2>
           <span>Live</span>
         </div>
 
@@ -291,29 +461,83 @@ export default function SubmissionTracker() {
           </div>
         ) : rows.length === 0 ? (
           <div className="submission-tracker-architectural__empty">
-            No groups are expected for this assignment yet.
+            {emptyLedgerMessage}
           </div>
         ) : (
           <>
             <div className="submission-tracker-architectural__table-wrap">
               <table className="submission-tracker-architectural__table">
                 <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Group Name</th>
-                    <th>Members</th>
-                    <th>Status</th>
-                    <th>Submitted By</th>
-                    <th>Timestamp</th>
-                  </tr>
+                  {isIndividualLedger ? (
+                    <tr>
+                      <th>ID</th>
+                      <th>Student</th>
+                      <th>Student ID</th>
+                      <th>Status</th>
+                      <th>Submitted By</th>
+                      <th>Timestamp</th>
+                    </tr>
+                  ) : (
+                    <tr>
+                      <th>ID</th>
+                      <th>Group Name</th>
+                      <th>Members</th>
+                      <th>Status</th>
+                      <th>Submitted By</th>
+                      <th>Timestamp</th>
+                    </tr>
+                  )}
                 </thead>
                 <tbody>
                   {paginatedRows.map((row, index) => {
+                    const rowNumber = (currentPage - 1) * PAGE_SIZE + index + 1;
+
+                    if (isIndividualLedger) {
+                      return (
+                        <tr
+                          key={row.row_id}
+                          className="submission-tracker-architectural__row submission-tracker-architectural__row--static"
+                        >
+                          <td className="submission-tracker-architectural__id">
+                            {String(rowNumber).padStart(2, '0')}
+                          </td>
+                          <td>
+                            <div className="submission-tracker-architectural__student">
+                              <strong>{row.student_name}</strong>
+                              <span>{row.student_email || '--'}</span>
+                            </div>
+                          </td>
+                          <td className="mono">{row.student_identifier || '--'}</td>
+                          <td>
+                            <span
+                              className={cx(
+                                'submission-tracker-architectural__status',
+                                row.is_submitted
+                                  ? 'submission-tracker-architectural__status--submitted'
+                                  : 'submission-tracker-architectural__status--pending'
+                              )}
+                            >
+                              {row.is_submitted ? 'Submitted' : 'Pending'}
+                            </span>
+                          </td>
+                          <td>
+                            {row.is_submitted
+                              ? row.submitted_by_name ??
+                                row.submitted_by_email ??
+                                'Unknown student'
+                              : '--'}
+                          </td>
+                          <td className="mono">
+                            {row.confirmed_at ? formatTimestamp(row.confirmed_at) : '--'}
+                          </td>
+                        </tr>
+                      );
+                    }
+
                     const isExpanded = expandedRows.has(row.row_id);
                     const memberCount =
                       Number(row.member_count) ||
                       (Array.isArray(row.members) ? row.members.length : 0);
-                    const rowNumber = (currentPage - 1) * PAGE_SIZE + index + 1;
 
                     return (
                       <Fragment key={row.row_id}>
