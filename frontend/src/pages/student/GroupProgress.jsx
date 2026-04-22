@@ -162,7 +162,7 @@ export default function GroupProgress() {
 
   if (!user?.group_id && assignments.length === 0) {
     return (
-      <section className="progress-empty" aria-labelledby="progress-empty-title">
+      <section className="progress-empty layout-frame" aria-labelledby="progress-empty-title">
         <div className="progress-empty__panel">
           <span className="progress-empty__corner progress-empty__corner--tl" aria-hidden="true" />
           <span className="progress-empty__corner progress-empty__corner--tr" aria-hidden="true" />
@@ -237,7 +237,7 @@ export default function GroupProgress() {
   }
 
   return (
-    <section className="progress-tracker" aria-label="Progress tracker">
+    <section className="progress-tracker layout-frame" aria-label="Progress tracker">
       <header className="progress-tracker__header">
         <div>
           <div className="progress-tracker__chips">

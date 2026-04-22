@@ -203,7 +203,7 @@ export default function GroupManagement() {
 
   if (!group) {
     return (
-      <div className="stitch-dashboard__module-wrap" aria-label="Stitch no-group workspace">
+      <div className="stitch-dashboard__module-wrap layout-frame" aria-label="Stitch no-group workspace">
         <section className="stitch-group-empty" aria-labelledby="stitch-group-empty-title">
           <div className="stitch-group-empty__grid" aria-hidden="true" />
 

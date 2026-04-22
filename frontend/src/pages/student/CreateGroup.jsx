@@ -68,7 +68,7 @@ export default function CreateGroup() {
   };
 
   return (
-    <div className="stitch-dashboard__module-wrap stitch-create-shell" aria-label="Create group workspace">
+    <div className="stitch-dashboard__module-wrap stitch-create-shell layout-frame" aria-label="Create group workspace">
       <section className="stitch-create-team" aria-labelledby="stitch-create-team-title">
         <div className="stitch-create-team__bar">
           <span className="stitch-create-team__crumb">SYSTEM / GROUPS / NEW</span>

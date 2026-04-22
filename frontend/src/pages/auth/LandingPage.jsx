@@ -56,7 +56,7 @@ export default function LandingPage() {
 
   return (
     <div className="landing-architectural">
-      <div className="landing-architectural__shell">
+      <div className="landing-architectural__shell layout-frame">
         <header className="landing-architectural__header">
           <Link to="/" className="landing-architectural__brand" aria-label="Groupd home">
             GROUPD

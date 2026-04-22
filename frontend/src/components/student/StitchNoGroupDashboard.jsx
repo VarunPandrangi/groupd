@@ -7,7 +7,7 @@ import heroImage from '../../stitch/dashboard-no-group/d12535913ad74f4d85076741b
 export default function StitchNoGroupDashboard({ onCreateGroup, onFindTeammates }) {
   return (
     <>
-      <div className="stitch-dashboard__module-wrap">
+      <div className="stitch-dashboard__module-wrap layout-frame">
         <section className="stitch-no-group" aria-labelledby="stitch-no-group-title">
           <div className="stitch-no-group__shell">
             <div className="stitch-no-group__copy">
