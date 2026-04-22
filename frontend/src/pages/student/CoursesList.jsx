@@ -1,11 +1,93 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Books, FileText, Clock } from '@phosphor-icons/react';
-import { Page, StaggerGroup, FadeUp } from '../../components/common/Page';
-import Card from '../../components/common/Card';
+import { Books, Clock, FileText } from '@phosphor-icons/react';
+import { FadeUp, Page, StaggerGroup } from '../../components/common/Page';
 import Skeleton from '../../components/common/Skeleton';
-import EmptyState from '../../components/common/EmptyState';
 import { useCourseStore } from '../../stores/courseStore';
+
+function normalizeCount(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : 0;
+}
+
+function getCourseCode(course) {
+  return String(course?.code ?? course?.course_code ?? 'COURSE').trim().toUpperCase() || 'COURSE';
+}
+
+function getCourseName(course) {
+  return String(course?.name ?? course?.title ?? 'Untitled Course').trim() || 'Untitled Course';
+}
+
+function getCourseDescription(course) {
+  return String(course?.description ?? '').trim() || 'No description available.';
+}
+
+function CourseLoadingCard() {
+  return (
+    <article className="student-courses-architectural__skeleton-card" aria-hidden="true">
+      <div className="student-courses-architectural__skeleton-media">
+        <Skeleton variant="card" style={{ width: '100%', height: '160px', borderRadius: 0 }} />
+      </div>
+
+      <div className="student-courses-architectural__skeleton-body">
+        <Skeleton variant="text" width="70px" style={{ height: '18px', borderRadius: 0 }} />
+        <Skeleton variant="text" width="84%" style={{ height: '30px', borderRadius: 0 }} />
+        <Skeleton variant="text" width="100%" style={{ height: '14px', borderRadius: 0 }} />
+        <Skeleton variant="text" width="88%" style={{ height: '14px', borderRadius: 0 }} />
+        <div className="student-courses-architectural__skeleton-stats">
+          <Skeleton variant="text" width="96px" style={{ height: '16px', borderRadius: 0 }} />
+          <Skeleton variant="text" width="104px" style={{ height: '16px', borderRadius: 0 }} />
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function CourseCard({ course, onOpen }) {
+  const courseId = course?._id ?? course?.id ?? null;
+  const code = getCourseCode(course);
+  const name = getCourseName(course);
+  const description = getCourseDescription(course);
+  const totalAssignments = normalizeCount(course?.assignmentCount ?? course?.assignment_count);
+  const pendingAssignments = normalizeCount(course?.pendingCount ?? course?.pending_count);
+
+  return (
+    <article className="student-courses-architectural__card">
+      <button
+        type="button"
+        className="student-courses-architectural__card-button"
+        onClick={() => {
+          if (courseId) {
+            onOpen(courseId);
+          }
+        }}
+        aria-label={`Open ${name}`}
+        disabled={!courseId}
+      >
+        <div className="student-courses-architectural__media" aria-hidden="true">
+          <span className="student-courses-architectural__code">{code}</span>
+        </div>
+
+        <div className="student-courses-architectural__body">
+          <h2 className="student-courses-architectural__name">{name}</h2>
+          <p className="student-courses-architectural__description">{description}</p>
+
+          <div className="student-courses-architectural__stats">
+            <span className="student-courses-architectural__stat student-courses-architectural__stat--primary">
+              <FileText size={14} weight="bold" />
+              {totalAssignments} total
+            </span>
+
+            <span className="student-courses-architectural__stat student-courses-architectural__stat--secondary">
+              <Clock size={14} weight="bold" />
+              {pendingAssignments} pending
+            </span>
+          </div>
+        </div>
+      </button>
+    </article>
+  );
+}
 
 export default function CoursesList() {
   const navigate = useNavigate();
@@ -15,80 +97,95 @@ export default function CoursesList() {
   const error = useCourseStore((state) => state.error);
 
   useEffect(() => {
-    let isMounted = true;
-    if (isMounted) fetchCourses();
-    return () => {
-      isMounted = false;
-    };
+    void fetchCourses().catch(() => {});
   }, [fetchCourses]);
 
-  if (error) {
-    return (
-      <Page>
-        <EmptyState icon={Books} title="Error Loading Courses" message={error} />
-      </Page>
-    );
-  }
+  const visibleCourses = (courses ?? []).filter(Boolean);
 
   return (
-    <Page className="workspace-cool" aria-label="Student courses">
-      <header className="workspace-cool__hero" style={{ marginBottom: '32px' }}>
-        <p className="workspace-cool__eyebrow">Student Workspace</p>
-        <h1 className="workspace-cool__title">My Courses</h1>
-        <p className="workspace-cool__subtitle">Course enrollment and module tracking.</p>
+    <Page className="student-courses-architectural" aria-label="Student courses">
+      <header className="student-courses-architectural__hero">
+        <p className="student-courses-architectural__eyebrow">Student Workspace</p>
+        <h1 className="student-courses-architectural__title">My Courses</h1>
+        <p className="student-courses-architectural__subtitle">
+          Course enrollment and module tracking.
+        </p>
       </header>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          <Skeleton variant="card" />
-          <Skeleton variant="card" />
-          <Skeleton variant="card" />
-        </div>
-      ) : courses.length === 0 ? (
-        <EmptyState
-          icon={Books}
-          title="No Courses"
-          message="You're not enrolled in any courses yet"
-        />
-      ) : (
-        <StaggerGroup className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {courses.map((course) => (
-            <FadeUp key={course._id}>
-              <Card
-                interactive
-                onClick={() => navigate(`/student/courses/${course._id}`)}
-                style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', height: '100%' }}
-              >
-                <div style={{ flex: 1 }}>
-                  <span className="mono muted" style={{ fontSize: '13px' }}>{course.code}</span>
-                  <h3 className="card__title" style={{ marginTop: '8px' }}>{course.name}</h3>
-                  <p className="card__copy line-clamp-2" style={{
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                    marginTop: '12px'
-                  }}>
-                    {course.description || 'No description available.'}
-                  </p>
-                </div>
-                <div className="cluster" style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--border-default)', justifyContent: 'flex-start' }}>
-                  <div className="cluster" style={{ gap: '6px' }}>
-                    <FileText size={16} className="muted" />
-                    <span style={{ fontSize: '14px', color: 'var(--text-body)', fontWeight: 500 }}>
-                      {course.assignmentCount} total
-                    </span>
-                  </div>
-                  <div className="cluster" style={{ gap: '6px', marginLeft: '16px' }}>
-                    <Clock size={16} className="muted" />
-                    <span style={{ fontSize: '14px', color: 'var(--text-body)', fontWeight: 500 }}>
-                      {course.pendingCount} pending
-                    </span>
-                  </div>
-                </div>
-              </Card>
+        <StaggerGroup className="student-courses-architectural__grid" aria-hidden="true">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <FadeUp key={`student-courses-loading-${index}`}>
+              <CourseLoadingCard />
             </FadeUp>
           ))}
+        </StaggerGroup>
+      ) : error ? (
+        <section className="student-courses-architectural__panel" role="status" aria-live="polite">
+          <p className="student-courses-architectural__status-kicker">Load Error</p>
+          <h2 className="student-courses-architectural__status-title">
+            Unable to load your courses.
+          </h2>
+          <p className="student-courses-architectural__status-copy">{String(error)}</p>
+          <div className="student-courses-architectural__status-actions">
+            <button
+              type="button"
+              className="student-courses-architectural__status-button"
+              onClick={() => void fetchCourses().catch(() => {})}
+            >
+              Retry
+            </button>
+            <button
+              type="button"
+              className="student-courses-architectural__status-button student-courses-architectural__status-button--secondary"
+              onClick={() => navigate('/student/dashboard')}
+            >
+              Back to Dashboard
+            </button>
+          </div>
+        </section>
+      ) : visibleCourses.length === 0 ? (
+        <section className="student-courses-architectural__panel" role="status" aria-live="polite">
+          <div className="student-courses-architectural__panel-mark" aria-hidden="true">
+            <Books size={22} weight="bold" />
+          </div>
+          <p className="student-courses-architectural__status-kicker">Enrollment Empty</p>
+          <h2 className="student-courses-architectural__status-title">
+            You are not enrolled in any courses yet.
+          </h2>
+          <p className="student-courses-architectural__status-copy">
+            Your courses will appear here once an instructor enrolls your student account. Use the
+            dashboard to review assignments and group status in the meantime.
+          </p>
+          <div className="student-courses-architectural__status-actions">
+            <button
+              type="button"
+              className="student-courses-architectural__status-button"
+              onClick={() => void fetchCourses().catch(() => {})}
+            >
+              Refresh List
+            </button>
+            <button
+              type="button"
+              className="student-courses-architectural__status-button student-courses-architectural__status-button--secondary"
+              onClick={() => navigate('/student/dashboard')}
+            >
+              Back to Dashboard
+            </button>
+          </div>
+        </section>
+      ) : (
+        <StaggerGroup className="student-courses-architectural__grid">
+          {visibleCourses.map((course) => {
+            const courseKey =
+              course?._id ?? course?.id ?? `${getCourseCode(course)}-${getCourseName(course)}`;
+
+            return (
+              <FadeUp key={courseKey}>
+                <CourseCard course={course} onOpen={(id) => navigate(`/student/courses/${id}`)} />
+              </FadeUp>
+            );
+          })}
         </StaggerGroup>
       )}
     </Page>
