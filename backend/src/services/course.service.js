@@ -207,7 +207,7 @@ export async function unenrollStudent(professorId, courseId, studentId) {
 export async function getCourseDetail(userId, userRole, courseId) {
   const course = await Course.findById(courseId)
     .populate('createdBy', 'fullName email')
-    .populate('enrolledStudents', 'fullName email studentId');
+    .populate('enrolledStudents', 'fullName email studentId createdAt');
 
   if (!course || course.isDeleted) {
     throw httpError(404, 'COURSE_NOT_FOUND', 'Course not found.');
