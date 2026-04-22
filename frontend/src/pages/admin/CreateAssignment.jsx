@@ -43,6 +43,8 @@ export default function CreateAssignment() {
           description: '',
           due_date: '',
           onedrive_link: '',
+          course_id: '',
+          submission_type: 'group',
           assign_to: 'all',
           group_ids: [],
         }}

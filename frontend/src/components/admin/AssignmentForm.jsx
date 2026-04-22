@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -6,8 +6,6 @@ import {
   ArrowLeft,
   Check,
   SpinnerGap,
-  UserList,
-  UsersThree,
 } from '@phosphor-icons/react';
 import LoadingSpinner from '../common/LoadingSpinner';
 import Card from '../common/Card';
@@ -15,6 +13,8 @@ import Button from '../common/Button';
 import RichTextEditor from '../common/RichTextEditor';
 import { Page, PageHeader } from '../common/Page';
 import groupService from '../../services/groupService';
+import courseService from '../../services/courseService';
+import { useCourseStore } from '../../stores/courseStore';
 import {
   formatAssignmentInputDate,
   formatAssignmentInputTime,
@@ -26,6 +26,18 @@ import { getRichTextPlainText, sanitizedRichTextHtml } from '../../utils/richTex
 const GROUP_PAGE_SIZE = 50;
 const DEFAULT_DUE_TIME = '23:59';
 const TIME_INPUT_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
+const SUBMISSION_TYPE_OPTIONS = [
+  {
+    value: 'group',
+    label: 'Group Submission',
+    hint: 'Group leader confirms once for the whole group.',
+  },
+  {
+    value: 'individual',
+    label: 'Individual Submission',
+    hint: 'Each student submits and confirms independently.',
+  },
+];
 
 function getErrorMessage(error, fallbackMessage) {
   return error?.response?.data?.error?.message || fallbackMessage;
@@ -58,6 +70,8 @@ function buildSchema() {
         .refine((value) => /^https?:\/\//i.test(value), {
           message: 'Link must start with http:// or https://',
         }),
+      course_id: z.string().trim().min(1, 'Course is required'),
+      submission_type: z.enum(['group', 'individual']),
       assign_to: z.enum(['all', 'specific']),
       group_ids: z.array(z.string()).default([]),
     })
@@ -73,7 +87,11 @@ function buildSchema() {
         }
       }
 
-      if (value.assign_to === 'specific' && value.group_ids.length === 0) {
+      if (
+        value.submission_type === 'group' &&
+        value.assign_to === 'specific' &&
+        value.group_ids.length === 0
+      ) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
           message: 'At least one group must be selected',
@@ -98,6 +116,58 @@ async function getAllGroups() {
   return groups;
 }
 
+async function getGroupsForCourse(courseId) {
+  if (!courseId) {
+    return [];
+  }
+
+  const [courseData, allGroups] = await Promise.all([
+    courseService.getCourse(courseId),
+    getAllGroups(),
+  ]);
+
+  const enrolledStudents = Array.isArray(courseData?.enrolledStudents)
+    ? courseData.enrolledStudents
+    : [];
+
+  const enrolledStudentIds = new Set(
+    enrolledStudents
+      .map((student) => student?._id ?? student?.id ?? null)
+      .filter(Boolean)
+      .map((id) => String(id))
+  );
+
+  if (enrolledStudentIds.size === 0) {
+    return [];
+  }
+
+  const detailedGroups = await Promise.all(
+    allGroups.map((group) =>
+      groupService
+        .getGroupDetail(group.id)
+        .then((detail) => ({ ...group, detail }))
+        .catch(() => null)
+    )
+  );
+
+  return detailedGroups
+    .filter(Boolean)
+    .filter((entry) => {
+      const members = Array.isArray(entry.detail?.members) ? entry.detail.members : [];
+      if (members.length === 0) {
+        return false;
+      }
+
+      return members.every((member) => enrolledStudentIds.has(String(member.id)));
+    })
+    .map((entry) => ({
+      ...entry,
+      leader_name:
+        entry.detail?.members?.find((member) => member.id === entry.created_by)?.full_name ??
+        null,
+    }));
+}
+
 function FieldError({ message }) {
   if (!message) {
     return null;
@@ -111,8 +181,8 @@ function AudienceOption({
   label,
   hint,
   isActive,
-  icon: Icon,
   onSelect,
+  disabled = false,
 }) {
   return (
     <button
@@ -122,8 +192,8 @@ function AudienceOption({
       }`}
       onClick={() => onSelect(value)}
       aria-pressed={isActive}
+      disabled={disabled}
     >
-      <Icon size={24} weight={isActive ? 'fill' : 'regular'} />
       <strong>{label}</strong>
       <span>{hint}</span>
     </button>
@@ -143,10 +213,14 @@ export default function AssignmentForm({
   isLoadingInitial = false,
   visualVariant = 'default',
 }) {
+  const courses = useCourseStore((state) => state.courses);
+  const fetchCourses = useCourseStore((state) => state.fetchCourses);
   const [groups, setGroups] = useState([]);
   const [groupsError, setGroupsError] = useState('');
+  const [coursesError, setCoursesError] = useState('');
+  const [isLoadingCourses, setIsLoadingCourses] = useState(false);
   const [isLoadingGroups, setIsLoadingGroups] = useState(false);
-  const [hasLoadedGroups, setHasLoadedGroups] = useState(false);
+  const [loadedGroupCourseId, setLoadedGroupCourseId] = useState(null);
   const defaultValues = useMemo(
     () => ({
       title: initialValues?.title ?? '',
@@ -154,6 +228,8 @@ export default function AssignmentForm({
       due_date: formatAssignmentInputDate(initialValues?.due_date),
       due_time: formatAssignmentInputTime(initialValues?.due_date) || DEFAULT_DUE_TIME,
       onedrive_link: initialValues?.onedrive_link ?? '',
+      course_id: initialValues?.course_id ?? '',
+      submission_type: initialValues?.submission_type ?? 'group',
       assign_to: initialValues?.assign_to ?? 'all',
       group_ids: initialValues?.group_ids ?? [],
     }),
@@ -174,16 +250,91 @@ export default function AssignmentForm({
   });
 
   const assignTo = watch('assign_to');
+  const selectedCourseId = watch('course_id') ?? '';
+  const submissionType = watch('submission_type') ?? 'group';
   const descriptionValue = watch('description') ?? '';
-  const selectedGroupIds = watch('group_ids') ?? [];
+  const selectedGroupIds = watch('group_ids');
+  const activeGroupIds = useMemo(
+    () => (Array.isArray(selectedGroupIds) ? selectedGroupIds : []),
+    [selectedGroupIds]
+  );
+  const previousCourseIdRef = useRef(defaultValues.course_id ?? '');
   const descriptionRegistration = register('description');
 
   useEffect(() => {
+    previousCourseIdRef.current = defaultValues.course_id ?? '';
     reset(defaultValues);
   }, [defaultValues, reset]);
 
   useEffect(() => {
-    if (assignTo !== 'specific' || hasLoadedGroups) {
+    let isMounted = true;
+
+    async function loadCourses() {
+      setIsLoadingCourses(true);
+      setCoursesError('');
+
+      try {
+        await fetchCourses();
+      } catch (error) {
+        if (isMounted) {
+          setCoursesError(getErrorMessage(error, 'Unable to load courses right now.'));
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingCourses(false);
+        }
+      }
+    }
+
+    loadCourses();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [fetchCourses]);
+
+  useEffect(() => {
+    const previousCourseId = previousCourseIdRef.current;
+    previousCourseIdRef.current = selectedCourseId;
+
+    if (!previousCourseId || previousCourseId === selectedCourseId) {
+      return;
+    }
+
+    setValue('group_ids', [], {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    });
+    setGroups([]);
+    setGroupsError('');
+    setLoadedGroupCourseId(null);
+    clearErrors('group_ids');
+  }, [clearErrors, selectedCourseId, setValue]);
+
+  useEffect(() => {
+    if (submissionType !== 'group') {
+      setValue('assign_to', 'all', {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: true,
+      });
+      setValue('group_ids', [], {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: true,
+      });
+      clearErrors('group_ids');
+    }
+  }, [clearErrors, setValue, submissionType]);
+
+  useEffect(() => {
+    if (
+      submissionType !== 'group' ||
+      !selectedCourseId ||
+      assignTo !== 'specific' ||
+      loadedGroupCourseId === selectedCourseId
+    ) {
       return;
     }
 
@@ -194,10 +345,10 @@ export default function AssignmentForm({
       setGroupsError('');
 
       try {
-        const nextGroups = await getAllGroups();
+        const nextGroups = await getGroupsForCourse(selectedCourseId);
         if (isMounted) {
           setGroups(nextGroups);
-          setHasLoadedGroups(true);
+          setLoadedGroupCourseId(selectedCourseId);
         }
       } catch (error) {
         if (isMounted) {
@@ -214,12 +365,12 @@ export default function AssignmentForm({
     return () => {
       isMounted = false;
     };
-  }, [assignTo, hasLoadedGroups]);
+  }, [assignTo, loadedGroupCourseId, selectedCourseId, submissionType]);
 
   const handleGroupToggle = (groupId) => {
-    const nextValue = selectedGroupIds.includes(groupId)
-      ? selectedGroupIds.filter((value) => value !== groupId)
-      : [...selectedGroupIds, groupId];
+    const nextValue = activeGroupIds.includes(groupId)
+      ? activeGroupIds.filter((value) => value !== groupId)
+      : [...activeGroupIds, groupId];
 
     setValue('group_ids', nextValue, {
       shouldDirty: true,
@@ -240,26 +391,43 @@ export default function AssignmentForm({
     }
   };
 
+  const handleSubmissionTypeChange = (nextValue) => {
+    setValue('submission_type', nextValue, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    });
+  };
+
   const handleFormSubmit = handleSubmit(async (values) => {
+    const validGroupIds = new Set(groups.map((group) => group.id));
+    const groupTargets =
+      values.submission_type === 'group' && values.assign_to === 'specific'
+        ? values.group_ids.filter((groupId) => validGroupIds.has(groupId))
+        : [];
+
     await onSubmit({
       title: values.title.trim(),
-      description: sanitizedRichTextHtml(values.description) || undefined,
+      description: sanitizedRichTextHtml(values.description) || '',
       due_date: toAssignmentDueDate(values.due_date, values.due_time),
       onedrive_link: values.onedrive_link.trim(),
-      assign_to: values.assign_to,
-      group_ids: values.assign_to === 'specific' ? values.group_ids : undefined,
+      course: values.course_id,
+      submissionType: values.submission_type,
+      assignTo:
+        values.submission_type === 'group' && groupTargets.length > 0 ? 'groups' : 'all',
+      groupTargets,
     });
   });
 
   const selectedGroupOptions = useMemo(() => {
-    return selectedGroupIds.map((groupId) => {
+    return activeGroupIds.map((groupId) => {
       const matchedGroup = groups.find((group) => group.id === groupId);
       return {
         id: groupId,
         name: matchedGroup?.name || 'Selected Group',
       };
     });
-  }, [groups, selectedGroupIds]);
+  }, [activeGroupIds, groups]);
 
   if (visualVariant === 'architectural-edit') {
     return (
@@ -280,6 +448,64 @@ export default function AssignmentForm({
             <>
               <section className="assignment-edit-architectural__section">
                 <div className="assignment-edit-architectural__section-tag">Core Details</div>
+
+                <div className="assignment-edit-architectural__grid-2">
+                  <div className="assignment-edit-architectural__field assignment-edit-architectural__field--full">
+                    <label htmlFor="assignment-course" className="assignment-edit-architectural__label">
+                      Course
+                    </label>
+                    <select
+                      id="assignment-course"
+                      className="assignment-edit-architectural__input"
+                      {...register('course_id')}
+                      disabled={isLoadingCourses}
+                    >
+                      <option value="">Select course</option>
+                      {courses.map((course) => (
+                        <option key={course._id} value={course._id}>
+                          {course.code} - {course.name}
+                        </option>
+                      ))}
+                    </select>
+                    <FieldError message={coursesError || errors.course_id?.message} />
+                  </div>
+                </div>
+
+                <div className="assignment-edit-architectural__field">
+                  <label className="assignment-edit-architectural__label">Submission Type</label>
+                  <div className="assignment-edit-architectural__audience-grid">
+                    {SUBMISSION_TYPE_OPTIONS.map((option) => {
+                      const isActive = submissionType === option.value;
+
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          className={`assignment-edit-architectural__audience-option${
+                            isActive ? ' assignment-edit-architectural__audience-option--active' : ''
+                          }`}
+                          onClick={() => handleSubmissionTypeChange(option.value)}
+                          aria-pressed={isActive}
+                        >
+                          <span
+                            className={`assignment-edit-architectural__audience-check${
+                              isActive ? ' assignment-edit-architectural__audience-check--active' : ''
+                            }`}
+                            aria-hidden="true"
+                          >
+                            {isActive ? <Check size={11} weight="bold" /> : null}
+                          </span>
+                          <span className="assignment-edit-architectural__audience-copy">
+                            <strong>{option.label}</strong>
+                            <small>{option.hint}</small>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <input type="hidden" {...register('submission_type')} value={submissionType} readOnly />
+                  <FieldError message={errors.submission_type?.message} />
+                </div>
 
                 <div className="assignment-edit-architectural__field">
                   <label htmlFor="assignment-title" className="assignment-edit-architectural__label">
@@ -376,7 +602,8 @@ export default function AssignmentForm({
                 </div>
               </section>
 
-              <section className="assignment-edit-architectural__section">
+              {submissionType === 'group' ? (
+                <section className="assignment-edit-architectural__section">
                 <div className="assignment-edit-architectural__section-tag">Audience Selection</div>
 
                 <label className="assignment-edit-architectural__label">Choose The Audience</label>
@@ -384,13 +611,13 @@ export default function AssignmentForm({
                   {[
                     {
                       value: 'all',
-                      label: 'All Groups',
-                      hint: 'Broadcast this assignment to every active cohort.',
+                      label: 'All Groups in Course',
+                      hint: 'Broadcast this assignment to every group in the selected course.',
                     },
                     {
                       value: 'specific',
-                      label: 'Specific Groups',
-                      hint: 'Target specific engineering cohorts for this task.',
+                      label: 'Specific Groups in Course',
+                      hint: 'Target only selected groups from the chosen course.',
                     },
                   ].map((option) => {
                     const isActive = assignTo === option.value;
@@ -403,6 +630,7 @@ export default function AssignmentForm({
                           isActive ? ' assignment-edit-architectural__audience-option--active' : ''
                         }`}
                         onClick={() => handleAssignToChange(option.value)}
+                        disabled={!selectedCourseId}
                       >
                         <span
                           className={`assignment-edit-architectural__audience-check${
@@ -432,7 +660,7 @@ export default function AssignmentForm({
                           onClick={() => handleGroupToggle(group.id)}
                         >
                           {group.name}
-                          <span aria-hidden="true">×</span>
+                          <span aria-hidden="true">x</span>
                         </button>
                       ))}
                       {!isLoadingGroups ? (
@@ -446,7 +674,7 @@ export default function AssignmentForm({
 
                     <div className="assignment-edit-architectural__group-pool">
                       {groups.map((group) => {
-                        const isChecked = selectedGroupIds.includes(group.id);
+                        const isChecked = activeGroupIds.includes(group.id);
 
                         return (
                           <button
@@ -468,7 +696,8 @@ export default function AssignmentForm({
                     <FieldError message={groupsError || errors.group_ids?.message} />
                   </div>
                 ) : null}
-              </section>
+                </section>
+              ) : null}
 
               <footer className="assignment-edit-architectural__footer">
                 <button
@@ -520,6 +749,44 @@ export default function AssignmentForm({
               </div>
             ) : (
               <form onSubmit={handleFormSubmit} className="assignment-create-screen__form">
+                <div className="assignment-create-screen__field">
+                  <label htmlFor="assignment-course" className="assignment-create-screen__label">
+                    Course
+                  </label>
+                  <select
+                    id="assignment-course"
+                    className="assignment-create-screen__input"
+                    {...register('course_id')}
+                    disabled={isLoadingCourses}
+                  >
+                    <option value="">Select course</option>
+                    {courses.map((course) => (
+                      <option key={course._id} value={course._id}>
+                        {course.code} - {course.name}
+                      </option>
+                    ))}
+                  </select>
+                  <FieldError message={coursesError || errors.course_id?.message} />
+                </div>
+
+                <div className="assignment-create-screen__field">
+                  <label className="assignment-create-screen__label">Submission Type</label>
+                  <div className="assignment-create-screen__audience-grid">
+                    {SUBMISSION_TYPE_OPTIONS.map((option) => (
+                      <AudienceOption
+                        key={option.value}
+                        value={option.value}
+                        label={option.label}
+                        hint={option.hint}
+                        isActive={submissionType === option.value}
+                        onSelect={handleSubmissionTypeChange}
+                      />
+                    ))}
+                  </div>
+                  <input type="hidden" {...register('submission_type')} value={submissionType} readOnly />
+                  <FieldError message={errors.submission_type?.message} />
+                </div>
+
                 <div className="assignment-create-screen__field">
                   <label htmlFor="assignment-title" className="assignment-create-screen__label">
                     Title
@@ -617,31 +884,38 @@ export default function AssignmentForm({
 
                 <div className="assignment-create-screen__divider" aria-hidden="true" />
 
-                <section className="assignment-create-screen__audience">
+                {submissionType === 'individual' ? (
+                  <p className="assignment-create-screen__footer-note">
+                    Audience is automatically set to all students enrolled in the selected course.
+                  </p>
+                ) : null}
+
+                {submissionType === 'group' ? (
+                  <section className="assignment-create-screen__audience">
                   <div className="assignment-create-screen__section-copy">
                     <h2>Choose the audience</h2>
                     <p>
-                      Decide whether this assignment goes to every group or only a selected
-                      set.
+                      Decide whether this assignment goes to every group in the selected course
+                      or only a selected set.
                     </p>
                   </div>
 
                   <div className="assignment-create-screen__audience-grid">
                     <AudienceOption
                       value="all"
-                      label="All Groups"
-                      hint="Every student group will see this assignment immediately."
+                      label="All Groups in Course"
+                      hint="Every group in the selected course will see this assignment."
                       isActive={assignTo === 'all'}
-                      icon={UsersThree}
                       onSelect={handleAssignToChange}
+                      disabled={!selectedCourseId}
                     />
                     <AudienceOption
                       value="specific"
-                      label="Specific Groups"
-                      hint="Limit visibility to the groups you choose below."
+                      label="Specific Groups in Course"
+                      hint="Limit visibility to selected groups from this course."
                       isActive={assignTo === 'specific'}
-                      icon={UserList}
                       onSelect={handleAssignToChange}
+                      disabled={!selectedCourseId}
                     />
                   </div>
 
@@ -649,15 +923,15 @@ export default function AssignmentForm({
                     <div className="assignment-create-screen__group-box">
                       <div className="assignment-create-screen__group-meta">
                         <p>
-                          {selectedGroupIds.length} group
-                          {selectedGroupIds.length === 1 ? '' : 's'} selected
+                          {activeGroupIds.length} group
+                          {activeGroupIds.length === 1 ? '' : 's'} selected
                         </p>
                         {isLoadingGroups ? <LoadingSpinner fullPage={false} size={18} /> : null}
                       </div>
 
                       <div className="assignment-create-screen__group-list">
                         {groups.map((group) => {
-                          const isChecked = selectedGroupIds.includes(group.id);
+                          const isChecked = activeGroupIds.includes(group.id);
 
                           return (
                             <button
@@ -691,8 +965,8 @@ export default function AssignmentForm({
 
                         {!isLoadingGroups && groups.length === 0 ? (
                           <p className="assignment-create-screen__group-empty">
-                            No groups are available yet. Create student groups first or switch this
-                            assignment to all groups.
+                            No eligible groups were found for this course. Switch to all groups in
+                            course or enroll students first.
                           </p>
                         ) : null}
                       </div>
@@ -700,7 +974,8 @@ export default function AssignmentForm({
                       <FieldError message={groupsError || errors.group_ids?.message} />
                     </div>
                   ) : null}
-                </section>
+                  </section>
+                ) : null}
 
                 <div className="assignment-create-screen__footer">
                   <p className="assignment-create-screen__footer-note">
@@ -756,6 +1031,51 @@ export default function AssignmentForm({
         ) : (
           <form onSubmit={handleFormSubmit} className="grid gap-4 surface-grid">
             <div className="grid gap-4 sm:grid-cols-2 surface-grid surface-grid--equal">
+              <div className="grid gap-2 field">
+                <label htmlFor="assignment-course" className="text-sm font-medium field__label">
+                  Course
+                </label>
+                <select
+                  id="assignment-course"
+                  className="w-full rounded-md input"
+                  {...register('course_id')}
+                  disabled={isLoadingCourses}
+                >
+                  <option value="">Select course</option>
+                  {courses.map((course) => (
+                    <option key={course._id} value={course._id}>
+                      {course.code} - {course.name}
+                    </option>
+                  ))}
+                </select>
+                <FieldError message={coursesError || errors.course_id?.message} />
+              </div>
+
+              <div className="grid gap-2 field">
+                <label className="text-sm font-medium field__label">Submission Type</label>
+                <div className="grid gap-2 segmented">
+                  {SUBMISSION_TYPE_OPTIONS.map((option) => {
+                    const isActive = submissionType === option.value;
+
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        className={`segmented__option ${isActive ? 'segmented__option--active' : ''}`}
+                        onClick={() => handleSubmissionTypeChange(option.value)}
+                      >
+                        <strong>{option.label}</strong>
+                        <span className="text-sm muted" style={{ fontSize: '14px', lineHeight: 1.6 }}>
+                          {option.hint}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <input type="hidden" {...register('submission_type')} value={submissionType} readOnly />
+                <FieldError message={errors.submission_type?.message} />
+              </div>
+
               <div className="grid gap-2 field" style={{ gridColumn: '1 / -1' }}>
                 <label htmlFor="assignment-title" className="text-sm font-medium field__label">
                   Title
@@ -834,96 +1154,106 @@ export default function AssignmentForm({
               </div>
             </div>
 
-            <Card as="section" className="grid gap-4 surface-grid">
-              <div className="grid gap-2 section-heading">
-                <p className="text-xs font-medium uppercase tracking-wide eyebrow">Assign To</p>
-                <h2 className="text-2xl font-bold tracking-tight section-heading__title">Choose the audience</h2>
-                <p className="text-base leading-relaxed page-description">
-                  Decide whether this assignment goes to every group or only a selected set.
-                </p>
-              </div>
-
-              <div className="grid gap-3 segmented">
-                {[
-                  {
-                    value: 'all',
-                    label: 'All Groups',
-                    hint: 'Every student group will see this assignment immediately.',
-                  },
-                  {
-                    value: 'specific',
-                    label: 'Specific Groups',
-                    hint: 'Limit visibility to the groups you choose below.',
-                  },
-                ].map((option) => {
-                  const isActive = assignTo === option.value;
-
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      className={`segmented__option ${
-                        isActive ? 'segmented__option--active' : ''
-                      }`}
-                      onClick={() => handleAssignToChange(option.value)}
-                    >
-                      <strong>{option.label}</strong>
-                      <span className="text-sm muted" style={{ fontSize: '14px', lineHeight: 1.6 }}>
-                        {option.hint}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {assignTo === 'specific' ? (
-                <div className="grid gap-4 surface-grid">
-                  <div className="flex items-center justify-between gap-4 toolbar">
-                    <p className="text-sm toolbar__meta">
-                      {selectedGroupIds.length} group{selectedGroupIds.length === 1 ? '' : 's'} selected
-                    </p>
-                    {isLoadingGroups ? <LoadingSpinner fullPage={false} size={18} /> : null}
-                  </div>
-
-                  <div className="grid gap-2 overflow-y-auto rounded-lg check-list">
-                    {groups.map((group) => {
-                      const isChecked = selectedGroupIds.includes(group.id);
-
-                      return (
-                        <button
-                          key={group.id}
-                          type="button"
-                          className={`check-list__item ${
-                            isChecked ? 'check-list__item--active' : ''
-                          }`}
-                          onClick={() => handleGroupToggle(group.id)}
-                        >
-                          <div>
-                            <div className="text-sm font-semibold table__title">{group.name}</div>
-                            <span className="text-sm leading-relaxed table__description">
-                              {group.description || 'No description provided.'}
-                            </span>
-                          </div>
-                          <span
-                            className={`check-list__indicator ${
-                              isChecked ? 'check-list__indicator--active' : ''
-                            }`}
-                          />
-                        </button>
-                      );
-                    })}
-
-                    {!isLoadingGroups && groups.length === 0 ? (
-                      <p className="text-base leading-relaxed empty-state__message" style={{ textAlign: 'left' }}>
-                        No groups are available yet. Create student groups first or switch this assignment to all groups.
-                      </p>
-                    ) : null}
-                  </div>
-
-                  <FieldError message={groupsError || errors.group_ids?.message} />
+            {submissionType === 'group' ? (
+              <Card as="section" className="grid gap-4 surface-grid">
+                <div className="grid gap-2 section-heading">
+                  <p className="text-xs font-medium uppercase tracking-wide eyebrow">Assign To</p>
+                  <h2 className="text-2xl font-bold tracking-tight section-heading__title">Choose the audience</h2>
+                  <p className="text-base leading-relaxed page-description">
+                    Decide whether this assignment goes to every group in the selected course or only a selected set.
+                  </p>
                 </div>
-              ) : null}
-            </Card>
+
+                <div className="grid gap-3 segmented">
+                  {[
+                    {
+                      value: 'all',
+                      label: 'All Groups in Course',
+                      hint: 'Every group in the selected course will see this assignment.',
+                    },
+                    {
+                      value: 'specific',
+                      label: 'Specific Groups in Course',
+                      hint: 'Limit visibility to selected groups from this course.',
+                    },
+                  ].map((option) => {
+                    const isActive = assignTo === option.value;
+
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        className={`segmented__option ${
+                          isActive ? 'segmented__option--active' : ''
+                        }`}
+                        onClick={() => handleAssignToChange(option.value)}
+                        disabled={!selectedCourseId}
+                      >
+                        <strong>{option.label}</strong>
+                        <span className="text-sm muted" style={{ fontSize: '14px', lineHeight: 1.6 }}>
+                          {option.hint}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {assignTo === 'specific' ? (
+                  <div className="grid gap-4 surface-grid">
+                    <div className="flex items-center justify-between gap-4 toolbar">
+                      <p className="text-sm toolbar__meta">
+                        {activeGroupIds.length} group{activeGroupIds.length === 1 ? '' : 's'} selected
+                      </p>
+                      {isLoadingGroups ? <LoadingSpinner fullPage={false} size={18} /> : null}
+                    </div>
+
+                    <div className="grid gap-2 overflow-y-auto rounded-lg check-list">
+                      {groups.map((group) => {
+                        const isChecked = activeGroupIds.includes(group.id);
+
+                        return (
+                          <button
+                            key={group.id}
+                            type="button"
+                            className={`check-list__item ${
+                              isChecked ? 'check-list__item--active' : ''
+                            }`}
+                            onClick={() => handleGroupToggle(group.id)}
+                          >
+                            <div>
+                              <div className="text-sm font-semibold table__title">{group.name}</div>
+                              <span className="text-sm leading-relaxed table__description">
+                                {group.description || 'No description provided.'}
+                              </span>
+                            </div>
+                            <span
+                              className={`check-list__indicator ${
+                                isChecked ? 'check-list__indicator--active' : ''
+                              }`}
+                            />
+                          </button>
+                        );
+                      })}
+
+                      {!isLoadingGroups && groups.length === 0 ? (
+                        <p className="text-base leading-relaxed empty-state__message" style={{ textAlign: 'left' }}>
+                          No eligible groups were found for this course.
+                        </p>
+                      ) : null}
+                    </div>
+
+                    <FieldError message={groupsError || errors.group_ids?.message} />
+                  </div>
+                ) : null}
+              </Card>
+            ) : (
+              <Card as="section" className="grid gap-2 surface-grid">
+                <p className="text-xs font-medium uppercase tracking-wide eyebrow">Audience</p>
+                <p className="text-base leading-relaxed page-description">
+                  All students enrolled in the selected course.
+                </p>
+              </Card>
+            )}
 
             <div className="flex items-center justify-between gap-4 toolbar">
               <p className="text-sm toolbar__meta">

@@ -44,7 +44,7 @@ export default function CourseDetail() {
           setAssignments(data.assignments ?? []);
           setFetchError(false);
         }
-      } catch (err) {
+      } catch {
         if (isMounted) {
           setFetchError(true);
         }

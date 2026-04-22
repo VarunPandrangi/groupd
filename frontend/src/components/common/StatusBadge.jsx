@@ -34,6 +34,16 @@ const STATUS_STYLES = {
     background: 'var(--bg-hover)',
     color: 'var(--text-muted)',
   },
+  individual: {
+    label: 'Individual Assignment',
+    background: 'var(--accent-blue-soft)',
+    color: 'var(--accent-blue)',
+  },
+  group: {
+    label: 'Group Assignment',
+    background: 'var(--accent-amber-soft)',
+    color: 'var(--accent-amber)',
+  },
 };
 
 export default function StatusBadge({ status = 'pending', label }) {

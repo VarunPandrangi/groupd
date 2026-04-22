@@ -13,6 +13,11 @@ export const useSubmissionStore = create((set) => ({
       set({ mySubmissions: Array.isArray(submissions) ? submissions : [], isLoading: false });
       return submissions;
     } catch (error) {
+      const errorCode = error?.response?.data?.error?.code;
+      if (errorCode === 'NO_GROUP') {
+        set({ mySubmissions: [], isLoading: false });
+        return [];
+      }
       set({ isLoading: false });
       throw error;
     }

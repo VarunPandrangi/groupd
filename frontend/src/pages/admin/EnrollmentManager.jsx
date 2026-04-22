@@ -36,7 +36,7 @@ export default function EnrollmentManager() {
       try {
         await fetchCourse(courseId);
         if (isMounted) setFetchError(false);
-      } catch (err) {
+      } catch {
         if (isMounted) setFetchError(true);
       }
     };
