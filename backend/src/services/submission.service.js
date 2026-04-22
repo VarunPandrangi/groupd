@@ -400,28 +400,43 @@ export async function getGroupProgress(userId) {
   const user = await requireUser(userId);
   const group = await findActiveGroupForUser(user._id);
 
-  if (!group) {
-    return [];
-  }
-
   const enrolledCourseIds = [...(await getStudentEnrolledCourseIdSet(user._id))];
   if (enrolledCourseIds.length === 0) {
     return [];
   }
 
+  const assignmentFilters = [{ submissionType: 'individual' }];
+
+  if (group) {
+    assignmentFilters.push({
+      submissionType: 'group',
+      $or: [{ assignTo: 'all' }, { assignTo: 'group', groupTargets: group._id }],
+    });
+  }
+
   const assignments = await Assignment.find({
     isDeleted: false,
     course: { $in: enrolledCourseIds },
-    $or: [{ assignTo: 'all' }, { assignTo: 'group', groupTargets: group._id }],
+    $or: assignmentFilters,
   })
     .sort({ dueDate: 1, createdAt: -1 })
     .lean();
 
   const assignmentIds = assignments.map((assignment) => assignment._id);
 
+  if (assignmentIds.length === 0) {
+    return [];
+  }
+
+  const submissionFilters = [{ submittedBy: user._id, group: null }];
+
+  if (group) {
+    submissionFilters.push({ group: group._id });
+  }
+
   const submissions = await Submission.find({
     assignment: { $in: assignmentIds },
-    group: group._id,
+    $or: submissionFilters,
   })
     .populate('submittedBy', 'fullName')
     .lean();
@@ -441,6 +456,7 @@ export async function getGroupProgress(userId) {
       title: assignment.title,
       due_date: assignment.dueDate,
       status: computeStatus(assignment.dueDate),
+      submission_type: assignment.submissionType,
       is_submitted: Boolean(submission),
       submitted_by_name: submission?.submittedBy?.fullName ?? null,
       confirmed_at: submission?.confirmedAt ?? null,
