@@ -26,7 +26,7 @@ export default function StudentLayout() {
         hasGroup
           ? null
           : {
-              label: 'New Project',
+              label: 'Create Group',
               icon: Plus,
               onClick: () => navigate('/student/group/create'),
             }
