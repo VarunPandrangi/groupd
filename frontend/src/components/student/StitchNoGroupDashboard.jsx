@@ -2,7 +2,7 @@ import {
   MagnifyingGlass,
   PlusCircle,
 } from '@phosphor-icons/react';
-import heroImage from '../../stitch/dashboard-no-group/d12535913ad74f4d85076741bb924f27-hero.jpg';
+import heroImage from "../../assets/d12535913ad74f4d85076741bb924f27-hero.jpg";
 
 export default function StitchNoGroupDashboard({ onCreateGroup, onFindTeammates }) {
   return (

@@ -7,7 +7,7 @@ import {
   SquaresFour,
 } from '@phosphor-icons/react';
 
-import heroVisual from '../../../stitch-downloads/architectural-logic/e4ba0a966bdb46108b6e0a1e8fbe1f53.png';
+import heroVisual from "../../assets/e4ba0a966bdb46108b6e0a1e8fbe1f53.png";
 
 const heroLines = ['Manage', 'Student', 'Groups &', 'Assignments', 'Seamlessly.'];
 
