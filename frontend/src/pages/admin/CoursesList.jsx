@@ -1,13 +1,28 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Books, FileText, Users, Plus, TrashSimple, PencilSimple } from '@phosphor-icons/react';
-import { Page, StaggerGroup, FadeUp } from '../../components/common/Page';
-import Card from '../../components/common/Card';
+import {
+  Books,
+  FileText,
+  MagnifyingGlass,
+  PencilSimple,
+  Plus,
+  TrashSimple,
+  Users,
+} from '@phosphor-icons/react';
+import { FadeUp, Page, StaggerGroup } from '../../components/common/Page';
 import Skeleton from '../../components/common/Skeleton';
 import EmptyState from '../../components/common/EmptyState';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import { useCourseStore } from '../../stores/courseStore';
 import toast from 'react-hot-toast';
+
+const COURSE_SIGNAL_ICONS = [Books, FileText, Users];
+
+function pickSignalIcon(course) {
+  const seed = `${course.code || ''}${course.name || ''}`;
+  const hash = seed.split('').reduce((sum, character) => sum + character.charCodeAt(0), 0);
+  return COURSE_SIGNAL_ICONS[hash % COURSE_SIGNAL_ICONS.length];
+}
 
 export default function CoursesList() {
   const navigate = useNavigate();
@@ -19,6 +34,26 @@ export default function CoursesList() {
   
   const [courseToDelete, setCourseToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [query, setQuery] = useState('');
+
+  const filteredCourses = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    if (!normalizedQuery) {
+      return courses;
+    }
+
+    return courses.filter((course) => {
+      const code = (course.code || '').toLowerCase();
+      const name = (course.name || '').toLowerCase();
+      const description = (course.description || '').toLowerCase();
+
+      return (
+        code.includes(normalizedQuery) ||
+        name.includes(normalizedQuery) ||
+        description.includes(normalizedQuery)
+      );
+    });
+  }, [courses, query]);
 
   useEffect(() => {
     let isMounted = true;
@@ -51,103 +86,131 @@ export default function CoursesList() {
   }
 
   return (
-    <Page className="workspace-cool" aria-label="Admin courses">
-      <header className="workspace-cool__hero" style={{ marginBottom: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <p className="workspace-cool__eyebrow">Admin Workspace</p>
-          <h1 className="workspace-cool__title">My Courses</h1>
-          <p className="workspace-cool__subtitle">Manage courses and curriculum.</p>
+    <Page className="my-courses-architectural" aria-label="Admin courses">
+      <header className="my-courses-architectural__hero">
+        <div className="my-courses-architectural__copy">
+          <p className="my-courses-architectural__eyebrow">Admin Workspace</p>
+          <h1 className="my-courses-architectural__title">My Courses</h1>
+          <p className="my-courses-architectural__subtitle">Manage courses and curriculum.</p>
         </div>
+
+        <div className="my-courses-architectural__controls">
+          <label className="my-courses-architectural__search" htmlFor="course-search">
+            <MagnifyingGlass size={16} weight="bold" />
+            <input
+              id="course-search"
+              type="search"
+              placeholder="QUERY_ID"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              aria-label="Search courses"
+            />
+          </label>
+
         <button
           type="button"
-          className="btn btn--primary"
+          className="my-courses-architectural__create"
           onClick={() => navigate('/admin/courses/new')}
-          style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
         >
-          <Plus size={18} weight="bold" />
+          <Plus size={16} weight="bold" />
           Create Course
         </button>
+        </div>
       </header>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          <Skeleton variant="card" />
-          <Skeleton variant="card" />
-          <Skeleton variant="card" />
+        <div className="my-courses-architectural__grid" aria-hidden="true">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <Skeleton key={`courses-skeleton-${index}`} variant="card" style={{ height: '236px', borderRadius: '0px' }} />
+          ))}
         </div>
-      ) : courses.length === 0 ? (
+      ) : filteredCourses.length === 0 ? (
         <EmptyState
           icon={Books}
-          title="No Courses"
-          message="You haven't created any courses yet."
-          actionLabel="Create Course"
-          onAction={() => navigate('/admin/courses/new')}
+          title={courses.length === 0 ? 'No Courses' : 'No Matching Courses'}
+          message={
+            courses.length === 0
+              ? "You haven't created any courses yet."
+              : 'Try a different code or keyword in your query.'
+          }
+          actionLabel={courses.length === 0 ? 'Create Course' : 'Clear Search'}
+          onAction={() => {
+            if (courses.length === 0) {
+              navigate('/admin/courses/new');
+              return;
+            }
+
+            setQuery('');
+          }}
         />
       ) : (
-        <StaggerGroup className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {courses.map((course) => (
+        <StaggerGroup className="my-courses-architectural__grid">
+          {filteredCourses.map((course) => {
+            const SignalIcon = pickSignalIcon(course);
+
+            return (
             <FadeUp key={course._id}>
-              <Card
-                style={{ display: 'flex', flexDirection: 'column', height: '100%' }}
-              >
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <span className="mono muted" style={{ fontSize: '13px' }}>{course.code}</span>
-                    <div style={{ display: 'flex', gap: '8px' }}>
+              <article className="my-courses-architectural__card">
+                <div className="my-courses-architectural__card-head">
+                  <span className="my-courses-architectural__course-code">{course.code || 'UNTITLED'}</span>
+
+                  <div className="my-courses-architectural__card-tools">
+                    <SignalIcon size={14} weight="bold" className="my-courses-architectural__signal" />
+
+                    <div className="my-courses-architectural__admin-actions">
                       <button
                         type="button"
                         onClick={() => navigate(`/admin/courses/${course._id}`)}
-                        className="btn btn--ghost btn--icon"
+                        className="my-courses-architectural__icon-action"
                         aria-label="Edit course"
-                        style={{ padding: '4px', height: 'auto', minHeight: 'auto' }}
                       >
                         <PencilSimple size={16} />
                       </button>
+
                       <button
                         type="button"
                         onClick={() => setCourseToDelete(course)}
-                        className="btn btn--ghost btn--icon"
+                        className="my-courses-architectural__icon-action my-courses-architectural__icon-action--danger"
                         aria-label="Delete course"
-                        style={{ padding: '4px', height: 'auto', minHeight: 'auto', color: 'var(--text-critical)' }}
                       >
                         <TrashSimple size={16} />
                       </button>
                     </div>
                   </div>
-                  <h3 
-                    className="card__title" 
-                    style={{ marginTop: '8px', cursor: 'pointer' }}
-                    onClick={() => navigate(`/admin/courses/${course._id}`)}
-                  >
-                    {course.name}
-                  </h3>
-                  <p className="card__copy line-clamp-2" style={{
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                    marginTop: '12px'
-                  }}>
+                </div>
+
+                <button
+                  type="button"
+                  className="my-courses-architectural__card-main"
+                  onClick={() => navigate(`/admin/courses/${course._id}`)}
+                >
+                  <h3 className="my-courses-architectural__course-name">{course.name}</h3>
+                  <p className="my-courses-architectural__course-description">
                     {course.description || 'No description available.'}
                   </p>
-                </div>
-                <div className="cluster" style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--border-default)', justifyContent: 'flex-start' }}>
-                  <div className="cluster" style={{ gap: '6px' }}>
-                    <Users size={16} className="muted" />
-                    <span style={{ fontSize: '14px', color: 'var(--text-body)', fontWeight: 500 }}>
-                      {course.studentCount ?? 0} students
+                </button>
+
+                <div className="my-courses-architectural__stats">
+                  <div className="my-courses-architectural__stat">
+                    <span>
+                      <Users size={12} weight="bold" />
+                      Students
                     </span>
+                    <strong>{course.studentCount ?? 0}</strong>
                   </div>
-                  <div className="cluster" style={{ gap: '6px', marginLeft: '16px' }}>
-                    <FileText size={16} className="muted" />
-                    <span style={{ fontSize: '14px', color: 'var(--text-body)', fontWeight: 500 }}>
-                      {course.assignmentCount ?? 0} assignments
+
+                  <div className="my-courses-architectural__stat">
+                    <span>
+                      <FileText size={12} weight="bold" />
+                      Tasks
                     </span>
+                    <strong>{course.assignmentCount ?? 0}</strong>
                   </div>
                 </div>
-              </Card>
+              </article>
             </FadeUp>
-          ))}
+            );
+          })}
         </StaggerGroup>
       )}
 
