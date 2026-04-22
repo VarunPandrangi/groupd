@@ -22,6 +22,7 @@ app.set('trust proxy', 1);
 // Security & cross-cutting middleware
 app.use(helmet());
 app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(generalLimiter);
