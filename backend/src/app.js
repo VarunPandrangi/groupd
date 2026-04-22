@@ -15,6 +15,10 @@ import submissionRoutes from './routes/submission.routes.js';
 
 const app = express();
 
+// In production this app is typically behind a reverse proxy/load balancer.
+// Trust the first proxy hop so rate limiting uses the real client IP.
+app.set('trust proxy', 1);
+
 // Security & cross-cutting middleware
 app.use(helmet());
 app.use(cors(corsOptions));

@@ -58,6 +58,11 @@ async function findActiveGroupForUser(userId) {
   });
 }
 
+async function getStudentEnrolledCourseIdSet(userId) {
+  const courses = await Course.findByStudent(userId).select('_id').lean();
+  return new Set(courses.map((course) => course._id.toString()));
+}
+
 function isAssignedToGroup(assignment, groupId) {
   if (assignment.assignTo === 'all') {
     return true;
@@ -66,6 +71,51 @@ function isAssignedToGroup(assignment, groupId) {
   return assignment.groupTargets
     .map((id) => id.toString())
     .includes(groupId.toString());
+}
+
+async function assertGroupMembersEnrolledInCourse({ assignment, group }) {
+  const course = await Course.findOne({
+    _id: assignment.course,
+    isDeleted: false,
+  })
+    .select('enrolledStudents')
+    .lean();
+
+  if (!course) {
+    throw httpError(404, 'COURSE_NOT_FOUND', 'Course not found');
+  }
+
+  const enrolledStudentIdSet = new Set(
+    (course.enrolledStudents ?? []).map((studentId) => studentId.toString())
+  );
+  const groupMemberIds = (group.members ?? []).map((memberId) => memberId.toString());
+  const missingMemberIds = groupMemberIds.filter(
+    (memberId) => !enrolledStudentIdSet.has(memberId)
+  );
+
+  if (missingMemberIds.length === 0) {
+    return;
+  }
+
+  const missingUsers = await User.find({
+    _id: { $in: missingMemberIds },
+    isDeleted: false,
+  })
+    .select('fullName')
+    .lean();
+  const missingNames = missingUsers.map((user) => user.fullName).filter(Boolean);
+  const missingPreview = missingNames.slice(0, 3).join(', ');
+  const suffix =
+    missingNames.length > 3 ? ` +${missingNames.length - 3} more` : '';
+  const readableMissing = missingPreview
+    ? `${missingPreview}${suffix}`
+    : `${missingMemberIds.length} member(s)`;
+
+  throw httpError(
+    400,
+    'GROUP_MEMBERS_NOT_ENROLLED',
+    `Cannot submit this course assignment because some group members are not enrolled in the course: ${readableMissing}.`
+  );
 }
 
 
@@ -93,6 +143,8 @@ async function assertGroupSubmissionEligibility({ user, assignment }) {
       'This assignment is not assigned to your group'
     );
   }
+
+  await assertGroupMembersEnrolledInCourse({ assignment, group });
 
   const existingSubmission = await Submission.findOne({
     assignment: assignment._id,
@@ -307,16 +359,23 @@ export async function getMyGroupSubmissions(userId) {
     throw httpError(400, 'NO_GROUP', 'You must be in a group to view submissions');
   }
 
+  const enrolledCourseIdSet = await getStudentEnrolledCourseIdSet(user._id);
+
   const submissions = await Submission.find({
     group: group._id,
   })
-    .populate('assignment', 'title dueDate isDeleted')
+    .populate('assignment', 'title dueDate isDeleted course')
     .populate('submittedBy', 'fullName')
     .sort({ confirmedAt: -1 })
     .lean();
 
   return submissions
-    .filter((submission) => !submission.assignment?.isDeleted)
+    .filter(
+      (submission) =>
+        !submission.assignment?.isDeleted &&
+        Boolean(submission.assignment?.course) &&
+        enrolledCourseIdSet.has(submission.assignment.course.toString())
+    )
     .map((submission) => ({
       assignment_id: submission.assignment?._id?.toString?.() ?? null,
       title: submission.assignment?.title ?? null,
@@ -345,8 +404,14 @@ export async function getGroupProgress(userId) {
     return [];
   }
 
+  const enrolledCourseIds = [...(await getStudentEnrolledCourseIdSet(user._id))];
+  if (enrolledCourseIds.length === 0) {
+    return [];
+  }
+
   const assignments = await Assignment.find({
     isDeleted: false,
+    course: { $in: enrolledCourseIds },
     $or: [{ assignTo: 'all' }, { assignTo: 'group', groupTargets: group._id }],
   })
     .sort({ dueDate: 1, createdAt: -1 })
