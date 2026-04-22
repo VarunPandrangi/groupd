@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
@@ -20,10 +20,110 @@ import {
 } from 'recharts';
 import Skeleton from '../../components/common/Skeleton';
 import { Page } from '../../components/common/Page';
-import dashboardService from '../../services/dashboardService';
+import assignmentService from '../../services/assignmentService';
+import courseService from '../../services/courseService';
+import groupService from '../../services/groupService';
+import submissionService from '../../services/submissionService';
+
+const ALL_COURSES_VALUE = '__all_courses__';
 
 function getErrorMessage(error, fallbackMessage) {
   return error?.response?.data?.error?.message || fallbackMessage;
+}
+
+function roundToTwo(value) {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) {
+    return 0;
+  }
+
+  return Number(numericValue.toFixed(2));
+}
+
+function toId(value) {
+  if (!value) {
+    return null;
+  }
+
+  const normalized = String(value).trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function toSafeLower(value) {
+  return String(value ?? '').trim().toLowerCase();
+}
+
+function normalizeStudentName(value) {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+}
+
+function normalizeStudent(student, index = 0) {
+  const id = toId(student?.id ?? student?._id);
+  const email = toSafeLower(student?.email);
+  const fullName = String(student?.full_name ?? student?.fullName ?? '').trim();
+  const fallbackLabel = fullName || email || `Student ${index + 1}`;
+
+  return {
+    id,
+    email,
+    full_name: fallbackLabel,
+    key: id ?? email ?? `student:${index}`,
+  };
+}
+
+function normalizeCourse(course, index = 0) {
+  const id = toId(course?.id ?? course?._id);
+  const code = String(course?.code ?? '').trim();
+  const name = String(course?.name ?? '').trim() || `Course ${index + 1}`;
+  const label = code && name ? `${code} - ${name}` : code || name;
+
+  return {
+    id,
+    code,
+    name,
+    label,
+  };
+}
+
+function normalizeAssignment(assignment) {
+  const id = toId(assignment?.id ?? assignment?._id);
+  const title = String(assignment?.title ?? '').trim() || 'Untitled Assignment';
+  const courseId = toId(
+    assignment?.course_id ??
+      assignment?.course ??
+      assignment?.course?._id ??
+      assignment?.course?.id
+  );
+  const submissionType = String(
+    assignment?.submission_type ?? assignment?.submissionType ?? 'group'
+  ).toLowerCase();
+  const assignTo = String(assignment?.assign_to ?? 'all').toLowerCase();
+  const targetGroupIds = Array.isArray(assignment?.groups)
+    ? assignment.groups
+        .map((group) => toId(group?.id ?? group?._id))
+        .filter(Boolean)
+    : [];
+
+  return {
+    id,
+    title,
+    course_id: courseId,
+    submission_type: submissionType === 'individual' ? 'individual' : 'group',
+    assign_to: assignTo === 'specific' ? 'specific' : 'all',
+    target_group_ids: targetGroupIds,
+  };
+}
+
+function normalizeSubmission(submission) {
+  return {
+    group_id: toId(submission?.group_id),
+    group_name: String(submission?.group_name ?? '').trim(),
+    submitted_by_email: toSafeLower(submission?.submitted_by_email),
+    submitted_by_name: String(submission?.submitted_by_name ?? '').trim(),
+  };
 }
 
 function truncateLabel(value, maxLength = 14) {
@@ -52,16 +152,12 @@ function getAssignmentBarColor(completionRate) {
   return '#dbdee3';
 }
 
-function getGroupBarColor(group) {
-  if (group.group_deleted) {
-    return '#9ea3ad';
-  }
-
-  if (group.completion_rate < 50) {
+function getPerformanceBarColor(completionRate) {
+  if (completionRate < 50) {
     return '#be0f1b';
   }
 
-  if (group.completion_rate < 80) {
+  if (completionRate < 80) {
     return '#222731';
   }
 
@@ -91,7 +187,7 @@ function ChartTooltip({ title, subtitle, percentage, badgeLabel = null }) {
   );
 }
 
-function AssignmentTooltip({ active, payload }) {
+function AssignmentTooltip({ active, payload, entityLabel }) {
   if (!active || !payload?.length) {
     return null;
   }
@@ -101,25 +197,24 @@ function AssignmentTooltip({ active, payload }) {
   return (
     <ChartTooltip
       title={assignment.title}
-      subtitle={`${assignment.groups_submitted}/${assignment.groups_assigned} groups submitted`}
+      subtitle={`${assignment.submitted_count}/${assignment.total_count} ${entityLabel}`}
       percentage={Math.round(assignment.completion_rate)}
     />
   );
 }
 
-function GroupTooltip({ active, payload }) {
+function PerformanceTooltip({ active, payload, titleKey = 'name' }) {
   if (!active || !payload?.length) {
     return null;
   }
 
-  const group = payload[0].payload;
+  const entity = payload[0].payload;
 
   return (
     <ChartTooltip
-      title={group.name}
-      subtitle={`${group.submitted_assignments}/${group.total_assignments} assignments submitted`}
-      percentage={Math.round(group.completion_rate)}
-      badgeLabel={group.group_deleted ? 'Deleted' : null}
+      title={entity[titleKey]}
+      subtitle={`${entity.submitted_assignments}/${entity.total_assignments} assignments submitted`}
+      percentage={Math.round(entity.completion_rate)}
     />
   );
 }
@@ -142,7 +237,7 @@ function AdminDashboardSkeleton() {
       <div className="admin-dashboard__header">
         <Skeleton variant="text" width="148px" />
         <Skeleton variant="text" width="256px" height="56px" />
-        <Skeleton variant="text" width="520px" />
+        <Skeleton variant="text" width="220px" />
       </div>
 
       <div className="admin-dashboard__stats-grid">
@@ -152,6 +247,8 @@ function AdminDashboardSkeleton() {
       </div>
 
       <div className="admin-dashboard__charts-grid">
+        <Skeleton variant="chart" />
+        <Skeleton variant="chart" />
         <Skeleton variant="chart" />
         <Skeleton variant="chart" />
       </div>
@@ -188,10 +285,14 @@ function ChartEmptyState({ children }) {
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const [summary, setSummary] = useState(null);
-  const [assignmentAnalytics, setAssignmentAnalytics] = useState([]);
-  const [groupAnalytics, setGroupAnalytics] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [selectedCourseId, setSelectedCourseId] = useState('');
+  const [allAssignments, setAllAssignments] = useState([]);
+  const [allGroups, setAllGroups] = useState([]);
+  const [studentsByCourseId, setStudentsByCourseId] = useState({});
+  const [submissionsByAssignmentId, setSubmissionsByAssignmentId] = useState({});
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
   const [isCompactChart, setIsCompactChart] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth <= 640 : false
   );
@@ -203,26 +304,76 @@ export default function AdminDashboard() {
       setIsLoading(true);
 
       try {
-        const [nextSummary, nextAssignments, nextGroups] = await Promise.all([
-          dashboardService.getAdminSummary(),
-          dashboardService.getAssignmentAnalytics(),
-          dashboardService.getGroupAnalytics(),
+        const [rawCourses, rawAssignments, rawGroups] = await Promise.all([
+          courseService.listCourses(),
+          assignmentService.getAllAssignmentsForAdmin(),
+          groupService.getAllGroupsForAdmin(200),
         ]);
 
         if (!isMounted) {
           return;
         }
 
-        setSummary(nextSummary);
-        setAssignmentAnalytics(nextAssignments);
-        setGroupAnalytics(
-          [...nextGroups].sort(
-            (left, right) =>
-              right.completion_rate - left.completion_rate ||
-              Number(left.group_deleted) - Number(right.group_deleted) ||
-              left.name.localeCompare(right.name)
-          )
+        const courseRows = Array.isArray(rawCourses?.courses)
+          ? rawCourses.courses
+          : Array.isArray(rawCourses)
+            ? rawCourses
+            : [];
+
+        const normalizedCourses = courseRows
+          .map(normalizeCourse)
+          .filter((course) => Boolean(course.id));
+        const normalizedAssignments = (Array.isArray(rawAssignments) ? rawAssignments : [])
+          .map(normalizeAssignment)
+          .filter((assignment) => Boolean(assignment.id));
+        const normalizedGroups = (Array.isArray(rawGroups) ? rawGroups : [])
+          .map((group) => ({
+            id: toId(group?.id ?? group?._id),
+            name: String(group?.name ?? '').trim() || 'Unknown Group',
+          }))
+          .filter((group) => Boolean(group.id));
+
+        const studentEntries = await Promise.all(
+          normalizedCourses.map(async (course) => {
+            try {
+              const response = await courseService.listEnrolledStudents(course.id);
+              const students = Array.isArray(response?.students)
+                ? response.students
+                : Array.isArray(response)
+                  ? response
+                  : [];
+
+              return [
+                course.id,
+                students
+                  .map(normalizeStudent)
+                  .filter((student) => Boolean(student.key)),
+              ];
+            } catch (_error) {
+              return [course.id, []];
+            }
+          })
         );
+
+        if (!isMounted) {
+          return;
+        }
+
+        setCourses(normalizedCourses);
+        setSelectedCourseId((previousCourseId) => {
+          if (
+            previousCourseId &&
+            (previousCourseId === ALL_COURSES_VALUE ||
+              normalizedCourses.some((course) => course.id === previousCourseId))
+          ) {
+            return previousCourseId;
+          }
+
+          return normalizedCourses[0]?.id ?? ALL_COURSES_VALUE;
+        });
+        setAllAssignments(normalizedAssignments);
+        setAllGroups(normalizedGroups);
+        setStudentsByCourseId(Object.fromEntries(studentEntries));
       } catch (error) {
         if (isMounted) {
           toast.error(getErrorMessage(error, 'Unable to load the admin dashboard.'));
@@ -241,6 +392,315 @@ export default function AdminDashboard() {
     };
   }, []);
 
+  const filteredAssignments = useMemo(() => {
+    if (selectedCourseId === ALL_COURSES_VALUE || !selectedCourseId) {
+      return allAssignments;
+    }
+
+    return allAssignments.filter(
+      (assignment) => assignment.course_id === selectedCourseId
+    );
+  }, [allAssignments, selectedCourseId]);
+
+  const missingSubmissionIds = useMemo(
+    () =>
+      filteredAssignments
+        .map((assignment) => assignment.id)
+        .filter((assignmentId) => !submissionsByAssignmentId[assignmentId]),
+    [filteredAssignments, submissionsByAssignmentId]
+  );
+
+  useEffect(() => {
+    if (missingSubmissionIds.length === 0) {
+      return undefined;
+    }
+
+    let isMounted = true;
+    setIsLoadingSubmissions(true);
+
+    async function loadMissingSubmissions() {
+      const results = await Promise.all(
+        missingSubmissionIds.map(async (assignmentId) => {
+          try {
+            const rows = await submissionService.getSubmissionsByAssignment(assignmentId);
+            return [assignmentId, rows.map(normalizeSubmission)];
+          } catch (_error) {
+            return [assignmentId, []];
+          }
+        })
+      );
+
+      if (!isMounted) {
+        return;
+      }
+
+      setSubmissionsByAssignmentId((previousRows) => ({
+        ...previousRows,
+        ...Object.fromEntries(results),
+      }));
+      setIsLoadingSubmissions(false);
+    }
+
+    loadMissingSubmissions();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [missingSubmissionIds]);
+
+  const analytics = useMemo(() => {
+    const selectedCourseStudents = selectedCourseId === ALL_COURSES_VALUE
+      ? Object.values(studentsByCourseId).flat()
+      : studentsByCourseId[selectedCourseId] ?? [];
+
+    const uniqueStudents = [];
+    const seenStudentKeys = new Set();
+
+    selectedCourseStudents.forEach((student, index) => {
+      const normalized = normalizeStudent(student, index);
+      if (!normalized.key || seenStudentKeys.has(normalized.key)) {
+        return;
+      }
+
+      seenStudentKeys.add(normalized.key);
+      uniqueStudents.push(normalized);
+    });
+
+    const studentByEmail = new Map(
+      uniqueStudents
+        .filter((student) => Boolean(student.email))
+        .map((student) => [student.email, student.key])
+    );
+    const studentByName = new Map(
+      uniqueStudents
+        .filter((student) => Boolean(student.full_name))
+        .map((student) => [normalizeStudentName(student.full_name), student.key])
+    );
+
+    const groupAssignments = filteredAssignments.filter(
+      (assignment) => assignment.submission_type === 'group'
+    );
+    const individualAssignments = filteredAssignments.filter(
+      (assignment) => assignment.submission_type === 'individual'
+    );
+
+    const allGroupsMap = new Map(allGroups.map((group) => [group.id, group]));
+    const hasAllScopedGroupAssignments = groupAssignments.some(
+      (assignment) => assignment.assign_to === 'all'
+    );
+    const relevantGroupIds = new Set();
+
+    if (hasAllScopedGroupAssignments) {
+      allGroups.forEach((group) => relevantGroupIds.add(group.id));
+    } else {
+      groupAssignments.forEach((assignment) => {
+        assignment.target_group_ids.forEach((groupId) => {
+          if (allGroupsMap.has(groupId)) {
+            relevantGroupIds.add(groupId);
+          }
+        });
+
+        const assignmentSubmissions = submissionsByAssignmentId[assignment.id] ?? [];
+        assignmentSubmissions.forEach((submission) => {
+          if (submission.group_id && allGroupsMap.has(submission.group_id)) {
+            relevantGroupIds.add(submission.group_id);
+          }
+        });
+      });
+    }
+
+    const relevantGroups = allGroups.filter((group) => relevantGroupIds.has(group.id));
+
+    const submittedGroupIdsByAssignment = new Map(
+      groupAssignments.map((assignment) => {
+        const submissions = submissionsByAssignmentId[assignment.id] ?? [];
+        const submittedIds = new Set(
+          submissions
+            .map((submission) => submission.group_id)
+            .filter((groupId) => Boolean(groupId) && allGroupsMap.has(groupId))
+        );
+        return [assignment.id, submittedIds];
+      })
+    );
+
+    const groupAssignmentCompletion = groupAssignments.map((assignment) => {
+      const eligibleGroupIds =
+        assignment.assign_to === 'all'
+          ? relevantGroups.map((group) => group.id)
+          : assignment.target_group_ids.filter((groupId) => allGroupsMap.has(groupId));
+
+      const eligibleSet = new Set(eligibleGroupIds);
+      const submittedSet = submittedGroupIdsByAssignment.get(assignment.id) ?? new Set();
+      const submittedCount = [...submittedSet].filter((groupId) => eligibleSet.has(groupId)).length;
+      const totalCount = eligibleSet.size;
+
+      return {
+        id: assignment.id,
+        title: assignment.title,
+        submitted_count: submittedCount,
+        total_count: totalCount,
+        completion_rate:
+          totalCount > 0 ? roundToTwo((submittedCount / totalCount) * 100) : 0,
+      };
+    });
+
+    const groupPerformance = relevantGroups
+      .map((group) => {
+        let totalAssignments = 0;
+        let submittedAssignments = 0;
+
+        groupAssignments.forEach((assignment) => {
+          const isEligible =
+            assignment.assign_to === 'all' ||
+            assignment.target_group_ids.includes(group.id);
+
+          if (!isEligible) {
+            return;
+          }
+
+          totalAssignments += 1;
+
+          const submittedGroups =
+            submittedGroupIdsByAssignment.get(assignment.id) ?? new Set();
+          if (submittedGroups.has(group.id)) {
+            submittedAssignments += 1;
+          }
+        });
+
+        return {
+          id: group.id,
+          name: group.name,
+          total_assignments: totalAssignments,
+          submitted_assignments: submittedAssignments,
+          completion_rate:
+            totalAssignments > 0
+              ? roundToTwo((submittedAssignments / totalAssignments) * 100)
+              : 0,
+        };
+      })
+      .sort(
+        (left, right) =>
+          right.completion_rate - left.completion_rate ||
+          left.name.localeCompare(right.name)
+      );
+
+    function resolveSubmissionStudentKey(submission) {
+      const email = toSafeLower(submission?.submitted_by_email);
+      if (email && studentByEmail.has(email)) {
+        return studentByEmail.get(email);
+      }
+
+      const normalizedName = normalizeStudentName(submission?.submitted_by_name);
+      if (normalizedName && studentByName.has(normalizedName)) {
+        return studentByName.get(normalizedName);
+      }
+
+      return null;
+    }
+
+    const submittedStudentsByAssignment = new Map(
+      individualAssignments.map((assignment) => {
+        const submissions = submissionsByAssignmentId[assignment.id] ?? [];
+        const submittedStudents = new Set(
+          submissions
+            .map((submission) => resolveSubmissionStudentKey(submission))
+            .filter(Boolean)
+        );
+        return [assignment.id, submittedStudents];
+      })
+    );
+
+    const individualAssignmentCompletion = individualAssignments.map((assignment) => {
+      const submittedSet = submittedStudentsByAssignment.get(assignment.id) ?? new Set();
+      const submittedCount = submittedSet.size;
+      const totalCount = uniqueStudents.length;
+
+      return {
+        id: assignment.id,
+        title: assignment.title,
+        submitted_count: submittedCount,
+        total_count: totalCount,
+        completion_rate:
+          totalCount > 0 ? roundToTwo((submittedCount / totalCount) * 100) : 0,
+      };
+    });
+
+    const individualPerformance = uniqueStudents
+      .map((student) => {
+        let submittedAssignments = 0;
+        const totalAssignments = individualAssignments.length;
+
+        individualAssignments.forEach((assignment) => {
+          const submittedStudents =
+            submittedStudentsByAssignment.get(assignment.id) ?? new Set();
+          if (submittedStudents.has(student.key)) {
+            submittedAssignments += 1;
+          }
+        });
+
+        return {
+          id: student.key,
+          name: student.full_name,
+          total_assignments: totalAssignments,
+          submitted_assignments: submittedAssignments,
+          completion_rate:
+            totalAssignments > 0
+              ? roundToTwo((submittedAssignments / totalAssignments) * 100)
+              : 0,
+        };
+      })
+      .sort(
+        (left, right) =>
+          right.completion_rate - left.completion_rate ||
+          left.name.localeCompare(right.name)
+      );
+
+    const totalSubmittedCount =
+      groupAssignmentCompletion.reduce(
+        (sum, assignment) => sum + assignment.submitted_count,
+        0
+      ) +
+      individualAssignmentCompletion.reduce(
+        (sum, assignment) => sum + assignment.submitted_count,
+        0
+      );
+    const totalEligibleCount =
+      groupAssignmentCompletion.reduce(
+        (sum, assignment) => sum + assignment.total_count,
+        0
+      ) +
+      individualAssignmentCompletion.reduce(
+        (sum, assignment) => sum + assignment.total_count,
+        0
+      );
+
+    const overallCompletionRate =
+      totalEligibleCount > 0
+        ? roundToTwo((totalSubmittedCount / totalEligibleCount) * 100)
+        : 0;
+
+    return {
+      summary: {
+        totalStudents: uniqueStudents.length,
+        totalGroups: relevantGroups.length,
+        totalAssignments: filteredAssignments.length,
+        overallCompletionRate,
+      },
+      groupAssignments,
+      individualAssignments,
+      groupAssignmentCompletion,
+      groupPerformance,
+      individualAssignmentCompletion,
+      individualPerformance,
+    };
+  }, [
+    allGroups,
+    filteredAssignments,
+    selectedCourseId,
+    studentsByCourseId,
+    submissionsByAssignmentId,
+  ]);
+
   useEffect(() => {
     function handleResize() {
       setIsCompactChart(window.innerWidth <= 640);
@@ -254,11 +714,14 @@ export default function AdminDashboard() {
     };
   }, []);
 
-  if (isLoading) {
+  const isWaitingForSubmissions =
+    missingSubmissionIds.length > 0 && isLoadingSubmissions;
+
+  if (isLoading || isWaitingForSubmissions) {
     return <AdminDashboardSkeleton />;
   }
 
-  const roundedCompletionRate = Math.round(summary?.overallCompletionRate ?? 0);
+  const roundedCompletionRate = Math.round(analytics.summary.overallCompletionRate);
   const xAxisTickFontSize = isCompactChart ? 9 : 10;
   const xAxisTickLength = isCompactChart ? 8 : 12;
   const xAxisHeight = isCompactChart ? 54 : 30;
@@ -266,17 +729,43 @@ export default function AdminDashboard() {
   const xAxisTextAnchor = isCompactChart ? 'end' : 'middle';
   const chartBottomMargin = isCompactChart ? 24 : 12;
   const chartBarSize = isCompactChart ? 22 : 44;
+  const hasAssignments = analytics.summary.totalAssignments > 0;
+  const hasGroupAssignments = analytics.groupAssignments.length > 0;
+  const hasIndividualAssignments = analytics.individualAssignments.length > 0;
 
   return (
     <Page className="admin-dashboard">
       <header className="admin-dashboard__header">
         <h1 className="admin-dashboard__workspace-title">Admin Workspace</h1>
+        {courses.length > 0 ? (
+          <div className="admin-dashboard__controls">
+            <label
+              htmlFor="admin-dashboard-course-select"
+              className="admin-dashboard__control-label"
+            >
+              Select Course
+            </label>
+            <select
+              id="admin-dashboard-course-select"
+              className="admin-dashboard__control-select"
+              value={selectedCourseId}
+              onChange={(event) => setSelectedCourseId(event.target.value)}
+            >
+              <option value={ALL_COURSES_VALUE}>All Courses</option>
+              {courses.map((course) => (
+                <option key={course.id} value={course.id}>
+                  {course.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
       </header>
 
-      {!summary ? (
+      {courses.length === 0 ? (
         <section className="admin-dashboard__empty-card">
           <p className="admin-dashboard__empty-copy">
-            Dashboard data is unavailable right now. Please refresh and try again.
+            No courses found. Create a course first to unlock course-specific analytics.
           </p>
         </section>
       ) : (
@@ -284,19 +773,19 @@ export default function AdminDashboard() {
           <div className="admin-dashboard__stats-grid">
             <AdminMetricCard
               title="Total Students"
-              value={summary.totalStudents}
+              value={analytics.summary.totalStudents}
               icon={Users}
               tone="neutral"
             />
             <AdminMetricCard
               title="Total Groups"
-              value={summary.totalGroups}
+              value={analytics.summary.totalGroups}
               icon={UsersFour}
               tone="neutral"
             />
             <AdminMetricCard
               title="Active Assignments"
-              value={summary.totalAssignments}
+              value={analytics.summary.totalAssignments}
               icon={FileText}
               tone="critical"
             />
@@ -309,129 +798,267 @@ export default function AdminDashboard() {
             />
           </div>
 
-          <div className="admin-dashboard__charts-grid">
-            <ChartCard
-              title="How each assignment is progressing (Assignment Completion %)"
-              axisLabel="Assignments"
-            >
-              {assignmentAnalytics.length === 0 ? (
-                <ChartEmptyState>
-                  No assignment analytics yet. Once assignments are published and groups begin
-                  submitting, this chart will fill in.
-                </ChartEmptyState>
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <ReBarChart
-                    data={assignmentAnalytics}
-                    margin={{ top: 8, right: 8, left: -10, bottom: chartBottomMargin }}
-                  >
-                    <CartesianGrid
-                      stroke="rgba(98, 104, 118, 0.35)"
-                      strokeDasharray="3 4"
-                      vertical={false}
-                    />
-                    <XAxis
-                      dataKey="title"
-                      tickFormatter={(value) => truncateLabel(value, xAxisTickLength)}
-                      tick={{ fill: 'var(--admin-dashboard-chart-axis)', fontSize: xAxisTickFontSize, fontWeight: 700 }}
-                      axisLine={{ stroke: '#1c212b', strokeWidth: 1.3 }}
-                      tickLine={false}
-                      tickMargin={isCompactChart ? 10 : 12}
-                      minTickGap={isCompactChart ? 8 : 18}
-                      interval={0}
-                      angle={xAxisAngle}
-                      textAnchor={xAxisTextAnchor}
-                      height={xAxisHeight}
-                    />
-                    <YAxis
-                      domain={[0, 100]}
-                      ticks={[0, 25, 50, 75, 100]}
-                      tick={{ fill: 'var(--admin-dashboard-chart-axis)', fontSize: 10, fontWeight: 700 }}
-                      axisLine={{ stroke: '#1c212b', strokeWidth: 1.3 }}
-                      tickLine={false}
-                      tickMargin={10}
-                      width={40}
-                    />
-                    <Tooltip
-                      cursor={{ fill: 'rgba(28, 33, 43, 0.08)' }}
-                      content={<AssignmentTooltip />}
-                    />
-                    <Bar dataKey="completion_rate" radius={[0, 0, 0, 0]} barSize={chartBarSize}>
-                      {assignmentAnalytics.map((assignment, index) => (
-                        <Cell
-                          key={assignment.id ?? `assignment-${index}`}
-                          fill={getAssignmentBarColor(assignment.completion_rate)}
-                          stroke="#1c212b"
-                          strokeWidth={1.2}
-                        />
-                      ))}
-                    </Bar>
-                  </ReBarChart>
-                </ResponsiveContainer>
-              )}
-            </ChartCard>
+          {!hasAssignments ? (
+            <section className="admin-dashboard__empty-card">
+              <p className="admin-dashboard__empty-copy">
+                No assignments found for the selected course.
+              </p>
+            </section>
+          ) : null}
 
-            <ChartCard
-              title="Which teams are staying ahead (Team Performance %)"
-              axisLabel="Teams"
-            >
-              {groupAnalytics.length === 0 ? (
-                <ChartEmptyState>
-                  No group analytics yet. Create groups and assign work to see performance trends
-                  here.
-                </ChartEmptyState>
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <ReBarChart
-                    data={groupAnalytics}
-                    margin={{ top: 8, right: 8, left: -10, bottom: chartBottomMargin }}
-                  >
-                    <CartesianGrid
-                      stroke="rgba(98, 104, 118, 0.35)"
-                      strokeDasharray="3 4"
-                      vertical={false}
-                    />
-                    <XAxis
-                      dataKey="name"
-                      tickFormatter={(value) => truncateLabel(value, xAxisTickLength)}
-                      tick={{ fill: 'var(--admin-dashboard-chart-axis)', fontSize: xAxisTickFontSize, fontWeight: 700 }}
-                      axisLine={{ stroke: '#1c212b', strokeWidth: 1.3 }}
-                      tickLine={false}
-                      tickMargin={isCompactChart ? 10 : 12}
-                      minTickGap={isCompactChart ? 8 : 18}
-                      interval={0}
-                      angle={xAxisAngle}
-                      textAnchor={xAxisTextAnchor}
-                      height={xAxisHeight}
-                    />
-                    <YAxis
-                      domain={[0, 100]}
-                      ticks={[0, 25, 50, 75, 100]}
-                      tick={{ fill: 'var(--admin-dashboard-chart-axis)', fontSize: 10, fontWeight: 700 }}
-                      axisLine={{ stroke: '#1c212b', strokeWidth: 1.3 }}
-                      tickLine={false}
-                      tickMargin={10}
-                      width={40}
-                    />
-                    <Tooltip
-                      cursor={{ fill: 'rgba(28, 33, 43, 0.08)' }}
-                      content={<GroupTooltip />}
-                    />
-                    <Bar dataKey="completion_rate" radius={[0, 0, 0, 0]} barSize={chartBarSize}>
-                      {groupAnalytics.map((group, index) => (
-                        <Cell
-                          key={`${group.id ?? 'deleted'}-${group.name}-${index}`}
-                          fill={getGroupBarColor(group)}
-                          stroke="#1c212b"
-                          strokeWidth={1.2}
+          {hasGroupAssignments ? (
+            <>
+              <h2 className="admin-dashboard__section-title">Group Analytics</h2>
+              <div className="admin-dashboard__charts-grid">
+                <ChartCard
+                  title="How each group assignment is progressing (Assignment Completion %)"
+                  axisLabel="Group Assignments"
+                >
+                  {analytics.groupAssignmentCompletion.length === 0 ? (
+                    <ChartEmptyState>
+                      No group assignments found for this course.
+                    </ChartEmptyState>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ReBarChart
+                        data={analytics.groupAssignmentCompletion}
+                        margin={{ top: 8, right: 8, left: -10, bottom: chartBottomMargin }}
+                      >
+                        <CartesianGrid
+                          stroke="rgba(98, 104, 118, 0.35)"
+                          strokeDasharray="3 4"
+                          vertical={false}
                         />
-                      ))}
-                    </Bar>
-                  </ReBarChart>
-                </ResponsiveContainer>
-              )}
-            </ChartCard>
-          </div>
+                        <XAxis
+                          dataKey="title"
+                          tickFormatter={(value) => truncateLabel(value, xAxisTickLength)}
+                          tick={{ fill: 'var(--admin-dashboard-chart-axis)', fontSize: xAxisTickFontSize, fontWeight: 700 }}
+                          axisLine={{ stroke: '#1c212b', strokeWidth: 1.3 }}
+                          tickLine={false}
+                          tickMargin={isCompactChart ? 10 : 12}
+                          minTickGap={isCompactChart ? 8 : 18}
+                          interval={0}
+                          angle={xAxisAngle}
+                          textAnchor={xAxisTextAnchor}
+                          height={xAxisHeight}
+                        />
+                        <YAxis
+                          domain={[0, 100]}
+                          ticks={[0, 25, 50, 75, 100]}
+                          tick={{ fill: 'var(--admin-dashboard-chart-axis)', fontSize: 10, fontWeight: 700 }}
+                          axisLine={{ stroke: '#1c212b', strokeWidth: 1.3 }}
+                          tickLine={false}
+                          tickMargin={10}
+                          width={40}
+                        />
+                        <Tooltip
+                          cursor={{ fill: 'rgba(28, 33, 43, 0.08)' }}
+                          content={<AssignmentTooltip entityLabel="groups submitted" />}
+                        />
+                        <Bar dataKey="completion_rate" radius={[0, 0, 0, 0]} barSize={chartBarSize}>
+                          {analytics.groupAssignmentCompletion.map((assignment, index) => (
+                            <Cell
+                              key={assignment.id ?? `group-assignment-${index}`}
+                              fill={getAssignmentBarColor(assignment.completion_rate)}
+                              stroke="#1c212b"
+                              strokeWidth={1.2}
+                            />
+                          ))}
+                        </Bar>
+                      </ReBarChart>
+                    </ResponsiveContainer>
+                  )}
+                </ChartCard>
+
+                <ChartCard
+                  title="Which teams are staying ahead (Team Performance %)"
+                  axisLabel="Groups"
+                >
+                  {analytics.groupPerformance.length === 0 ? (
+                    <ChartEmptyState>
+                      No groups are available for the selected course scope.
+                    </ChartEmptyState>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ReBarChart
+                        data={analytics.groupPerformance}
+                        margin={{ top: 8, right: 8, left: -10, bottom: chartBottomMargin }}
+                      >
+                        <CartesianGrid
+                          stroke="rgba(98, 104, 118, 0.35)"
+                          strokeDasharray="3 4"
+                          vertical={false}
+                        />
+                        <XAxis
+                          dataKey="name"
+                          tickFormatter={(value) => truncateLabel(value, xAxisTickLength)}
+                          tick={{ fill: 'var(--admin-dashboard-chart-axis)', fontSize: xAxisTickFontSize, fontWeight: 700 }}
+                          axisLine={{ stroke: '#1c212b', strokeWidth: 1.3 }}
+                          tickLine={false}
+                          tickMargin={isCompactChart ? 10 : 12}
+                          minTickGap={isCompactChart ? 8 : 18}
+                          interval={0}
+                          angle={xAxisAngle}
+                          textAnchor={xAxisTextAnchor}
+                          height={xAxisHeight}
+                        />
+                        <YAxis
+                          domain={[0, 100]}
+                          ticks={[0, 25, 50, 75, 100]}
+                          tick={{ fill: 'var(--admin-dashboard-chart-axis)', fontSize: 10, fontWeight: 700 }}
+                          axisLine={{ stroke: '#1c212b', strokeWidth: 1.3 }}
+                          tickLine={false}
+                          tickMargin={10}
+                          width={40}
+                        />
+                        <Tooltip
+                          cursor={{ fill: 'rgba(28, 33, 43, 0.08)' }}
+                          content={<PerformanceTooltip />}
+                        />
+                        <Bar dataKey="completion_rate" radius={[0, 0, 0, 0]} barSize={chartBarSize}>
+                          {analytics.groupPerformance.map((group, index) => (
+                            <Cell
+                              key={`${group.id ?? 'group'}-${index}`}
+                              fill={getPerformanceBarColor(group.completion_rate)}
+                              stroke="#1c212b"
+                              strokeWidth={1.2}
+                            />
+                          ))}
+                        </Bar>
+                      </ReBarChart>
+                    </ResponsiveContainer>
+                  )}
+                </ChartCard>
+              </div>
+            </>
+          ) : null}
+
+          {hasIndividualAssignments ? (
+            <>
+              <h2 className="admin-dashboard__section-title">Individual Analytics</h2>
+              <div className="admin-dashboard__charts-grid">
+                <ChartCard
+                  title="How each individual assignment is progressing (Assignment Completion %)"
+                  axisLabel="Individual Assignments"
+                >
+                  {analytics.individualAssignmentCompletion.length === 0 ? (
+                    <ChartEmptyState>
+                      No individual assignments found for this course.
+                    </ChartEmptyState>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ReBarChart
+                        data={analytics.individualAssignmentCompletion}
+                        margin={{ top: 8, right: 8, left: -10, bottom: chartBottomMargin }}
+                      >
+                        <CartesianGrid
+                          stroke="rgba(98, 104, 118, 0.35)"
+                          strokeDasharray="3 4"
+                          vertical={false}
+                        />
+                        <XAxis
+                          dataKey="title"
+                          tickFormatter={(value) => truncateLabel(value, xAxisTickLength)}
+                          tick={{ fill: 'var(--admin-dashboard-chart-axis)', fontSize: xAxisTickFontSize, fontWeight: 700 }}
+                          axisLine={{ stroke: '#1c212b', strokeWidth: 1.3 }}
+                          tickLine={false}
+                          tickMargin={isCompactChart ? 10 : 12}
+                          minTickGap={isCompactChart ? 8 : 18}
+                          interval={0}
+                          angle={xAxisAngle}
+                          textAnchor={xAxisTextAnchor}
+                          height={xAxisHeight}
+                        />
+                        <YAxis
+                          domain={[0, 100]}
+                          ticks={[0, 25, 50, 75, 100]}
+                          tick={{ fill: 'var(--admin-dashboard-chart-axis)', fontSize: 10, fontWeight: 700 }}
+                          axisLine={{ stroke: '#1c212b', strokeWidth: 1.3 }}
+                          tickLine={false}
+                          tickMargin={10}
+                          width={40}
+                        />
+                        <Tooltip
+                          cursor={{ fill: 'rgba(28, 33, 43, 0.08)' }}
+                          content={<AssignmentTooltip entityLabel="students submitted" />}
+                        />
+                        <Bar dataKey="completion_rate" radius={[0, 0, 0, 0]} barSize={chartBarSize}>
+                          {analytics.individualAssignmentCompletion.map((assignment, index) => (
+                            <Cell
+                              key={assignment.id ?? `individual-assignment-${index}`}
+                              fill={getAssignmentBarColor(assignment.completion_rate)}
+                              stroke="#1c212b"
+                              strokeWidth={1.2}
+                            />
+                          ))}
+                        </Bar>
+                      </ReBarChart>
+                    </ResponsiveContainer>
+                  )}
+                </ChartCard>
+
+                <ChartCard
+                  title="Which individuals are staying ahead (Individual Performance %)"
+                  axisLabel="Students"
+                >
+                  {analytics.individualPerformance.length === 0 ? (
+                    <ChartEmptyState>
+                      No enrolled students found for the selected course scope.
+                    </ChartEmptyState>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ReBarChart
+                        data={analytics.individualPerformance}
+                        margin={{ top: 8, right: 8, left: -10, bottom: chartBottomMargin }}
+                      >
+                        <CartesianGrid
+                          stroke="rgba(98, 104, 118, 0.35)"
+                          strokeDasharray="3 4"
+                          vertical={false}
+                        />
+                        <XAxis
+                          dataKey="name"
+                          tickFormatter={(value) => truncateLabel(value, xAxisTickLength)}
+                          tick={{ fill: 'var(--admin-dashboard-chart-axis)', fontSize: xAxisTickFontSize, fontWeight: 700 }}
+                          axisLine={{ stroke: '#1c212b', strokeWidth: 1.3 }}
+                          tickLine={false}
+                          tickMargin={isCompactChart ? 10 : 12}
+                          minTickGap={isCompactChart ? 8 : 18}
+                          interval={0}
+                          angle={xAxisAngle}
+                          textAnchor={xAxisTextAnchor}
+                          height={xAxisHeight}
+                        />
+                        <YAxis
+                          domain={[0, 100]}
+                          ticks={[0, 25, 50, 75, 100]}
+                          tick={{ fill: 'var(--admin-dashboard-chart-axis)', fontSize: 10, fontWeight: 700 }}
+                          axisLine={{ stroke: '#1c212b', strokeWidth: 1.3 }}
+                          tickLine={false}
+                          tickMargin={10}
+                          width={40}
+                        />
+                        <Tooltip
+                          cursor={{ fill: 'rgba(28, 33, 43, 0.08)' }}
+                          content={<PerformanceTooltip />}
+                        />
+                        <Bar dataKey="completion_rate" radius={[0, 0, 0, 0]} barSize={chartBarSize}>
+                          {analytics.individualPerformance.map((student, index) => (
+                            <Cell
+                              key={`${student.id ?? 'student'}-${index}`}
+                              fill={getPerformanceBarColor(student.completion_rate)}
+                              stroke="#1c212b"
+                              strokeWidth={1.2}
+                            />
+                          ))}
+                        </Bar>
+                      </ReBarChart>
+                    </ResponsiveContainer>
+                  )}
+                </ChartCard>
+              </div>
+            </>
+          ) : null}
 
           <section className="admin-dashboard__actions-card">
             <h2 className="admin-dashboard__actions-label">Quick Actions</h2>
