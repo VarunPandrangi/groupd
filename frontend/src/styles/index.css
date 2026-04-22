@@ -12536,8 +12536,11 @@
 
 .course-detail-architectural {
   width: min(100%, 1280px);
-  gap: 18px;
+  min-height: calc(100dvh - var(--navbar-height) - 18px);
+  align-content: start;
+  gap: 12px;
   color: #111111;
+  overflow: hidden;
 }
 
 .course-detail-architectural__back-row {
@@ -12567,8 +12570,8 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) 1px 184px;
   align-items: stretch;
-  min-height: 220px;
-  padding: 26px 30px 24px;
+  min-height: 176px;
+  padding: 18px 24px 18px;
   border: 2px solid #111111;
   background: #fcfcfa;
   box-shadow: 0 1px 0 rgba(17, 17, 17, 0.06);
@@ -12577,7 +12580,7 @@
 .course-detail-architectural__hero-copy {
   display: grid;
   align-content: start;
-  gap: 6px;
+  gap: 4px;
   max-width: 650px;
 }
 
@@ -12602,21 +12605,21 @@
   margin: 0;
   max-width: 9.5ch;
   color: #111111;
-  font-size: clamp(42px, 5vw, 68px);
+  font-size: clamp(34px, 4.2vw, 54px);
   font-weight: 900;
-  line-height: 0.9;
-  letter-spacing: -0.055em;
+  line-height: 0.88;
+  letter-spacing: -0.06em;
   text-transform: uppercase;
 }
 
 .course-detail-architectural__subtitle {
-  margin: 4px 0 0;
+  margin: 2px 0 0;
   max-width: 60ch;
   padding-left: 12px;
   border-left: 3px solid #bc000a;
   color: #626978;
-  font-size: 12px;
-  line-height: 1.55;
+  font-size: 11px;
+  line-height: 1.45;
 }
 
 .course-detail-architectural__hero-divider {
@@ -12629,7 +12632,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  padding-left: 20px;
+  padding-left: 16px;
 }
 
 .course-detail-architectural__hero-btn {
@@ -12637,12 +12640,12 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 44px;
-  padding: 0 18px;
+  min-height: 38px;
+  padding: 0 14px;
   border: 2px solid #111111;
   background: #bc000a;
   color: #ffffff;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -12661,7 +12664,7 @@
 .course-detail-architectural__layout {
   display: grid;
   grid-template-columns: minmax(290px, 0.92fr) minmax(0, 2.08fr);
-  gap: 16px;
+  gap: 12px;
   align-items: start;
 }
 
@@ -12680,7 +12683,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px 14px;
+  padding: 10px 12px;
   border-bottom: 2px solid #111111;
   background: #ffffff;
 }
@@ -12692,9 +12695,9 @@
 .course-detail-architectural__panel-title {
   margin: 0;
   color: #111111;
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 900;
-  line-height: 1.08;
+  line-height: 1.04;
   letter-spacing: -0.02em;
   text-transform: uppercase;
 }
@@ -12703,7 +12706,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
@@ -12711,12 +12714,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 40px;
-  padding: 0 16px;
+  min-height: 34px;
+  padding: 0 12px;
   border: 1px solid #cfd4dc;
   background: #ffffff;
   color: #374151;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   cursor: pointer;
   transition: background-color var(--transition-fast), border-color var(--transition-fast),
@@ -12734,12 +12737,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 22px;
-  padding: 0 8px;
+  min-height: 18px;
+  padding: 0 6px;
   border: 1px solid #111111;
   background: #bc000a;
   color: #ffffff;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -12751,7 +12754,7 @@
 }
 
 .course-detail-architectural__panel-body {
-  padding: 12px;
+  padding: 8px;
   background: #f2f2f2;
 }
 
@@ -12763,12 +12766,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 84px;
-  padding: 18px;
+  min-height: 68px;
+  padding: 12px 14px;
   border: 1px dashed #111111;
   background: #fafafa;
   color: #5a5f6e;
-  font-size: 13px;
+  font-size: 12px;
   text-align: center;
 }
 
@@ -12779,16 +12782,16 @@
 .course-detail-architectural__roster-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: 6px;
 }
 
 .course-detail-architectural__student-card {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr);
-  gap: 10px;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 8px;
   align-items: center;
-  min-height: 76px;
-  padding: 10px 12px;
+  min-height: 60px;
+  padding: 8px 10px;
   border: 1px solid #111111;
   background: #ffffff;
   transition: background-color var(--transition-fast), transform var(--transition-fast);
@@ -12803,8 +12806,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   border: 1px solid #111111;
   border-radius: 999px;
   background: #edf0f3;
@@ -12814,35 +12817,35 @@
 .course-detail-architectural__student-copy {
   min-width: 0;
   display: grid;
-  gap: 3px;
+  gap: 2px;
 }
 
 .course-detail-architectural__student-name {
   margin: 0;
   color: #111111;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 800;
-  line-height: 1.15;
+  line-height: 1.1;
   text-transform: uppercase;
 }
 
 .course-detail-architectural__student-id {
   margin: 0;
   color: #7b8392;
-  font-size: 11px;
-  line-height: 1.2;
+  font-size: 9px;
+  line-height: 1.15;
 }
 
 .course-detail-architectural__more-card {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 76px;
-  padding: 10px 12px;
+  min-height: 60px;
+  padding: 8px 10px;
   border: 1px dashed #111111;
   background: #ffffff;
   color: #2f66ff;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 800;
   cursor: pointer;
   transition: background-color var(--transition-fast), transform var(--transition-fast),
@@ -12869,17 +12872,17 @@
 .course-detail-architectural__ledger-head,
 .course-detail-architectural__ledger-row {
   display: grid;
-  grid-template-columns: 72px minmax(0, 1fr) 150px 166px 26px;
-  gap: 14px;
+  grid-template-columns: 58px minmax(0, 1fr) 122px 134px 22px;
+  gap: 10px;
   align-items: center;
 }
 
 .course-detail-architectural__ledger-head {
-  padding: 11px 14px;
+  padding: 8px 12px;
   border-bottom: 1px solid #111111;
   background: #f0f0f0;
   color: #111111;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -12895,7 +12898,7 @@
 
 .course-detail-architectural__ledger-row {
   width: 100%;
-  padding: 12px 14px;
+  padding: 8px 12px;
   border: 0;
   border-bottom: 1px solid #111111;
   background: #ffffff;
@@ -12920,7 +12923,7 @@
 .course-detail-architectural__ledger-id {
   color: #777777;
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -12929,20 +12932,20 @@
 .course-detail-architectural__ledger-task {
   min-width: 0;
   display: grid;
-  gap: 5px;
+  gap: 3px;
 }
 
 .course-detail-architectural__status-chip {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 18px;
+  min-height: 16px;
   width: fit-content;
-  padding: 0 6px;
+  padding: 0 5px;
   border: 1px solid #111111;
   background: #ffffff;
   color: #111111;
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -12968,9 +12971,9 @@
 .course-detail-architectural__ledger-title {
   margin: 0;
   color: #111111;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 900;
-  line-height: 1.15;
+  line-height: 1.12;
   letter-spacing: -0.02em;
   text-transform: uppercase;
 }
@@ -12988,12 +12991,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 20px;
-  padding: 0 7px;
+  min-height: 18px;
+  padding: 0 6px;
   border: 1px solid #111111;
   background: #ffffff;
   color: #111111;
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -13010,7 +13013,7 @@
 .course-detail-architectural__ledger-date {
   color: #667;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-align: right;
@@ -13035,7 +13038,7 @@
 }
 
 .course-detail-architectural__form {
-  padding: 8px 0 0;
+  padding: 4px 0 0;
 }
 
 @media (max-width: 1120px) {
@@ -13065,17 +13068,19 @@
 
 @media (max-width: 720px) {
   .course-detail-architectural {
-    gap: 14px;
+    min-height: auto;
+    gap: 12px;
+    overflow: visible;
   }
 
   .course-detail-architectural__hero {
-    padding: 20px 18px 18px;
+    padding: 16px 16px 14px;
     min-height: 0;
   }
 
   .course-detail-architectural__title {
     max-width: none;
-    font-size: clamp(32px, 10vw, 48px);
+    font-size: clamp(28px, 9vw, 40px);
   }
 
   .course-detail-architectural__hero-btn {
@@ -13097,14 +13102,14 @@
 
   .course-detail-architectural__student-card,
   .course-detail-architectural__more-card {
-    min-height: 68px;
+    min-height: 56px;
   }
 
   .course-detail-architectural__ledger-head,
   .course-detail-architectural__ledger-row {
-    grid-template-columns: 52px minmax(0, 1fr) 84px 116px 20px;
-    gap: 10px;
-    padding: 10px 12px;
+    grid-template-columns: 44px minmax(0, 1fr) 74px 96px 18px;
+    gap: 8px;
+    padding: 8px 10px;
   }
 
   .course-detail-architectural__ledger-title {
@@ -13114,8 +13119,339 @@
   .course-detail-architectural__ledger-date {
     font-size: 10px;
   }
-
   .course-detail-architectural__panel-body {
-    padding: 10px;
+    padding: 8px;
+  }
+}
+
+.create-course-architectural {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  width: min(100%, 1240px);
+  margin: 0 auto;
+  min-height: calc(100dvh - var(--navbar-height) - 18px);
+  padding: 10px 0 12px;
+  color: #111111;
+  overflow: hidden;
+}
+
+.create-course-architectural__masthead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.create-course-architectural__brand-pill,
+.create-course-architectural__back-btn,
+.create-course-architectural__cancel,
+.create-course-architectural__submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 2px solid #111111;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast),
+    background-color var(--transition-fast), border-color var(--transition-fast),
+    color var(--transition-fast), opacity var(--transition-fast);
+}
+
+.create-course-architectural__brand-pill {
+  min-height: 42px;
+  padding: 0 14px;
+  background: #f7f7f5;
+  color: #111111;
+  font-size: 11px;
+  box-shadow: 3px 3px 0 #111111;
+}
+
+.create-course-architectural__brand-pill svg {
+  color: #c91511;
+}
+
+.create-course-architectural__back-btn {
+  min-height: 42px;
+  padding: 0 16px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #111111;
+  font-size: 11px;
+  box-shadow: 2px 2px 0 rgba(17, 17, 17, 0.08);
+}
+
+.create-course-architectural__back-btn:hover,
+.create-course-architectural__cancel:hover {
+  background: #ffffff;
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 #111111;
+}
+
+.create-course-architectural__back-btn:focus-visible,
+.create-course-architectural__cancel:focus-visible,
+.create-course-architectural__submit:focus-visible {
+  outline: 2px solid #2f66ff;
+  outline-offset: 2px;
+}
+
+.create-course-architectural__hero {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 0 8px 2px;
+  text-align: center;
+}
+
+.create-course-architectural__eyebrow {
+  margin: 0;
+  color: #2f66ff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.create-course-architectural__title {
+  margin: 0;
+  max-width: 12ch;
+  color: #111111;
+  font-size: clamp(38px, 4.3vw, 60px);
+  font-weight: 900;
+  line-height: 0.84;
+  letter-spacing: -0.07em;
+  text-transform: uppercase;
+}
+
+.create-course-architectural__title-accent {
+  color: #c91511;
+}
+
+.create-course-architectural__subtitle-row {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: min(100%, 920px);
+}
+
+.create-course-architectural__subtitle-marker {
+  flex: 0 0 auto;
+  width: 4px;
+  height: 34px;
+  background: #c91511;
+}
+
+.create-course-architectural__subtitle {
+  margin: 0;
+  color: #6f4c42;
+  font-size: clamp(14px, 1.2vw, 17px);
+  line-height: 1.35;
+  text-align: left;
+}
+
+.create-course-architectural__shell {
+  overflow: hidden;
+  border: 2px solid #111111;
+  background: #f7f7f5;
+  box-shadow: 10px 10px 0 rgba(17, 17, 17, 0.08);
+}
+
+.create-course-architectural__shell-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 22px;
+  padding: 0 16px;
+  border-bottom: 2px solid #111111;
+  background: #eceae7;
+}
+
+.create-course-architectural__shell-dot {
+  width: 10px;
+  height: 10px;
+  background: #111111;
+}
+
+.create-course-architectural__shell-dot--accent {
+  background: #c91511;
+}
+
+.create-course-architectural__form {
+  display: grid;
+  gap: 0;
+}
+
+.create-course-architectural__fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  padding: 24px 26px 20px;
+}
+
+.create-course-architectural__field {
+  display: grid;
+  gap: 8px;
+}
+
+.create-course-architectural__field--span-2 {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
+.create-course-architectural__label {
+  color: #111111;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.create-course-architectural__input,
+.create-course-architectural__textarea {
+  width: 100%;
+  border: 2px solid #111111;
+  border-radius: 0;
+  background: #ffffff;
+  color: #111111;
+  transition: transform var(--transition-fast), border-color var(--transition-fast),
+    box-shadow var(--transition-fast), background-color var(--transition-fast);
+}
+
+.create-course-architectural__input {
+  min-height: 52px;
+  padding: 0 15px;
+  font-size: 15px;
+  line-height: 1.3;
+}
+
+.create-course-architectural__textarea {
+  min-height: 132px;
+  padding: 12px 15px;
+  resize: vertical;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.create-course-architectural__input::placeholder,
+.create-course-architectural__textarea::placeholder {
+  color: #7f7f7f;
+}
+
+.create-course-architectural__input:focus,
+.create-course-architectural__textarea:focus {
+  border-color: #c91511;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(201, 21, 17, 0.12);
+  transform: translate(-1px, -1px);
+}
+
+.create-course-architectural__field-error {
+  color: #c91511;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.create-course-architectural__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  padding: 18px 26px 20px;
+  border-top: 2px solid #111111;
+  background: rgba(244, 244, 244, 0.9);
+}
+
+.create-course-architectural__cancel {
+  min-height: 46px;
+  padding: 0 22px;
+  background: #ffffff;
+  color: #111111;
+  font-size: 11px;
+}
+
+.create-course-architectural__cancel:disabled,
+.create-course-architectural__submit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.create-course-architectural__submit {
+  min-height: 46px;
+  padding: 0 24px;
+  background: linear-gradient(180deg, #cf1812 0%, #bc000a 100%);
+  color: #ffffff;
+  font-size: 11px;
+  box-shadow: 4px 4px 0 #111111;
+}
+
+.create-course-architectural__submit:hover:not(:disabled) {
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0 #111111;
+}
+
+.create-course-architectural__submit svg {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 860px) {
+  .create-course-architectural {
+    gap: 22px;
+    min-height: auto;
+    padding: 18px 0 24px;
+    overflow: visible;
+  }
+
+  .create-course-architectural__masthead {
+    align-items: stretch;
+  }
+
+  .create-course-architectural__brand-pill,
+  .create-course-architectural__back-btn {
+    width: 100%;
+  }
+
+  .create-course-architectural__hero {
+    gap: 12px;
+    padding: 0;
+  }
+
+  .create-course-architectural__title {
+    font-size: clamp(32px, 9vw, 48px);
+  }
+
+  .create-course-architectural__subtitle-row {
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .create-course-architectural__subtitle-marker {
+    height: 32px;
+  }
+
+  .create-course-architectural__fields {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 20px 18px 16px;
+  }
+
+  .create-course-architectural__input,
+  .create-course-architectural__textarea {
+    font-size: 16px;
+  }
+
+  .create-course-architectural__footer {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    padding: 16px 18px 18px;
+  }
+
+  .create-course-architectural__cancel,
+  .create-course-architectural__submit {
+    width: 100%;
   }
 }
