@@ -38,7 +38,7 @@ const fadeUp = {
 export function Page({ className = '', children, ...props }) {
   return (
     <Motion.div
-      className={cx('page', className)}
+      className={cx('page layout-frame', className)}
       initial="initial"
       animate="animate"
       variants={pageMotion}
@@ -81,7 +81,7 @@ export function PageHeader({
 }) {
   return (
     <header className={cx('page-header', className)}>
-      <div className="w-full max-w-4xl page-header__body">
+      <div className="w-full page-header__body">
         {eyebrow ? (
           <p className={cx('eyebrow', eyebrowAccent && 'eyebrow--accent')}>
             {eyebrow}

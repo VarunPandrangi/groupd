@@ -103,10 +103,6 @@ function getAssignmentActionLabel(status) {
   return status === 'submitted' ? 'REVIEW' : 'VIEW DETAILS';
 }
 
-function getAssignmentActionIcon(status) {
-  return status === 'submitted' ? CheckCircle : ArrowRight;
-}
-
 function getClassificationLabel(assignment) {
   return getSubmissionType(assignment) === 'individual' ? 'INDIVIDUAL' : 'GROUP';
 }
@@ -189,7 +185,6 @@ function AssignmentCard({ assignment, status, onOpen }) {
   const classification = getClassificationLabel(assignment);
   const dueLabel = getDueLabel(dueDate, status);
   const actionLabel = getAssignmentActionLabel(status);
-  const ActionIcon = getAssignmentActionIcon(status);
   const isSubmitted = status === 'submitted';
   const isOverdue = status === 'overdue';
   const isDraft = status === 'draft';
@@ -269,7 +264,11 @@ function AssignmentCard({ assignment, status, onOpen }) {
           disabled={!assignmentId}
         >
           {actionLabel}
-          <ActionIcon size={14} weight={isSubmitted ? 'fill' : 'regular'} />
+          {isSubmitted ? (
+            <CheckCircle size={14} weight="fill" />
+          ) : (
+            <ArrowRight size={14} weight="regular" />
+          )}
         </button>
       </div>
     </article>

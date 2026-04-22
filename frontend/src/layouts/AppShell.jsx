@@ -17,7 +17,7 @@ export default function AppShell({
 
         <main className="app-shell__content stitch-dashboard__canvas">
           <div className="app-shell__canvas-grid" aria-hidden="true" />
-          <div className="app-shell__content-inner">{children}</div>
+          <div className="app-shell__content-inner layout-frame">{children}</div>
         </main>
       </div>
     </div>

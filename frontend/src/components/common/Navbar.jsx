@@ -25,7 +25,7 @@ export default function Navbar() {
 
   return (
     <nav className="w-full topbar">
-      <div className="flex items-center justify-between gap-4 topbar__inner">
+      <div className="flex items-center justify-between gap-4 topbar__inner layout-frame">
         <div className="flex items-center gap-3 topbar__left">
           <Link to="/" className="brand" aria-label="Groupd home">
             <LogoWordmark />

@@ -26,6 +26,9 @@ import groupService from '../../services/groupService';
 import submissionService from '../../services/submissionService';
 
 const ALL_COURSES_VALUE = '__all_courses__';
+const TOP_INDIVIDUAL_PERFORMANCE_LIMIT = 5;
+const ALL_STUDENTS_ROW_HEIGHT = 32;
+const MIN_ALL_STUDENTS_CHART_HEIGHT = 260;
 
 function getErrorMessage(error, fallbackMessage) {
   return error?.response?.data?.error?.message || fallbackMessage;
@@ -164,6 +167,44 @@ function getPerformanceBarColor(completionRate) {
   return '#737880';
 }
 
+function buildFocusedPerformanceData(rows, limit = TOP_INDIVIDUAL_PERFORMANCE_LIMIT) {
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return [];
+  }
+
+  if (rows.length <= limit) {
+    return rows;
+  }
+
+  const topRows = rows.slice(0, limit);
+  const otherRows = rows.slice(limit);
+  const aggregatedTotals = otherRows.reduce(
+    (accumulator, row) => {
+      accumulator.totalAssignments += Number(row.total_assignments) || 0;
+      accumulator.submittedAssignments += Number(row.submitted_assignments) || 0;
+      return accumulator;
+    },
+    { totalAssignments: 0, submittedAssignments: 0 }
+  );
+
+  return [
+    ...topRows,
+    {
+      id: 'individual-performance-others',
+      name: `Others (${otherRows.length})`,
+      total_assignments: aggregatedTotals.totalAssignments,
+      submitted_assignments: aggregatedTotals.submittedAssignments,
+      completion_rate:
+        aggregatedTotals.totalAssignments > 0
+          ? roundToTwo(
+              (aggregatedTotals.submittedAssignments / aggregatedTotals.totalAssignments) * 100
+            )
+          : 0,
+      isAggregated: true,
+    },
+  ];
+}
+
 function ChartTooltip({ title, subtitle, percentage, badgeLabel = null }) {
   return (
     <div className="admin-dashboard__tooltip">
@@ -215,15 +256,17 @@ function PerformanceTooltip({ active, payload, titleKey = 'name' }) {
       title={entity[titleKey]}
       subtitle={`${entity.submitted_assignments}/${entity.total_assignments} assignments submitted`}
       percentage={Math.round(entity.completion_rate)}
+      badgeLabel={entity.isAggregated ? 'OTHERS' : null}
     />
   );
 }
 
-function ChartCard({ title, axisLabel, children }) {
+function ChartCard({ title, axisLabel, actions = null, children }) {
   return (
     <section className="admin-dashboard__chart-card">
       <header className="admin-dashboard__chart-head">
         <h2 className="admin-dashboard__chart-title">{title}</h2>
+        {actions ? <div className="admin-dashboard__chart-actions">{actions}</div> : null}
       </header>
       <div className="admin-dashboard__chart-canvas">{children}</div>
       <p className="admin-dashboard__chart-axis-label">{axisLabel}</p>
@@ -291,6 +334,7 @@ export default function AdminDashboard() {
   const [allGroups, setAllGroups] = useState([]);
   const [studentsByCourseId, setStudentsByCourseId] = useState({});
   const [submissionsByAssignmentId, setSubmissionsByAssignmentId] = useState({});
+  const [individualPerformanceView, setIndividualPerformanceView] = useState('top');
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
   const [isCompactChart, setIsCompactChart] = useState(() =>
@@ -349,7 +393,7 @@ export default function AdminDashboard() {
                   .map(normalizeStudent)
                   .filter((student) => Boolean(student.key)),
               ];
-            } catch (_error) {
+            } catch {
               return [course.id, []];
             }
           })
@@ -424,7 +468,7 @@ export default function AdminDashboard() {
           try {
             const rows = await submissionService.getSubmissionsByAssignment(assignmentId);
             return [assignmentId, rows.map(normalizeSubmission)];
-          } catch (_error) {
+          } catch {
             return [assignmentId, []];
           }
         })
@@ -714,13 +758,6 @@ export default function AdminDashboard() {
     };
   }, []);
 
-  const isWaitingForSubmissions =
-    missingSubmissionIds.length > 0 && isLoadingSubmissions;
-
-  if (isLoading || isWaitingForSubmissions) {
-    return <AdminDashboardSkeleton />;
-  }
-
   const roundedCompletionRate = Math.round(analytics.summary.overallCompletionRate);
   const xAxisTickFontSize = isCompactChart ? 9 : 10;
   const xAxisTickLength = isCompactChart ? 8 : 12;
@@ -729,9 +766,31 @@ export default function AdminDashboard() {
   const xAxisTextAnchor = isCompactChart ? 'end' : 'middle';
   const chartBottomMargin = isCompactChart ? 24 : 12;
   const chartBarSize = isCompactChart ? 22 : 44;
+  const individualPerformanceFocusedData = useMemo(
+    () => buildFocusedPerformanceData(analytics.individualPerformance),
+    [analytics.individualPerformance]
+  );
+  const hasIndividualPerformanceViews =
+    analytics.individualPerformance.length > TOP_INDIVIDUAL_PERFORMANCE_LIMIT;
+  const resolvedIndividualPerformanceView = hasIndividualPerformanceViews
+    ? individualPerformanceView
+    : 'top';
+  const individualPerformanceTopChartHeight = isCompactChart ? 220 : 240;
+  const individualPerformanceAllChartHeight = Math.max(
+    MIN_ALL_STUDENTS_CHART_HEIGHT,
+    analytics.individualPerformance.length * ALL_STUDENTS_ROW_HEIGHT + 24
+  );
+  const individualPerformanceYAxisTickLength = isCompactChart ? 12 : 16;
+  const individualPerformanceHorizontalBarSize = isCompactChart ? 12 : 16;
   const hasAssignments = analytics.summary.totalAssignments > 0;
   const hasGroupAssignments = analytics.groupAssignments.length > 0;
   const hasIndividualAssignments = analytics.individualAssignments.length > 0;
+  const isWaitingForSubmissions =
+    missingSubmissionIds.length > 0 && isLoadingSubmissions;
+
+  if (isLoading || isWaitingForSubmissions) {
+    return <AdminDashboardSkeleton />;
+  }
 
   return (
     <Page className="admin-dashboard">
@@ -1000,60 +1059,137 @@ export default function AdminDashboard() {
                 <ChartCard
                   title="Which individuals are staying ahead (Individual Performance %)"
                   axisLabel="Students"
+                  actions={hasIndividualPerformanceViews ? (
+                    <div className="admin-dashboard__chart-toggle-group" role="group" aria-label="Individual performance view">
+                      <button
+                        type="button"
+                        className={`admin-dashboard__chart-toggle ${resolvedIndividualPerformanceView === 'top' ? 'admin-dashboard__chart-toggle--active' : ''}`}
+                        onClick={() => setIndividualPerformanceView('top')}
+                        aria-pressed={resolvedIndividualPerformanceView === 'top'}
+                      >
+                        Top Performers
+                      </button>
+                      <button
+                        type="button"
+                        className={`admin-dashboard__chart-toggle ${resolvedIndividualPerformanceView === 'all' ? 'admin-dashboard__chart-toggle--active' : ''}`}
+                        onClick={() => setIndividualPerformanceView('all')}
+                        aria-pressed={resolvedIndividualPerformanceView === 'all'}
+                      >
+                        All Students
+                      </button>
+                    </div>
+                  ) : null}
                 >
                   {analytics.individualPerformance.length === 0 ? (
                     <ChartEmptyState>
                       No enrolled students found for the selected course scope.
                     </ChartEmptyState>
                   ) : (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <ReBarChart
-                        data={analytics.individualPerformance}
-                        margin={{ top: 8, right: 8, left: -10, bottom: chartBottomMargin }}
-                      >
-                        <CartesianGrid
-                          stroke="rgba(98, 104, 118, 0.35)"
-                          strokeDasharray="3 4"
-                          vertical={false}
-                        />
-                        <XAxis
-                          dataKey="name"
-                          tickFormatter={(value) => truncateLabel(value, xAxisTickLength)}
-                          tick={{ fill: 'var(--admin-dashboard-chart-axis)', fontSize: xAxisTickFontSize, fontWeight: 700 }}
-                          axisLine={{ stroke: '#1c212b', strokeWidth: 1.3 }}
-                          tickLine={false}
-                          tickMargin={isCompactChart ? 10 : 12}
-                          minTickGap={isCompactChart ? 8 : 18}
-                          interval={0}
-                          angle={xAxisAngle}
-                          textAnchor={xAxisTextAnchor}
-                          height={xAxisHeight}
-                        />
-                        <YAxis
-                          domain={[0, 100]}
-                          ticks={[0, 25, 50, 75, 100]}
-                          tick={{ fill: 'var(--admin-dashboard-chart-axis)', fontSize: 10, fontWeight: 700 }}
-                          axisLine={{ stroke: '#1c212b', strokeWidth: 1.3 }}
-                          tickLine={false}
-                          tickMargin={10}
-                          width={40}
-                        />
-                        <Tooltip
-                          cursor={{ fill: 'rgba(28, 33, 43, 0.08)' }}
-                          content={<PerformanceTooltip />}
-                        />
-                        <Bar dataKey="completion_rate" radius={[0, 0, 0, 0]} barSize={chartBarSize}>
-                          {analytics.individualPerformance.map((student, index) => (
-                            <Cell
-                              key={`${student.id ?? 'student'}-${index}`}
-                              fill={getPerformanceBarColor(student.completion_rate)}
-                              stroke="#1c212b"
-                              strokeWidth={1.2}
-                            />
-                          ))}
-                        </Bar>
-                      </ReBarChart>
-                    </ResponsiveContainer>
+                    resolvedIndividualPerformanceView === 'top' ? (
+                      <ResponsiveContainer width="100%" height={individualPerformanceTopChartHeight}>
+                        <ReBarChart
+                          data={individualPerformanceFocusedData}
+                          margin={{ top: 8, right: 8, left: -10, bottom: chartBottomMargin }}
+                        >
+                          <CartesianGrid
+                            stroke="rgba(98, 104, 118, 0.35)"
+                            strokeDasharray="3 4"
+                            vertical={false}
+                          />
+                          <XAxis
+                            dataKey="name"
+                            tickFormatter={(value) => truncateLabel(value, xAxisTickLength)}
+                            tick={{ fill: 'var(--admin-dashboard-chart-axis)', fontSize: xAxisTickFontSize, fontWeight: 700 }}
+                            axisLine={{ stroke: '#1c212b', strokeWidth: 1.3 }}
+                            tickLine={false}
+                            tickMargin={10}
+                            minTickGap={16}
+                            interval={0}
+                            angle={0}
+                            textAnchor="middle"
+                            height={36}
+                          />
+                          <YAxis
+                            domain={[0, 100]}
+                            ticks={[0, 25, 50, 75, 100]}
+                            tick={{ fill: 'var(--admin-dashboard-chart-axis)', fontSize: 10, fontWeight: 700 }}
+                            axisLine={{ stroke: '#1c212b', strokeWidth: 1.3 }}
+                            tickLine={false}
+                            tickMargin={10}
+                            width={40}
+                          />
+                          <Tooltip
+                            cursor={{ fill: 'rgba(28, 33, 43, 0.08)' }}
+                            content={<PerformanceTooltip />}
+                          />
+                          <Bar dataKey="completion_rate" radius={[0, 0, 0, 0]} barSize={chartBarSize}>
+                            {individualPerformanceFocusedData.map((student, index) => (
+                              <Cell
+                                key={`${student.id ?? 'student'}-${index}`}
+                                fill={getPerformanceBarColor(student.completion_rate)}
+                                stroke="#1c212b"
+                                strokeWidth={1.2}
+                              />
+                            ))}
+                          </Bar>
+                        </ReBarChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="admin-dashboard__chart-scroll">
+                        <div style={{ height: individualPerformanceAllChartHeight }}>
+                          <ResponsiveContainer width="100%" height="100%">
+                            <ReBarChart
+                              data={analytics.individualPerformance}
+                              layout="vertical"
+                              margin={{ top: 8, right: 8, left: 8, bottom: 8 }}
+                            >
+                              <CartesianGrid
+                                stroke="rgba(98, 104, 118, 0.35)"
+                                strokeDasharray="3 4"
+                                vertical={false}
+                              />
+                              <XAxis
+                                type="number"
+                                domain={[0, 100]}
+                                ticks={[0, 25, 50, 75, 100]}
+                                tick={{ fill: 'var(--admin-dashboard-chart-axis)', fontSize: xAxisTickFontSize, fontWeight: 700 }}
+                                axisLine={{ stroke: '#1c212b', strokeWidth: 1.3 }}
+                                tickLine={false}
+                                tickMargin={10}
+                              />
+                              <YAxis
+                                dataKey="name"
+                                type="category"
+                                tickFormatter={(value) => truncateLabel(value, individualPerformanceYAxisTickLength)}
+                                tick={{ fill: 'var(--admin-dashboard-chart-axis)', fontSize: 10, fontWeight: 700 }}
+                                axisLine={{ stroke: '#1c212b', strokeWidth: 1.3 }}
+                                tickLine={false}
+                                tickMargin={10}
+                                width={isCompactChart ? 108 : 132}
+                              />
+                              <Tooltip
+                                cursor={{ fill: 'rgba(28, 33, 43, 0.08)' }}
+                                content={<PerformanceTooltip />}
+                              />
+                              <Bar
+                                dataKey="completion_rate"
+                                radius={[0, 0, 0, 0]}
+                                barSize={individualPerformanceHorizontalBarSize}
+                              >
+                                {analytics.individualPerformance.map((student, index) => (
+                                  <Cell
+                                    key={`${student.id ?? 'student'}-${index}`}
+                                    fill={getPerformanceBarColor(student.completion_rate)}
+                                    stroke="#1c212b"
+                                    strokeWidth={1.2}
+                                  />
+                                ))}
+                              </Bar>
+                            </ReBarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                    )
                   )}
                 </ChartCard>
               </div>
