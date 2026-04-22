@@ -1,21 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import * as Dialog from '@radix-ui/react-dialog';
+import { AnimatePresence, motion as Motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import {
-  ArrowRight,
-  CaretLeft,
-  PencilSimple,
-  SpinnerGap,
-  Users,
-} from '@phosphor-icons/react';
+import { ArrowRight, CaretLeft, FloppyDisk, PencilSimple, SpinnerGap, Users, X } from '@phosphor-icons/react';
 import toast from 'react-hot-toast';
 import { FadeUp, Page, StaggerGroup } from '../../components/common/Page';
 import Skeleton from '../../components/common/Skeleton';
 import EmptyState from '../../components/common/EmptyState';
-import Modal from '../../components/common/Modal';
-import Button from '../../components/common/Button';
 import { useCourseStore } from '../../stores/courseStore';
 import { formatAssignmentDate } from '../../utils/assignmentDates';
 
@@ -37,7 +31,7 @@ function FieldError({ message }) {
     return null;
   }
 
-  return <span className="field__error">{message}</span>;
+  return <span className="course-detail-edit-modal__field-error">{message}</span>;
 }
 
 function getStudentName(student) {
@@ -473,67 +467,128 @@ export default function CourseDetail() {
         </section>
       </div>
 
-      <Modal
-        open={isEditModalOpen}
-        onOpenChange={setIsEditModalOpen}
-        title="Edit Course"
-        description="Update the course details."
-        showClose
-        footer={
-          <>
-            <Button variant="secondary" type="button" onClick={() => setIsEditModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="primary" type="submit" form="course-edit-form" disabled={isUpdating}>
-              {isUpdating ? <SpinnerGap className="spinner" size={16} /> : null}
-              {isUpdating ? 'Saving...' : 'Save Changes'}
-            </Button>
-          </>
-        }
-      >
-        <form
-          id="course-edit-form"
-          onSubmit={handleSubmit(handleCourseEdit)}
-          className="grid gap-4 course-detail-architectural__form"
-        >
-          <div className="grid gap-2 field">
-            <label htmlFor="edit-course-name" className="field__label">
-              Course Name
-            </label>
-            <input id="edit-course-name" className="w-full rounded-md input" type="text" {...register('name')} />
-            <FieldError message={errors.name?.message} />
-          </div>
+      <Dialog.Root open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <AnimatePresence>
+          {isEditModalOpen ? (
+            <Dialog.Portal forceMount>
+              <Dialog.Overlay asChild>
+                <Motion.div
+                  className="course-detail-edit-modal__overlay"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.18, ease: 'easeOut' }}
+                />
+              </Dialog.Overlay>
+              <Dialog.Content asChild forceMount>
+                <Motion.div
+                  className="course-detail-edit-modal__content"
+                  initial={{ opacity: 0, scale: 0.97, y: '-49%', x: '-50%' }}
+                  animate={{ opacity: 1, scale: 1, y: '-50%', x: '-50%' }}
+                  exit={{ opacity: 0, scale: 0.97, y: '-49%', x: '-50%' }}
+                  transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                >
+                  <div className="course-detail-edit-modal__card">
+                    <div className="course-detail-edit-modal__header">
+                      <div className="course-detail-edit-modal__title-group">
+                        <span className="course-detail-edit-modal__title-mark" aria-hidden="true">
+                          <PencilSimple size={16} weight="bold" />
+                        </span>
+                        <Dialog.Title className="course-detail-edit-modal__title">EDIT COURSE</Dialog.Title>
+                      </div>
+                      <Dialog.Close asChild>
+                        <button
+                          type="button"
+                          className="course-detail-edit-modal__close"
+                          aria-label="Close edit course popup"
+                        >
+                          <X size={20} />
+                        </button>
+                      </Dialog.Close>
+                    </div>
 
-          <div className="grid gap-2 field">
-            <label htmlFor="edit-course-code" className="field__label">
-              Course Code
-            </label>
-            <input
-              id="edit-course-code"
-              className="w-full rounded-md input"
-              type="text"
-              style={{ textTransform: 'uppercase' }}
-              {...register('code', {
-                setValueAs: (value) => String(value ?? '').toUpperCase(),
-              })}
-            />
-            <FieldError message={errors.code?.message} />
-          </div>
+                    <form id="course-edit-form" onSubmit={handleSubmit(handleCourseEdit)}>
+                      <div className="course-detail-edit-modal__body">
+                        <div className="course-detail-edit-modal__grid">
+                          <div className="course-detail-edit-modal__field">
+                            <label htmlFor="edit-course-code" className="course-detail-edit-modal__label">
+                              COURSE_CODE_ID
+                            </label>
+                            <input
+                              id="edit-course-code"
+                              className="course-detail-edit-modal__input course-detail-edit-modal__input--code"
+                              type="text"
+                              spellCheck="false"
+                              autoComplete="off"
+                              style={{ textTransform: 'uppercase' }}
+                              {...register('code', {
+                                setValueAs: (value) => String(value ?? '').toUpperCase(),
+                              })}
+                            />
+                            <FieldError message={errors.code?.message} />
+                          </div>
 
-          <div className="grid gap-2 field">
-            <label htmlFor="edit-course-description" className="field__label">
-              Description
-            </label>
-            <textarea
-              id="edit-course-description"
-              className="w-full rounded-md input"
-              rows={4}
-              {...register('description')}
-            />
-            <FieldError message={errors.description?.message} />
-          </div>
-        </form>
-      </Modal>
+                          <div className="course-detail-edit-modal__field course-detail-edit-modal__field--accent">
+                            <label htmlFor="edit-course-name" className="course-detail-edit-modal__label">
+                              COURSE NAME
+                            </label>
+                            <input
+                              id="edit-course-name"
+                              className="course-detail-edit-modal__input course-detail-edit-modal__input--accent"
+                              type="text"
+                              autoComplete="off"
+                              {...register('name')}
+                            />
+                            <FieldError message={errors.name?.message} />
+                          </div>
+                        </div>
+
+                        <div className="course-detail-edit-modal__field course-detail-edit-modal__field--full">
+                          <label htmlFor="edit-course-description" className="course-detail-edit-modal__label">
+                            SYLLABUS_OVERVIEW
+                          </label>
+                          <textarea
+                            id="edit-course-description"
+                            className="course-detail-edit-modal__textarea"
+                            rows={5}
+                            {...register('description')}
+                          />
+                          <FieldError message={errors.description?.message} />
+                        </div>
+                      </div>
+
+                      <div className="course-detail-edit-modal__footer">
+                        <button
+                          type="button"
+                          className="course-detail-edit-modal__cancel"
+                          onClick={() => setIsEditModalOpen(false)}
+                          disabled={isUpdating}
+                        >
+                          Cancel
+                        </button>
+
+                        <button
+                          type="submit"
+                          className="course-detail-edit-modal__save"
+                          disabled={isUpdating}
+                          form="course-edit-form"
+                        >
+                          {isUpdating ? (
+                            <SpinnerGap className="spinner" size={16} />
+                          ) : (
+                            <FloppyDisk size={16} weight="fill" />
+                          )}
+                          <span>{isUpdating ? 'Saving...' : 'Save Changes'}</span>
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </Motion.div>
+              </Dialog.Content>
+            </Dialog.Portal>
+          ) : null}
+        </AnimatePresence>
+      </Dialog.Root>
     </Page>
   );
 }
