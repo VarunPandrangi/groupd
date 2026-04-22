@@ -51,9 +51,9 @@ export default function LoginPage() {
   return (
     <div className="stitch-auth-login">
       <header className="stitch-auth-login__header">
-        <div className="stitch-auth-login__brand" aria-label="groupd">
+        <Link to="/" className="stitch-auth-login__brand" aria-label="groupd home">
           group<span className="stitch-auth-login__brand-accent">d</span>
-        </div>
+        </Link>
 
         <div className="stitch-auth-login__header-actions">
           <Link to="/register" className="stitch-auth-login__register-link">
