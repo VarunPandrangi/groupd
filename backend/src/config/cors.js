@@ -1,14 +1,17 @@
 export const corsOptions = {
   origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-
     const allowed = process.env.CORS_ORIGIN;
 
-    if (origin === allowed) {
+    // allow server-to-server or no-origin requests
+    if (!origin) return callback(null, true);
+
+    // allow your frontend (handles small variations)
+    if (origin.startsWith(allowed)) {
       return callback(null, true);
     }
 
-    return callback(new Error("Not allowed by CORS"));
+    // DO NOT throw error → just block silently
+    return callback(null, false);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
