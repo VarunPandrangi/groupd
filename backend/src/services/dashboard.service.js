@@ -1,4 +1,5 @@
 import { Assignment } from '../models/assignment.model.js';
+import { Course } from '../models/course.model.js';
 import { Group } from '../models/group.model.js';
 import { Submission } from '../models/submission.model.js';
 import { User } from '../models/user.model.js';
@@ -105,8 +106,13 @@ export async function getStudentDashboard(userId) {
       student_id: member.studentId ?? null,
     }));
 
+  const enrolledCourseIds = (
+    await Course.findByStudent(user._id).select('_id').lean()
+  ).map((course) => course._id);
+
   const assignments = await Assignment.find({
     isDeleted: false,
+    course: { $in: enrolledCourseIds },
     $or: [{ assignTo: 'all' }, { assignTo: 'group', groupTargets: group._id }],
   })
     .sort({ dueDate: 1, createdAt: -1 })

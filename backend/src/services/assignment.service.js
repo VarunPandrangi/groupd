@@ -134,7 +134,9 @@ async function validateGroupIdsExist(groupIds = []) {
   const groups = await Group.find({
     _id: { $in: normalizedGroupIds },
     isDeleted: false,
-  }).lean();
+  })
+    .sort({ name: 1 })
+    .lean();
 
   if (groups.length !== normalizedGroupIds.length) {
     throw httpError(
@@ -196,6 +198,90 @@ async function resolveCourse(userId, payload, existingAssignment = null) {
   }
 
   return getOrCreateLegacyCourse(userId);
+}
+
+async function assertGroupsFullyEnrolledInCourse(groups, courseId) {
+  if (!Array.isArray(groups) || groups.length === 0) {
+    return;
+  }
+
+  const course = await Course.findOne({
+    _id: courseId,
+    isDeleted: false,
+  })
+    .select('enrolledStudents')
+    .lean();
+
+  if (!course) {
+    throw httpError(404, 'COURSE_NOT_FOUND', 'Course not found');
+  }
+
+  const enrolledStudentIdSet = new Set(
+    (course.enrolledStudents ?? []).map((studentId) => studentId.toString())
+  );
+
+  const invalidGroups = [...groups]
+    .sort((left, right) => left.name.localeCompare(right.name))
+    .map((group) => {
+      const memberIds = (group.members ?? []).map((memberId) => memberId.toString());
+      const missingMemberIds = memberIds.filter(
+        (memberId) => !enrolledStudentIdSet.has(memberId)
+      );
+
+      return {
+        name: group.name,
+        missingMemberIds,
+      };
+    })
+    .filter((entry) => entry.missingMemberIds.length > 0);
+
+  if (invalidGroups.length === 0) {
+    return;
+  }
+
+  const allMissingMemberIds = [
+    ...new Set(invalidGroups.flatMap((entry) => entry.missingMemberIds)),
+  ];
+  const missingUsers = await User.find({
+    _id: { $in: allMissingMemberIds },
+    isDeleted: false,
+  })
+    .select('fullName')
+    .sort({ fullName: 1 })
+    .lean();
+
+  const missingNameById = new Map(
+    missingUsers.map((user) => [user._id.toString(), user.fullName])
+  );
+
+  const sampleGroupMessages = invalidGroups.slice(0, 3).map((entry) => {
+    const missingNames = entry.missingMemberIds
+      .map((memberId) => missingNameById.get(memberId))
+      .filter(Boolean);
+    missingNames.sort((left, right) => left.localeCompare(right));
+
+    if (missingNames.length === 0) {
+      return `${entry.name} (${entry.missingMemberIds.length} unenrolled member${entry.missingMemberIds.length === 1 ? '' : 's'})`;
+    }
+
+    const sampleNames = missingNames.slice(0, 2).join(', ');
+    const remaining = missingNames.length - 2;
+    const suffix = remaining > 0 ? ` +${remaining} more` : '';
+    return `${entry.name} (${sampleNames}${suffix})`;
+  });
+
+  throw httpError(
+    400,
+    'GROUP_MEMBERS_NOT_ENROLLED',
+    `Selected group targets include students not enrolled in this course: ${sampleGroupMessages.join('; ')}.`
+  );
+}
+
+async function ensureStudentEnrolledInAssignmentCourse(userId, assignment) {
+  const enrolled = await Course.isStudentEnrolled(assignment.course, userId);
+  if (!enrolled) {
+    throw httpError(403, 'NOT_ENROLLED', 'You are not enrolled in this course');
+  }
 }
 
 async function getAssignmentGroups(assignment) {
@@ -341,6 +427,7 @@ export async function create(userId, payload) {
   await requireUser(userId);
 
   const course = await resolveCourse(userId, payload);
+  const nextSubmissionType = payload.submission_type ?? 'group';
 
   // Enforce professor ownership — only the course owner may create assignments for it
   const isOwner = await Course.isProfessorOwner(course._id, userId);
@@ -358,6 +445,12 @@ export async function create(userId, payload) {
     ({ normalizedGroupIds, groups } = await validateGroupIdsExist(
       payload.group_ids ?? []
     ));
+  } else if (nextSubmissionType === 'group') {
+    groups = await Group.find({ isDeleted: false }).sort({ name: 1 }).lean();
+  }
+
+  if (nextSubmissionType === 'group') {
+    await assertGroupsFullyEnrolledInCourse(groups, course._id);
   }
 
   const assignment = await Assignment.create({
@@ -409,6 +502,7 @@ export async function update(id, payload) {
   }
 
   const nextAssignTo = payload.assign_to ?? (assignment.assignTo === 'all' ? 'all' : 'specific');
+  const nextSubmissionType = payload.submission_type ?? assignment.submissionType;
 
   if (payload.group_ids !== undefined && nextAssignTo !== 'specific') {
     throw httpError(
@@ -423,6 +517,7 @@ export async function update(id, payload) {
     payload,
     assignment
   );
+  let resolvedGroups = [];
 
   if (payload.title !== undefined) {
     assignment.title = payload.title;
@@ -451,12 +546,25 @@ export async function update(id, payload) {
   assignment.course = course._id;
 
   if (nextAssignTo === 'all') {
+    resolvedGroups = await Group.find({ isDeleted: false }).sort({ name: 1 }).lean();
     assignment.groupTargets = [];
   } else if (payload.assign_to === 'specific' || payload.group_ids !== undefined) {
-    const { normalizedGroupIds } = await validateGroupIdsExist(
+    const { normalizedGroupIds, groups } = await validateGroupIdsExist(
       payload.group_ids ?? []
     );
+    resolvedGroups = groups;
     assignment.groupTargets = normalizedGroupIds;
+  } else {
+    resolvedGroups = await Group.find({
+      _id: { $in: assignment.groupTargets },
+      isDeleted: false,
+    })
+      .sort({ name: 1 })
+      .lean();
+  }
+
+  if (nextSubmissionType === 'group') {
+    await assertGroupsFullyEnrolledInCourse(resolvedGroups, course._id);
   }
 
   await assignment.save();
@@ -617,6 +725,8 @@ export async function getDetail(id, user) {
       submissions,
     };
   }
+
+  await ensureStudentEnrolledInAssignmentCourse(currentUser._id, assignment);
 
   const userGroup = await findActiveGroupForUser(currentUser._id);
   ensureGroupTargetVisibility(assignment, userGroup);

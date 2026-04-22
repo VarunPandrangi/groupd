@@ -4,7 +4,7 @@ import { connectDB } from './src/config/database.js';
 import { User } from './src/models/user.model.js';
 
 async function seedStudents() {
-  const students = Array.from({ length: 15 }, (_, index) => {
+  const students = Array.from({ length: 75 }, (_, index) => {
     const studentNumber = index + 1;
 
     return {
