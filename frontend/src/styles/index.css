@@ -2693,6 +2693,46 @@
   text-transform: uppercase;
 }
 
+.admin-dashboard__controls {
+  display: grid;
+  gap: 6px;
+  width: min(100%, 360px);
+  margin-top: 12px;
+}
+
+.admin-dashboard__control-label {
+  margin: 0;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  line-height: 1;
+  text-transform: uppercase;
+  color: #505666;
+}
+
+.admin-dashboard__control-select {
+  width: 100%;
+  min-height: 38px;
+  padding: 0 11px;
+  border: 1.5px solid #1a1e28;
+  background: #f8f8f9;
+  color: #171a23;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.admin-dashboard__section-title {
+  margin: 4px 0 0;
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #5a5f6d;
+}
+
 .admin-dashboard__stats-grid {
   display: grid;
   gap: 10px;
@@ -3000,6 +3040,10 @@
 
   .admin-dashboard__workspace-title {
     font-size: 24px;
+  }
+
+  .admin-dashboard__controls {
+    width: 100%;
   }
 
   .admin-dashboard__metric-card {
