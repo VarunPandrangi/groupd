@@ -1,663 +1,517 @@
 # Groupd
 
-Groupd is a full-stack group assignment platform for colleges and training programs. It gives students a clean workflow for creating teams and confirming submissions, while giving admins one place to publish assignments and track completion without spreadsheet overhead.
+Groupd is a full-stack assignment management platform for student teams and faculty/admin workflows.
 
-## WALKTHROUGH VIDEO
+It supports:
+- student authentication, group creation, team membership, and assignment progress
+- admin course management, enrollments, assignment publishing, and submission analytics
+- group and individual submission modes with confirmation-token based finalization
 
-LOOM VIDEO: [Watch the walkthrough](https://www.loom.com/share/e842348597ef48b088427ca2a15443fa)
+## Project Links
 
-## Why This Exists
+- [GitHub Repository](https://github.com/VarunPandrangi/groupd.git)
+- [Working Demo Video](https://drive.google.com/file/d/1ko1t882LokECXr65FtbrQ_PRZ9zroSwo/view?usp=drive_link)
+- [Vercel Deployed Link](https://groupd-navy.vercel.app)
+- Deployment note: the live frontend depends on a Render-hosted backend and a MongoDB Atlas free-tier database, so the first load can take a while.
 
-Group assignment management usually breaks down at the handoff points:
+## What Changed (Current Codebase)
 
-- Students do not know who has formed a team.
-- Faculty cannot quickly see which groups submitted.
-- Historical data gets messy when groups are edited or removed.
+This README is updated to the current implementation in this repository.
 
-Groupd solves this with role-aware workflows, audited group submissions, and analytics that answer progress questions in one screen.
+Key changes reflected in code:
+- active runtime data layer is MongoDB + Mongoose, with no SQL path in the current backend
+- new `Course` domain with enrollment rules and ownership checks
+- assignments now require `course_id` in the API payload and support `submission_type` (`group` or `individual`)
+- stricter group assignment validation: targeted groups must have all members enrolled in the assignment course
+- submission model supports both:
+  - group submission uniqueness (`assignment + group`)
+  - individual submission uniqueness (`assignment + submittedBy` when `group=null`)
+- admin dashboard expanded with assignment/group/individual analytics (Recharts)
+- frontend UI uses an architectural, high-contrast visual system and role-specific workspaces
 
-## Code-Backed Implementation Overview
+## UI/UX Design Overview (Choices + Why)
 
-### Frontend (React + Vite)
+### 1) Role-first navigation
+- Student and admin shells are split at route/layout level (`StudentLayout`, `AdminLayout`) so each role sees only relevant actions.
+- Why: reduces decision overhead and prevents accidental cross-role actions.
 
-- Route tree is role-gated at runtime via `ProtectedRoute`:
-    - Public: `/`, `/login`, `/register`
-    - Student: `/student/dashboard`, `/student/assignments`, `/student/assignments/:id`, `/student/group`, `/student/group/create`, `/student/progress`
-    - Admin: `/admin/dashboard`, `/admin/assignments`, `/admin/assignments/new`, `/admin/assignments/:id`, `/admin/groups`, `/admin/groups/:id`, `/admin/submissions`
-- Auth/session is store-driven (`authStore`) with:
-    - `refreshToken` persisted in `localStorage`
-    - `accessToken` held in memory
-    - startup `checkAuth()` flow: refresh -> `/auth/me`
-- Axios client (`frontend/src/services/api.js`) implements queued 401 refresh handling so concurrent failed requests wait for a single refresh call.
-- Assignment submission UX is truly two-step in UI:
-    - click "Mark as Submitted" -> `/submissions/prepare`
-    - confirm dialog -> `/submissions` with `confirmation_token`
+### 2) High-signal status language
+- Assignment and submission states are always visible via chips/badges (`overdue`, `active`, `upcoming`, `submitted`).
+- Why: users can prioritize work quickly without opening detail pages.
 
-### Backend (Node.js + Express)
+### 3) Strong visual hierarchy for operational screens
+- Dashboards and registries use distinct card tiers, rails, and contrast blocks for counts, deadlines, and critical actions.
+- Why: operational tasks (enroll, publish, submit, track) benefit from scannable structure over decorative UI.
 
-- Layering is strictly followed: Routes -> Controllers -> Services -> Models.
-- Middleware order in `app.js` is:
-    `helmet` -> `cors` -> `morgan` -> `express.json` -> `generalLimiter` -> routes -> `errorHandler`.
-- `authLimiter` is applied only on `/api/v1/auth/*` endpoints.
-- JWT model:
-    - Access token: 15m
-    - Refresh token: 7d
-    - Submission confirmation token: 5m
-- Validation is Zod-based for request bodies and UUID middleware for IDs.
+### 4) Guided empty states and blocked-state UX
+- No-group and no-data states provide explicit next actions (create group, enroll students, create assignment).
+- Why: users do not get stranded when prerequisites are missing.
 
-### Database (PostgreSQL)
+### 5) Two-step submission confirmation
+- Student submission uses `prepare -> confirm` flow with short-lived confirmation token.
+- Why: reduces accidental final submissions and aligns UI confirmation with backend safeguards.
 
-- Core tables: `users`, `groups`, `assignments`, `assignment_groups`, `submissions`.
-- Submissions are group-centric (`UNIQUE (assignment_id, group_id)`).
-- Group deletion keeps submission history by allowing `submissions.group_id` to become `NULL` while preserving `group_name` snapshot.
+### 6) Responsive architecture
+- Desktop-first dashboards with mobile breakpoints across auth, course, group, and tracker pages.
+- Why: keeps complex tables/analytics usable on small screens while preserving admin density on desktop.
 
-## Architecture Overview (Frontend + Backend + DB Flow)
+### 7) Motion with restraint
+- Framer Motion is used for page/section reveal, grouped content staggering, and micro-interactions.
+- Why: improves perceived responsiveness while keeping movement purposeful and lightweight.
+
+## UI Flow Screenshots
+
+### Authentication
+
+#### Login
+![Login Page](docs/screenshots/login.png)
+
+#### Signup
+![Signup Page](docs/screenshots/signup.png)
+
+### Student Flow
+
+#### Dashboard
+![Student Dashboard](docs/screenshots/student%20dashboard.png)
+
+#### Assignment List
+![Student Assignment List](docs/screenshots/student-assignment.png)
+
+#### Assignment Detail
+![Student Assignment Detail](docs/screenshots/student-assignment-submission.png)
+
+#### Courses List
+![Student Courses List](docs/screenshots/student-courses.png)
+
+#### Course Detail
+![Student Course Detail](docs/screenshots/student-courses-detail.png)
+
+#### My Group
+![Student Group](docs/screenshots/Student%20group.png)
+
+#### Progress Tracker
+![Student Progress Tracker](docs/screenshots/student%20progress.png)
+
+### Admin Flow
+
+#### Assignment Manager
+![Admin Assignment Manager](docs/screenshots/admin-assignment.png)
+
+#### Courses List
+![Admin Courses List](docs/screenshots/admin-courses.png)
+
+#### Course Detail
+![Admin Course Detail](docs/screenshots/admin-course-detail.png)
+
+#### Enrollment Manager
+![Admin Enrollment Manager](docs/screenshots/admin-course-administration.png)
+
+#### Submission Tracker
+![Admin Submission Tracker](docs/screenshots/admin-submission-tracker.png)
+
+> GIFs are optional in this repo and are not currently committed. The screenshot set above covers login, signup, student dashboards, course and group flows, assignment submission, and admin management pages.
+
+## Component Architecture (Frontend)
+
+```mermaid
+flowchart TD
+  M[main.jsx] --> T[ThemeSync]
+  M --> R[React Router + App.jsx]
+  M --> N[Toaster]
+
+  R --> P[ProtectedRoute]
+  R --> S1[StudentLayout]
+  R --> S2[AdminLayout]
+  R --> P0[Public auth pages]
+
+  S1 --> A1[AppShell]
+  S2 --> A1
+  A1 --> A2[AppSidebar]
+  A1 --> A3[AppTopbar]
+
+  S1 --> D1[Student pages]
+  S2 --> D2[Admin pages]
+
+  D1 --> E1[Zustand stores]
+  D2 --> E1
+
+  E1 --> F1[Service layer]
+  F1 --> G1[Axios client + refresh queue]
+  G1 --> H1[Backend API /api/v1]
+
+  D1 --> I1[Common UI components + Page primitives]
+  D2 --> I1
+  I1 --> J1[Design tokens + CSS system]
+```
+
+Component architecture summary:
+- `main.jsx` mounts `ThemeSync`, `App`, and the toast container inside `BrowserRouter`.
+- `App.jsx` defines the full route tree and role-based page entry points.
+- `ProtectedRoute` guards authenticated routes and redirects users by role.
+- `StudentLayout` and `AdminLayout` provide role-specific shells and navigation on top of `AppShell`.
+- `AppShell` composes `AppSidebar` and `AppTopbar` around the routed page content.
+- Route pages in `frontend/src/pages/*` act as feature containers and orchestrate store/service calls.
+- Shared UI in `frontend/src/components/*` keeps forms, modals, cards, tables, empty states, and motion primitives reusable.
+- Zustand stores in `frontend/src/stores/*` own client state and async actions.
+- API services in `frontend/src/services/*` isolate backend calls from page logic.
+- `frontend/src/styles/index.css` defines the token system, layout primitives, and visual language used across pages.
+
+Directory-level architecture:
+- `frontend/src/pages/*`: route-level containers
+- `frontend/src/layouts/*`: role shells and shared app shell composition
+- `frontend/src/components/*`: reusable UI blocks, motion primitives, and specialized page components
+- `frontend/src/stores/*`: Zustand state + async actions
+- `frontend/src/services/*`: API-bound domain service functions
+- `frontend/src/styles/index.css`: design tokens + page/component class systems
+
+## Backend Architecture
 
 ```mermaid
 flowchart LR
-    U[Student/Admin Browser] --> UI[React App + Zustand]
-    UI --> API[Express API /api/v1]
-    API --> MW[Auth + Role Guard + Validation + Rate Limit]
-    MW --> SVC[Service Layer Business Rules]
-    SVC --> MODEL[Model Layer SQL]
-    MODEL --> DB[(PostgreSQL)]
-    DB --> MODEL
-    MODEL --> SVC
-    SVC --> API
-    API --> RESP[Standard JSON Response]
-    RESP --> UI
+  UI[React Client] --> RT[Express Routes]
+  RT --> MW[Auth / Role / Validation / Rate Limit]
+  MW --> CT[Controllers]
+  CT --> SV[Services]
+  SV --> MD[Mongoose Models]
+  MD --> DB[(MongoDB)]
 ```
 
-### Request Lifecycle in Practice
-
-1. A page action triggers a Zustand store method.
-2. The store calls a service wrapper built on Axios.
-3. Axios sends Bearer tokens and retries once after refresh if needed.
-4. Express middleware authenticates the user, checks role, validates payload, and applies rate limiting.
-5. Services execute business rules and authorization logic.
-6. Models run parameterized SQL against PostgreSQL.
-7. Responses return in a predictable JSON contract for UI consistency.
-
-## Real Process Flows (As Implemented)
-
-### 1) Authentication and Session Lifecycle
-
-1. Student self-registers via `POST /api/v1/auth/register` (role is always `student` server-side).
-2. Login returns `accessToken` + `refreshToken` + user profile.
-3. Frontend stores `refreshToken` in `localStorage`, keeps `accessToken` in memory.
-4. On app boot, `checkAuth()` attempts `POST /auth/refresh` then `GET /auth/me`.
-5. If access token expires during API calls, Axios response interceptor refreshes once and replays queued requests.
-6. If refresh fails, client logs out and redirects to `/login`.
-
-### 2) Student Group Lifecycle
-
-1. Student can create exactly one group only if `users.group_id IS NULL`.
-2. Group leader is `groups.created_by` and has privileged actions:
-    - add member (by email or student ID)
-    - remove member
-    - delete group
-3. Group constraints enforced in service layer:
-    - max 6 members
-    - cannot add admin users
-    - cannot add a user already in another group
-    - leader cannot remove self
-    - leader cannot leave group (must delete it)
-
-### 3) Assignment Lifecycle (Admin)
-
-1. Admin creates assignment with `assign_to = all | specific`.
-2. If `specific`, backend validates every `group_id` exists before insert.
-3. Assignment updates support switching scope (`all <-> specific`) and remap `assignment_groups` accordingly.
-4. Deletion is soft-delete (`is_deleted = true`).
-5. Assignment status is computed on read:
-    - `overdue`: due date <= now
-    - `active`: due date within next 3 days
-    - `upcoming`: everything else in future
-
-### 4) Submission Confirmation (Two-Step)
-
-1. Student requests confirmation token: `POST /submissions/prepare`.
-2. Backend verifies eligibility (group exists, assignment assigned to group, not already submitted).
-3. Backend returns short-lived confirmation token (`expires_in_seconds = 300`).
-4. Student confirms: `POST /submissions` with `assignment_id` + `confirmation_token`.
-5. Backend validates token action/user/group/assignment binding, then inserts submission.
-6. Duplicate submits are blocked by both service checks and DB unique constraint.
-
-### 5) Admin Submission Tracking and Analytics
-
-1. Submission tracker endpoint `GET /submissions/assignment/:assignmentId/groups-student-status` returns:
-    - assignment summary (`submitted_groups`, `total_groups`, `pending_groups`)
-    - per-group rows
-    - member lists for active groups
-    - special rows for deleted groups with preserved submission history
-2. Admin analytics endpoints compute completion from SQL at query time, including historical deleted-group submissions.
-
-### 6) Group Deletion and Historical Integrity
-
-1. Deleting a group releases all member `group_id` links.
-2. Existing submission rows remain.
-3. If original group no longer exists, APIs surface `group_name` snapshot and fallback note to keep audit continuity.
+Layering in code:
+- Routes: `backend/src/routes/*`
+- Controllers: `backend/src/controllers/*`
+- Services: `backend/src/services/*`
+- Models: `backend/src/models/*`
+- Middleware: `backend/src/middleware/*`
 
 ## Tech Stack
 
-- Frontend: React 19, Vite 8, Tailwind CSS 4, Zustand, React Router, Recharts
-- Backend: Node.js, Express, pg, Zod, JWT, Winston
-- Security: Helmet, CORS, route-specific and global rate limiting
-- Infra: Docker Compose, PostgreSQL 16, Nginx (frontend container)
+### Frontend
+- React 19 + Vite 8
+- Zustand
+- React Router
+- Framer Motion
+- Recharts
+- Tailwind CSS 4 + custom tokenized CSS
 
-## Runtime Services and Ports
+### Backend
+- Node.js + Express
+- Mongoose (MongoDB ODM)
+- Zod validation
+- JWT auth
+- Winston logging
+- Helmet, CORS, Morgan, express-rate-limit
 
-When started via Docker Compose, these services run:
+### Infra
+- Docker Compose
+- MongoDB 7
+- Nginx container for frontend static serving
 
-| Service | Container | Port | Notes |
-|---|---|---|---|
-| Postgres | `groupd-db` | 5432 | Initializes schema from `/docker-entrypoint-initdb.d` on first volume creation |
-| Backend API | `groupd-backend` | 5000 | Express API at `/api/v1` |
-| Frontend | `groupd-frontend` | 3000 | Static Vite build served by Nginx |
+## Database Model and Changes
 
-Startup dependency order in Compose:
-1. `postgres` starts and becomes healthy.
-2. `backend` starts after Postgres healthcheck passes.
-3. `frontend` starts after backend container is up.
+## Current Database
+- Type: MongoDB
+- ODM: Mongoose
+- Connection: `mongoose.connect(MONGODB_URI, { dbName: 'groupd' })`
 
-`docker-compose.yml` does not define Docker Compose `profiles`; `docker compose up` starts all services by default.
+## Core Collections
 
-## Project Structure
+### `users`
+- `fullName`, `email (unique)`, `password`, `role`, `studentId (unique+sparse)`, `refreshToken`, `isDeleted`
 
-```text
-.
-├── backend/
-│   ├── src/
-│   │   ├── config/
-│   │   ├── controllers/
-│   │   ├── db/
-│   │   ├── middleware/
-│   │   ├── models/
-│   │   ├── routes/
-│   │   ├── services/
-│   │   ├── utils/
-│   │   └── validators/
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   ├── layouts/
-│   │   ├── pages/
-│   │   ├── services/
-│   │   ├── stores/
-│   │   ├── styles/
-│   │   └── utils/
-├── docker-compose.yml
-├── seed_test_data.js
-├── setup_demo.js
-└── README.md
-```
+### `groups`
+- `name (unique)`, `description`, `createdBy`, `members[]`, `isDeleted`
 
-## Setup and Run Instructions
+### `courses`
+- `name`, `code (unique)`, `description`, `createdBy`, `enrolledStudents[]`, `isDeleted`
 
-### Prerequisites
+### `assignments`
+- `title`, `description`, `dueDate`, `onedriveLink`, `assignTo (all|group)`, `submissionType (group|individual)`, `course`, `createdBy`, `groupTargets[]`, `isDeleted`
 
-- Docker Desktop (recommended for fastest full-stack startup)
+### `submissions`
+- `assignment`, `submittedBy`, `group (nullable)`, `groupNameSnapshot`, `submittedAt`, `confirmedAt`, `status`
+
+## Important Index/Constraint Behavior
+- `users.email` unique
+- `users.studentId` unique+sparse
+- `courses.code` unique
+- `groups.name` unique
+- `submissions` unique partial indexes:
+  - `{ assignment, group }` when `group` is objectId
+  - `{ assignment, submittedBy }` when `group` is null
+
+## Database Changes vs Older SQL-style Design
+- SQL table migration scripts are no longer used in runtime.
+- Group membership is derived from `groups.members`; there is no persisted `users.group_id` column.
+- Assignment-to-group mapping uses `assignTo + groupTargets[]` in assignment documents.
+- Submission history keeps `groupNameSnapshot` for deleted-group audit continuity.
+- Soft delete is handled with `isDeleted` flags across domain collections.
+
+## API Surface (High-level)
+
+Base path: `/api/v1`
+
+### Health
+- `GET /health`
+
+### Auth
+- `POST /auth/register`
+- `POST /auth/login`
+- `POST /auth/refresh`
+- `POST /auth/logout`
+- `GET /auth/me`
+
+### Courses
+- `POST /courses` (admin)
+- `GET /courses` (admin/student)
+- `GET /courses/:id`
+- `PUT /courses/:id` (admin)
+- `DELETE /courses/:id` (admin, soft delete)
+- `POST /courses/:id/enrollments` (admin)
+- `DELETE /courses/:id/enrollments/:studentId` (admin)
+- `GET /courses/:id/students` (admin)
+
+### Groups
+- `POST /groups` (student)
+- `GET /groups/my-group` (student)
+- `POST /groups/members` (student leader)
+- `DELETE /groups/members/:userId` (student leader)
+- `POST /groups/leave` (student)
+- `DELETE /groups` (student leader)
+- `GET /groups` (admin)
+- `GET /groups/:groupId` (admin)
+
+### Assignments
+- `POST /assignments` (admin)
+- `PUT /assignments/:id` (admin)
+- `DELETE /assignments/:id` (admin, soft delete)
+- `GET /assignments` (student/admin)
+- `GET /assignments/:id` (student/admin)
+
+### Submissions
+- `POST /submissions/prepare` (student)
+- `POST /submissions` (student)
+- `GET /submissions/my-group-submissions` (student)
+- `GET /submissions/group-progress` (student)
+- `GET /submissions/assignment/:assignmentId` (admin)
+- `GET /submissions/assignment/:assignmentId/groups-student-status` (admin)
+
+### Dashboard
+- `GET /dashboard/student`
+- `GET /dashboard/admin/summary`
+- `GET /dashboard/admin/assignments-analytics`
+- `GET /dashboard/admin/groups-analytics`
+
+## Local Setup
+
+## Prerequisites
 - Node.js 20+
 - npm 10+
+- Docker Desktop (for containerized setup)
 
-### Reproducible Quick Start (Fresh Clone)
+## Option A: Docker (Recommended)
 
-From a brand-new clone, this is the shortest path to a working local environment:
-
-```bash
-git clone https://github.com/VarunPandrangi/groupd.git
-cd groupd
-docker compose up --build -d
-docker compose exec backend node seed_users.js
-```
-
-Then verify the API is healthy:
-
-```bash
-curl http://localhost:5000/api/v1/health
-```
-
-Then open:
-
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:5000/api/v1
-
-### Option A: Docker (Recommended)
-
-1. Start the stack.
+From repo root:
 
 ```bash
 docker compose up --build -d
 ```
 
-2. Confirm API health.
+Services:
+- Frontend: `http://localhost:3000`
+- Backend: `http://localhost:5000/api/v1`
+- MongoDB: `mongodb://localhost:27017/groupd`
+
+Seed options:
 
 ```bash
-curl http://localhost:5000/api/v1/health
-```
+# minimal admin + legacy course
+# admin: admin@joineazy.com / Admin@123
+docker compose exec backend node src/db/seed.js
 
-3. Seed demo student accounts (idempotent upsert by email).
-
-```bash
+# add 75 student accounts
+# students: s1@groupd.com ... s75@groupd.com / test@123
 docker compose exec backend node seed_users.js
+
+# full simulation dataset (resets and generates courses/groups/assignments/submissions)
+# admin: admin@groupd.com / test@123
+docker compose exec backend npm run seed:simulation
 ```
 
-4. (Optional) seed/register demo accounts through API instead of DB direct insert.
-
-```bash
-node seed_test_data.js
-```
-
-5. (Optional) create demo-ready data (ensures one student group + one assignment if missing).
-
-```bash
-node setup_demo.js
-```
-
-6. Open applications.
-
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:5000/api/v1
-- PostgreSQL: localhost:5432
-
-7. Stop services.
+Stop stack:
 
 ```bash
 docker compose down
 ```
 
-8. Full reset (including DB volume).
+Reset DB volume:
 
 ```bash
-docker compose down -v --remove-orphans
-docker compose up --build -d
+docker compose down -v
 ```
 
-### Option B: Local Development
+## Option B: Run Backend + Frontend on Host
 
-1. Start PostgreSQL only (containerized), but run backend/frontend on host:
+### 1) Start MongoDB
+Use local MongoDB or only run Mongo container:
 
 ```bash
-docker compose up -d postgres
+docker compose up -d mongo
 ```
 
-2. Backend setup (new terminal):
+### 2) Backend
 
 ```bash
 cd backend
 npm install
-copy .env.example .env
+```
+
+Create env file:
+- copy `backend/.env.example` to `backend/.env`
+
+Required backend env:
+- `MONGODB_URI`
+- `JWT_SECRET`
+- `JWT_REFRESH_SECRET`
+- `PORT`
+- `CORS_ORIGIN`
+
+Then run:
+
+```bash
 npm run dev
 ```
 
-3. Frontend setup (new terminal):
+### 3) Frontend
 
 ```bash
 cd frontend
 npm install
-echo VITE_API_URL=http://localhost:5000/api/v1 > .env
+```
+
+Create/update `frontend/.env`:
+
+```env
+VITE_API_URL=http://localhost:5000/api/v1
+```
+
+Then run:
+
+```bash
 npm run dev
 ```
 
-4. Local URLs:
-
-- Frontend (Vite): http://localhost:5173
-- Backend API: http://localhost:5000/api/v1
-
-### Database Initialization and Migration Truth
-
-- Docker Postgres auto-runs SQL files from `/docker-entrypoint-initdb.d` only when the DB volume is empty.
-- In this repo, Docker mounts:
-    - `backend/src/db/migrations` directory
-    - `backend/src/db/seeds/seed_admin.sql` as `/docker-entrypoint-initdb.d/zz_seed_admin.sql`
-- The repository file `backend/src/db/migrations/zz_seed_admin.sql` is empty; admin seeding actually comes from `backend/src/db/seeds/seed_admin.sql` via Docker bind mount.
-- Manual migration script `node src/db/migrate.js` executes SQL files from `backend/src/db/migrations`, but it does not load `.env` by itself. Set `DATABASE_URL` in shell before using it.
+Local URLs:
+- Frontend (Vite): `http://localhost:5173`
+- Backend API: `http://localhost:5000/api/v1`
 
 ## Environment Variables
 
 ### Backend (`backend/.env`)
 
-| Variable | Required | Purpose | Example |
-|---|---|---|---|
-| DATABASE_URL | Yes | PostgreSQL connection string | postgresql://groupd_user:groupd_pass@localhost:5432/groupd |
-| JWT_SECRET | Yes | Access token and submission confirmation signing secret | change-this-to-a-random-secret-string |
-| JWT_REFRESH_SECRET | Yes | Refresh token signing secret | change-this-to-another-random-secret |
-| PORT | Yes | API server port | 5000 |
-| CORS_ORIGIN | Yes | Allowed frontend origins (comma-separated supported) | http://localhost:3000,http://localhost:5173 |
-| NODE_ENV | No | Runtime mode | development |
+| Variable | Required | Example |
+| --- | --- | --- |
+| `MONGODB_URI` | Yes | `mongodb://localhost:27017/groupd` |
+| `JWT_SECRET` | Yes | `change-this-to-a-random-secret-string` |
+| `JWT_REFRESH_SECRET` | Yes | `change-this-to-another-random-secret` |
+| `PORT` | Yes | `5000` |
+| `CORS_ORIGIN` | Yes | `http://localhost:5173` |
+| `NODE_ENV` | No | `development` |
+| `RATE_LIMIT_WINDOW_MS` | No | `900000` |
+| `GENERAL_RATE_LIMIT_MAX` | No | `100000` |
+| `AUTH_RATE_LIMIT_MAX` | No | `5000` |
 
 ### Frontend (`frontend/.env`)
 
-| Variable | Required | Purpose | Example |
-|---|---|---|---|
-| VITE_API_URL | Yes | API base URL used by Axios client | http://localhost:5000/api/v1 |
+| Variable | Required | Example |
+| --- | --- | --- |
+| `VITE_API_URL` | Yes | `http://localhost:5000/api/v1` |
 
-`CORS_ORIGIN` is split by commas in backend config, so you can safely allow both Docker frontend (`3000`) and local Vite frontend (`5173`) at once.
+## CORS Note
+Current backend CORS implementation checks `origin.startsWith(CORS_ORIGIN)`. Use one concrete origin value (for example `http://localhost:5173` or `http://localhost:3000`) and restart backend after changing it.
 
-## Demo Credentials
+## Scripts Reference
 
-- Admin: admin@groupd.com / test@123 (seeded from `backend/src/db/seeds/seed_admin.sql`, mounted by Docker as `/docker-entrypoint-initdb.d/zz_seed_admin.sql` during first DB init)
-- Students: s1@groupd.com to s15@groupd.com / test@123 (created when you run `node seed_users.js` inside backend container)
+Repo-root helper scripts:
+- `node seed_test_data.js` -> API-based student registration helper (15 students)
+- `node setup_demo.js` -> legacy demo helper (not updated for required `course_id` in assignment creation)
 
-Student seed behavior:
+Backend:
+- `npm run dev` -> nodemon server
+- `npm start` -> production server
+- `npm run seed` -> `src/db/seed.js`
+- `npm run seed:simulation` -> full simulation + report generation
 
-- Script path: `backend/seed_users.js`
-- It upserts users on email conflict, so you can rerun safely.
-- It uses bcrypt hash with salt rounds = 12.
+Frontend:
+- `npm run dev` -> Vite dev server
+- `npm run build` -> production build
+- `npm run preview` -> preview build
 
-If admin login is missing on an older database volume, reinitialize Postgres once:
+## Project Structure
 
-```bash
-docker compose down -v --remove-orphans
-docker compose up --build -d
+```text
+.
+|-- backend/
+|   |-- src/
+|   |   |-- app.js
+|   |   |-- server.js
+|   |   |-- config/
+|   |   |-- controllers/
+|   |   |-- middleware/
+|   |   |-- models/
+|   |   |-- routes/
+|   |   |-- services/
+|   |   |-- validators/
+|   |   |-- utils/
+|   |   `-- db/
+|   |-- seed_users.js
+|   `-- seed_full_simulation.js
+|-- frontend/
+|   |-- public/
+|   |-- src/
+|   |   |-- main.jsx
+|   |   |-- App.jsx
+|   |   |-- assets/
+|   |   |-- stitch/
+|   |   |-- layouts/
+|   |   |-- pages/
+|   |   |   |-- admin/
+|   |   |   |-- auth/
+|   |   |   `-- student/
+|   |   |-- components/
+|   |   |   |-- admin/
+|   |   |   |-- common/
+|   |   |   `-- student/
+|   |   |-- stores/
+|   |   |-- services/
+|   |   |-- styles/
+|   |   `-- utils/
+|   |-- Dockerfile
+|   `-- nginx.conf
+|-- docs/
+|   `-- screenshots/
+|-- docker-compose.yml
+`-- README.md
 ```
 
-Then reseed students:
+## Troubleshooting
 
-```bash
-docker compose exec backend node seed_users.js
-```
+### 1) `401` loops or forced logout
+- Check access/refresh token flow in browser storage.
+- Verify `JWT_SECRET` and `JWT_REFRESH_SECRET` are unchanged between server restarts.
 
-## Runtime Profiles (Roles)
+### 2) CORS blocked in browser
+- Ensure backend `CORS_ORIGIN` matches the active frontend URL.
+- Restart backend after env updates.
 
-Groupd has three app-level user profiles:
+### 3) Admin login does not work on fresh DB
+- Run one of:
+  - `docker compose exec backend node src/db/seed.js`
+  - `docker compose exec backend npm run seed:simulation`
 
-- Public profile:
-    - frontend routes: `/`, `/login`, `/register`
-    - backend routes: `/auth/register`, `/auth/login`, `/auth/refresh`, `/health`
-- Student profile:
-    - frontend routes under `/student/*`
-    - backend permissions on groups/submissions/student dashboard/assignment reads
-- Admin profile:
-    - frontend routes under `/admin/*`
-    - backend permissions on assignment CRUD, group listing/detail, submission trackers, admin analytics
+### 4) Frontend route 404 on refresh (deployed static host)
+- Use SPA fallback rewrite to `index.html`.
+- Nginx config in this repo already does this inside Docker image.
 
-To reproduce all profile experiences locally after cloning:
+---
 
-1. Start services (`docker compose up --build -d`).
-2. Seed students (`docker compose exec backend node seed_users.js`).
-3. Sign in as admin for admin flows, then sign in as any seeded student for student flows.
-
-## API Endpoint Details
-
-Base path: `/api/v1`
-
-### Auth Model
-
-- Access token TTL: 15 minutes
-- Refresh token TTL: 7 days
-- Submission confirmation token TTL: 5 minutes
-
-### Response Contract
-
-Most endpoints return:
-
-```json
-{
-  "success": true,
-  "data": {},
-  "message": ""
-}
-```
-
-Error format:
-
-```json
-{
-  "success": false,
-  "error": {
-    "code": "ERROR_CODE",
-    "message": "Human readable message",
-    "details": null
-  }
-}
-```
-
-Pagination endpoints (`GET /groups` and admin `GET /assignments`) include top-level `pagination` metadata.
-
-Known response-shape exceptions in current implementation:
-
-- `GET /health` returns `{ status, timestamp }` (no success envelope).
-- `validateId` middleware error path returns `{ message, param }` for malformed UUID params (not the standard `error.code/details` envelope).
-
-Role-specific payload shape for `GET /assignments`:
-
-- Admin response: `data` is an array of assignments + top-level `pagination`.
-- Student response: `data` is `{ assignments: [...] }` (no top-level pagination).
-
-### Health
-
-| Method | Endpoint | Auth | Role | Notes |
-|---|---|---|---|---|
-| GET | /health | No | Public | Lightweight readiness check |
-
-### Auth
-
-| Method | Endpoint | Auth | Role | Body |
-|---|---|---|---|---|
-| POST | /auth/register | No | Public | full_name, email, student_id, password |
-| POST | /auth/login | No | Public | email, password |
-| POST | /auth/refresh | No | Public | refreshToken |
-| GET | /auth/me | Yes | Student/Admin | None |
-
-### Groups
-
-| Method | Endpoint | Auth | Role | Body/Query |
-|---|---|---|---|---|
-| POST | /groups | Yes | Student | name, description? |
-| GET | /groups/my-group | Yes | Student | None |
-| POST | /groups/members | Yes | Student | email or student_id |
-| DELETE | /groups/members/:userId | Yes | Student | Path UUID |
-| POST | /groups/leave | Yes | Student | None |
-| DELETE | /groups | Yes | Student | None |
-| GET | /groups | Yes | Admin | page?, limit? |
-| GET | /groups/:groupId | Yes | Admin | Path UUID |
-
-### Assignments
-
-| Method | Endpoint | Auth | Role | Body/Query |
-|---|---|---|---|---|
-| POST | /assignments | Yes | Admin | title, description?, due_date, onedrive_link, assign_to, group_ids? |
-| PUT | /assignments/:id | Yes | Admin | Partial update of create fields |
-| DELETE | /assignments/:id | Yes | Admin | Path UUID |
-| GET | /assignments | Yes | Student/Admin | page?, limit? (admin only) |
-| GET | /assignments/:id | Yes | Student/Admin | Path UUID |
-
-### Submissions
-
-| Method | Endpoint | Auth | Role | Body |
-|---|---|---|---|---|
-| POST | /submissions/prepare | Yes | Student | assignment_id |
-| POST | /submissions | Yes | Student | assignment_id, confirmation_token |
-| GET | /submissions/my-group-submissions | Yes | Student | None |
-| GET | /submissions/group-progress | Yes | Student | None |
-| GET | /submissions/assignment/:assignmentId | Yes | Admin | Path UUID |
-| GET | /submissions/assignment/:assignmentId/groups-student-status | Yes | Admin | Path UUID |
-
-### Dashboard
-
-| Method | Endpoint | Auth | Role | Notes |
-|---|---|---|---|---|
-| GET | /dashboard/student | Yes | Student | Group context + assignment counters + upcoming deadlines |
-| GET | /dashboard/admin/summary | Yes | Admin | Totals + overall completion |
-| GET | /dashboard/admin/assignments-analytics | Yes | Admin | Per-assignment completion |
-| GET | /dashboard/admin/groups-analytics | Yes | Admin | Per-group completion |
-
-### Validation and Behavior Highlights
-
-- Passwords must be at least 8 chars and include a number and special character.
-- Group names are unique and constrained to letters, numbers, spaces, and hyphens.
-- Group size is capped at 6 students.
-- Admin users cannot be added to student groups.
-- Group leader cannot remove self or leave group directly.
-- Assignment due_date must be a valid future ISO datetime.
-- assign_to = specific requires at least one group_id.
-- `group_ids` are validated against existing groups during create/update.
-- Assignment status is computed server-side as upcoming, active, or overdue.
-- A group can submit an assignment only once.
-- Submission finalization requires a 5-minute confirmation token bound to user + group + assignment.
-
-## Database Schema and Relationships
-
-### Core Tables
-
-| Table | Purpose | Important Constraints |
-|---|---|---|
-| users | Student/admin identity and group membership | Unique email, unique student_id, role checks |
-| groups | Team metadata and leader reference | Unique group name |
-| assignments | Assignment definitions and scope mode | assign_to in (all, specific), soft delete flag |
-| assignment_groups | Junction for specifically targeted groups | Unique (assignment_id, group_id) |
-| submissions | Group-level confirmation records | Unique (assignment_id, group_id), historical group_name snapshot |
-
-### Relationship Notes
-
-- One student can belong to at most one group via users.group_id.
-- A group leader is tracked by groups.created_by.
-- Assignment targeting is either all groups or specific groups via assignment_groups.
-- Submissions are group-centric, not individual-centric.
-- If a group is deleted, member links are released and submission history is retained.
-
-### ER Diagram
-
-```mermaid
-erDiagram
-    USERS {
-        uuid id PK
-        string full_name
-        string email
-        string student_id
-        string role
-        uuid group_id FK
-        timestamptz created_at
-        timestamptz updated_at
-    }
-
-    GROUPS {
-        uuid id PK
-        string name
-        string description
-        uuid created_by FK
-        timestamptz created_at
-        timestamptz updated_at
-    }
-
-    ASSIGNMENTS {
-        uuid id PK
-        string title
-        text description
-        timestamptz due_date
-        text onedrive_link
-        string assign_to
-        boolean is_deleted
-        uuid created_by FK
-        timestamptz created_at
-        timestamptz updated_at
-    }
-
-    ASSIGNMENT_GROUPS {
-        uuid id PK
-        uuid assignment_id FK
-        uuid group_id FK
-        timestamptz created_at
-    }
-
-    SUBMISSIONS {
-        uuid id PK
-        uuid assignment_id FK
-        uuid group_id FK
-        string group_name
-        uuid submitted_by FK
-        timestamptz confirmed_at
-        timestamptz created_at
-    }
-
-    GROUPS ||--o{ USERS : has_members
-    USERS o|--|| GROUPS : belongs_to
-    USERS ||--o{ GROUPS : leads
-    USERS ||--o{ ASSIGNMENTS : creates
-    ASSIGNMENTS ||--o{ ASSIGNMENT_GROUPS : scopes
-    GROUPS ||--o{ ASSIGNMENT_GROUPS : selected_for
-    ASSIGNMENTS ||--o{ SUBMISSIONS : receives
-    GROUPS o|--o{ SUBMISSIONS : confirms_for
-    USERS ||--o{ SUBMISSIONS : confirmed_by
-```
-
-### Indexing Strategy
-
-The schema includes targeted indexes for common filters and joins:
-
-- users(email), users(student_id), users(group_id)
-- assignments(due_date), assignments(is_deleted)
-- assignment_groups(assignment_id), assignment_groups(group_id)
-- submissions(assignment_id), submissions(group_id), submissions(submitted_by)
-
-## Key Design Decisions
-
-1. Group-level submission confirmation instead of per-student submission.
-2. Two-step submission confirmation (`/submissions/prepare` then `/submissions`) to reduce accidental submissions.
-3. Soft delete for assignments to preserve historical analytics while hiding inactive items.
-4. Submission group name snapshots to retain audit context after group deletion.
-5. Layered backend architecture to keep business logic centralized and testable.
-6. Store-driven frontend data flow to keep role-based pages predictable and maintainable.
-
-## Key Deployment Decisions
-
-1. Docker Compose as the default operational path for reproducible environments.
-2. PostgreSQL init SQL is mounted to `/docker-entrypoint-initdb.d` and executed in lexical order on first volume initialization only.
-3. Admin seed is provided by mounting `backend/src/db/seeds/seed_admin.sql` as `zz_seed_admin.sql` inside the Postgres init directory.
-4. Frontend containerized behind Nginx for production-like static hosting behavior.
-5. Environment-only backend config to avoid hardcoded runtime secrets.
-6. Health-check based service ordering (`postgres` healthy before backend startup).
-
-## Operational Notes
-
-- Students can see global assignments (`assign_to = all`) even before joining a group.
-- Group-targeted assignments and submission actions require group membership.
-- Admin analytics aggregate assignment and group completion using real-time query calculations.
-
-## Useful Commands
-
-```bash
-# Seed student users (from repo root, with stack running)
-docker compose exec backend node seed_users.js
-
-# Register demo students through API script
-node seed_test_data.js
-
-# Create demo-ready group + assignment flow
-node setup_demo.js
-```
-
-## Troubleshooting (Real Cases)
-
-### `node src/db/migrate.js` fails with connection/env errors
-
-Cause: migration script does not call `dotenv.config()`.
-
-Fix options:
-
-1. Prefer Docker-init migrations (`docker compose up`) for this repo.
-2. If running migrate manually, set `DATABASE_URL` in your shell before executing.
-
-### Admin account missing after code updates
-
-Cause: Postgres init scripts only run on a fresh DB volume.
-
-Fix:
-
-```bash
-docker compose down -v --remove-orphans
-docker compose up --build -d
-```
-
-### Frontend gets CORS errors
-
-Cause: backend `CORS_ORIGIN` does not include the current frontend origin.
-
-Fix: set backend `CORS_ORIGIN` to include both, e.g. `http://localhost:3000,http://localhost:5173`.
-
-## Current Status
-
-- End-to-end auth, group, assignment, submission, and dashboard modules are implemented.
-- Student and admin roles are enforced on both route and business-logic layers.
-- Docker startup provisions PostgreSQL schema and default admin account automatically.
+If you want, I can also add a short API contract appendix (request/response samples) directly in this README.
