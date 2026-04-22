@@ -33,6 +33,12 @@ function getAssignmentGroupNames(assignment) {
 }
 
 function getAssignmentScopeLabel(assignment) {
+  const submissionType = assignment.submission_type ?? 'group';
+
+  if (submissionType === 'individual') {
+    return 'All Students in Course';
+  }
+
   if (assignment.assign_to === 'all') {
     return 'All Groups';
   }
@@ -48,6 +54,25 @@ function getAssignmentScopeLabel(assignment) {
   }
 
   return 'Selected Groups';
+}
+
+function getCourseLabel(assignment) {
+  const code = String(assignment?.course_code ?? '').trim();
+  const name = String(assignment?.course_name ?? '').trim();
+
+  if (code && name) {
+    return `${code} - ${name}`;
+  }
+
+  if (code) {
+    return code;
+  }
+
+  if (name) {
+    return name;
+  }
+
+  return 'Unknown Course';
 }
 
 function getAssignmentPreview(description) {
@@ -164,6 +189,7 @@ export default function AssignmentManager() {
 
     const searchableText = [
       assignment.title,
+      getCourseLabel(assignment),
       getAssignmentPreview(assignment.description),
       getAssignmentScopeLabel(assignment),
       assignmentGroups.join(' '),
@@ -319,6 +345,7 @@ export default function AssignmentManager() {
           <>
             <div className="assignment-manager-architectural__table-head" aria-hidden="true">
               <span>Assignment Name</span>
+              <span>Course</span>
               <span>Assigned To</span>
               <span>Due Date</span>
               <span>Status</span>
@@ -328,6 +355,7 @@ export default function AssignmentManager() {
             <div className="assignment-manager-architectural__rows">
               {visibleAssignments.map((assignment) => {
                 const preview = getAssignmentPreview(assignment.description);
+                const courseLabel = getCourseLabel(assignment);
                 const scopeLabel = getAssignmentScopeLabel(assignment);
                 const status = getStatusMeta(assignment.status);
 
@@ -338,6 +366,13 @@ export default function AssignmentManager() {
                       {preview ? (
                         <p className="assignment-manager-architectural__preview">{preview}</p>
                       ) : null}
+                    </div>
+
+                    <div className="assignment-manager-architectural__cell">
+                      <span className="assignment-manager-architectural__cell-label">
+                        Course
+                      </span>
+                      <span className="assignment-manager-architectural__scope">{courseLabel}</span>
                     </div>
 
                     <div className="assignment-manager-architectural__cell">
